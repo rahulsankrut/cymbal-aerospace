@@ -12,63 +12,54 @@ Before starting the demo, run (or say **`"Bake CLM demo"`** in chat):
 
 ---
 
+## The 8-Step End-to-End Demo Workflow (`Deal BA-2026-AV-8921`)
+
+| Step | Persona / Window | Action | Skill / Connector Invoked |
+| :--- | :--- | :--- | :--- |
+| **1. Bake Demo** | Pre-Demo CLI / Chat | Seeds Adele Vance's vendor redline email (`Vendor_Redlined_GP1.docx` + Transmittal Memo attached) into Outlook `Inbox` and resets Deal `BA-2026-AV-8921` | `scripts/bake_demo.py --full` |
+| **2. Review Vendor Email** | Contract Owner (Window 1) | Reviews Adele Vance's urgent email in Outlook and inspects the attached redlined contract (`Vendor_Redlined_GP1.docx`) | `gemini-enterprise-connectors` (M365 Mail) |
+| **3. Upload to SharePoint** | Contract Owner (Window 1) | Uploads `Vendor_Redlined_GP1.docx` to the vendor's contract folder in SharePoint (`/sites/CymbalAerospace/Shared Documents/BA-2026-AV-8921`) | `gemini-enterprise-connectors` (M365 SharePoint) |
+| **4. Playbook & Precedent Comparison View** | Contract Owner (Window 1) | Compares the redlined contract against the Cymbal Playbook and BigQuery historical precedents and renders the interactive HTML workbench | `clm-contract-intake` (`scripts/intake.py`) |
+| **5. Route to SME Owners via Outlook** | Contract Owner (Window 1) | Finds the respective SME domain owners for the 4 redlined clauses, drafts templated routing emails, and sends them via Outlook | `clm-comms` (`scripts/outlook_comms.py route-smes --send`) |
+| **6. Schedule Status Monitor** | Contract Owner (Window 1) | Creates a scheduled job (`/schedule`) in Spark to monitor the Outlook Inbox for SME responses and alert when updates arrive | `automation` (`/schedule`) + `clm-comms` (`scripts/outlook_comms.py poll-inbox`) |
+| **7. Tax SME Review (2nd Window)** | Tax SME — Pradeep Gupta (Window 2) | Reviews `SP3 §4.1` from a Tax perspective (with full-document context toggle), resolves the `GP1 §3.1` Fixed-Price SOW conflict, and sends approval/thoughts back to the Contract Owner | `clm-tax-tariff-review` (`scripts/tax_review.py`) + `clm-comms` (`send-sme-reply --clause-id SP3-04`) |
+| **8. Owner Review, Consolidate & Send Counter-Proposal** | Contract Owner (Window 1) | Reviews SME edits, accepts remaining or alternate positions, generates the Counter-Proposal `.docx` (with Track Changes & comments) and Deviation Matrix `.xlsx`, and sends it back to the vendor | `clm-contract-consolidation` (`record_position.py`, `consolidate.py`) + `clm-comms` (`draft-vendor-reply --send`) |
+
+---
+
 ## Step-by-Step Live Demo Prompts for Spark
 
-### Optional Opening — Morning Briefing (`chief-of-staff`)
-> *"What are my top priorities today?"*
+### Step 1 — Pre-Demo Reset
+> **`"Bake CLM demo"`**
 
----
+### Step 2 — Owner Reviews Vendor Email & Redlined Doc (Window 1: Contract Owner)
+> *"Check my Outlook Inbox for Adele Vance's email on Deal BA-2026-AV-8921 and summarize the attached redlined contract and transmittal memo."*
 
-### Workflow 1 — Contract Owner Intake, Playbook Comparison & SME Routing
-**Window 1 (Contract Owner — Rahul Kasanagottu):**
+### Step 3 — Owner Uploads Redlined Doc to Vendor/Contract SharePoint Folder (Window 1: Contract Owner)
+> *"Upload the attached Vendor_Redlined_GP1.docx to the BA-2026-AV-8921 contract folder for Apex AeroSystems in SharePoint."*
 
-**Prompt 1A (Check Email & Upload Redlined Contract to SharePoint):**
-> *"Check Adele Vance's email on Deal BA-2026-AV-8921 and upload the attached redlined contract to the BA-2026-AV-8921 folder in SharePoint."*
+### Step 4 — Playbook & Historical Precedent Comparison HTML View (Window 1: Contract Owner)
+> *"Compare the vendor redlined contract against our Cymbal Playbook and historical precedents in BigQuery, and open the interactive comparison workbench."*
 
-**Prompt 1B (Compare Against Playbook & Open Review Workbench):**
-> *"Compare the vendor redlined contract against our Cymbal Playbook and historical precedents in BigQuery, and open the review workbench."*
+### Step 5 — Route Redlined Clauses to Respective SME Owners via Outlook (Window 1: Contract Owner)
+> *"Find the respective SME owners for the redlined clauses, draft the review emails using our standard routing template, and send them out via Outlook."*
+*(Note: Use `"draft the review emails..."` to save to Outlook `Drafts` or `"send them out via Outlook"` to dispatch immediately.)*
 
-**Prompt 1C (Route Redlined Clauses to SMEs via Outlook):**
-> *"Draft emails in Outlook to route the 4 redlined sections to their respective SME owners for review."*
-*(Or say *"Send emails in Outlook..."* to send immediately instead of saving to `Drafts`.)*
+### Step 6 — Create Scheduled Job to Monitor SME Responses & Alert (Window 1: Contract Owner)
+> *"/schedule Monitor my Outlook Inbox every 5 minutes (and run an initial check now) for SME review responses on Deal BA-2026-AV-8921, update the review status, and alert me when replies arrive."*
 
----
+### Step 7 — Tax Owner Persona Reviews & Approves in Second Chat (Window 2: Tax SME — Pradeep Gupta)
+- **Prompt 7A (Tax Perspective Review):**
+  > *"Review the tariff redline in SP3 §4.1 for Deal BA-2026-AV-8921 from a Tax perspective against our Playbook and BigQuery precedents, check for any conflict with the GP1 §3.1 Fixed-Price SOW, and open the Tax review workbench."*
+- **Prompt 7B (Approve & Send Thoughts to Contract Owner):**
+  > *"Approve the 50/50 tariff split capped at 2.0% ($900,000) harmonized with GP1 §3.1 and send my Tax review response back to the Contract Owner via Outlook."*
 
-### Workflow 2 — Tax SME Review in Second Window
-**Window 2 (Tax SME — Pradeep Gupta):**
-
-**Prompt 2A (Review Tariff Redline & Resolve SOW Conflict):**
-> *"Review the tariff redline in SP3 §4.1 for Deal BA-2026-AV-8921 against our Playbook and historical precedents in BigQuery, resolve any conflict with the GP1 §3.1 Fixed-Price SOW, and open the Tax review workbench."*
-
-**Prompt 2B (Send SME Recommendation Back to Contract Owner):**
-> *"Send our recommended Tax counter-position back to the Contract Owner via Outlook."*
-
----
-
-### Workflow 3 — Scheduled Email Progress Polling (`/schedule`)
-**Window 1 (Contract Owner — Rahul Kasanagottu):**
-
-**Prompt 3A (Schedule Recurring Outlook Inbox Polling via Spark `/schedule`):**
-> *"/schedule Check my Outlook Inbox every 5 minutes (and run the first check immediately) for SME review replies on Deal BA-2026-AV-8921 and update the review workbench."*
-*(Or for an immediate one-shot check: *"Check my Outlook Inbox for SME review replies on Deal BA-2026-AV-8921 and update the review workbench."*)*
-
----
-
-### Workflow 4 — Final Precedent Check, Consolidation & Vendor Reply
-**Window 1 (Contract Owner — Rahul Kasanagottu):**
-
-**Prompt 4A (Verify Precedents Across All 4 Redlined Positions):**
-> *"Check our historical precedents in BigQuery across all 4 redlined positions, including GP1 §19 Limitation of Liability and IP Indemnity."*
-
-**Prompt 4B (Consolidate Final Counter-Proposal Package):**
-> *"Consolidate all approved counter-positions and reviewer comments into the final Counter-Proposal Word document and Deviation Matrix Excel sheet."*
-
-**Prompt 4C (Explicitly Upload Final Package to SharePoint):**
-> *"Upload the final Counter-Proposal Word document and Deviation Matrix Excel sheet to the BA-2026-AV-8921 folder in SharePoint."*
-
-**Prompt 4D (Draft Reply Email to Vendor with Attachments):**
-> *"Draft a reply email to Adele Vance in Outlook with the final Counter-Proposal Word document and Deviation Matrix attached."*
-*(Or say *"Send the reply email to Adele Vance..."* to send immediately.)*
+### Step 8 — Owner Reviews Edits, Accepts Positions, Consolidates Counter-Proposal & Sends to Vendor (Window 1: Contract Owner)
+- **Prompt 8A (Review Edits & Accept Remaining / Alternate Positions):**
+  > *"Check the latest SME review status and historical precedents for Deal BA-2026-AV-8921, and accept the recommended counter-positions for the remaining clauses so all 4 redlined sections are finalized."*
+  *(Or click **`✓ Accept changes`** directly on each clause inside the HTML Review Workbench.)*
+- **Prompt 8B (Consolidate Counter-Proposal & Send Back to Vendor):**
+  > *"Consolidate all approved counter-positions and reviewer comments into the final Counter-Proposal Word document and Deviation Matrix Excel sheet, and send the counter-proposal package back to Adele Vance at Apex AeroSystems via Outlook."*
 
 ---
 
