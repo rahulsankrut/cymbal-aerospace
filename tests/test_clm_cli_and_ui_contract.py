@@ -16,8 +16,11 @@ from boeing_clm.models import (
     SMEReviewSubmission,
 )
 from skills.clm_cli import (
+    RECOMMENDED_COUNTER_DEFAULTS,
+    apply_local_harmonize,
     apply_local_position,
     build_fresh_docx_and_xlsx,
+    build_sme_draft_specs,
     generate_canvas_workbench_html,
     generate_tax_reviewer_workbench_html,
     load_seed,
@@ -134,3 +137,30 @@ def test_document_reviewer_ui_generation(tmp_path: Path, monkeypatch) -> None:
     assert "APPLY PRE-APPROVED 2.0x PLAYBOOK FALLBACK" in main_text
     assert "VIOLATES PLAYBOOK LOCKOUT (LOCKOUT-GP1-12-FAA)" in main_text
     assert "Cymbal Playbook Preferred Standard" in main_text
+
+    # Fix 1: applyPreset(optionKey) looks up matchedOpt in playbook_options & renders o.badge + recommended_option_key
+    assert "const matchedOpt = opts.find(o => o.option_key === optionKey);" in main_text
+    assert "const isRec = o.recommended || o.option_key === clause.recommended_option_key;" in main_text
+    assert "o.badge" in main_text
+
+    # Fix 2: Sticky Word Margin Balloons + scrollIntoView in openDrawer
+    assert 'style="position:sticky;top:12px;"' in main_text
+    assert "el.scrollIntoView({ behavior: 'smooth', block: 'center' });" in main_text
+
+    # Fix 3 & 4: Off-by-one GP1-12 index removed & SP3-04 tariff cap standardized to 2.0% ($900,000) everywhere
+    cli_source = (REPO_ROOT / "skills" / "clm_cli.py").read_text(encoding="utf-8")
+    assert 'state["clauses"][4]["boeing_baseline_text"]' not in cli_source
+    assert "2.5%" not in cli_source
+    assert "$1,125,000" not in cli_source
+    assert RECOMMENDED_COUNTER_DEFAULTS["GP1-12"]["counter_text"].startswith("12.2")
+    assert "2.0% ($900,000)" in RECOMMENDED_COUNTER_DEFAULTS["SP3-04"]["counter_text"]
+
+    specs = build_sme_draft_specs(state)
+    tax_spec = next(s for s in specs if s["clause_id"] == "SP3-04")
+    assert "2.0% ($900,000)" in tax_spec["precedent_stat"]
+    assert "+2.0% ($900,000)" in tax_spec["recommended_action"]
+
+    harmonized_state = apply_local_harmonize(json.loads(json.dumps(state)), "CONFLICT-SP3-04-GP1-03", "Pradeep Gupta")
+    sp3_clause = next(c for c in harmonized_state["clauses"] if c["clause_id"] == "SP3-04")
+    assert "2.0% ($900,000)" in sp3_clause["selected_counter_text"]
+    assert "+2.0% ($900,000)" in sp3_clause["sme_rationale"]

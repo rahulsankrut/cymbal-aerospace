@@ -197,11 +197,11 @@ def build_sme_draft_specs(state: Dict[str, Any]) -> List[Dict[str, Any]]:
             "to_email": "PradeepG@36zrbd.onmicrosoft.com",
             "subject": "[ACTION REQUIRED: SME Review] Deal BA-2026-AV-8921 — SP3 §4.1 Section 232/301 Tariff Pass-Through vs. GP1 §3.1 FFP Conflict",
             "guardrail": "CROSS-CLAUSE CONFLICT (CONFLICT-SP3-04-GP1-03 — Collides with GP1 §3.1 $45,000,000 Firm-Fixed-Price SOW Lock)",
-            "precedent_stat": "63% Shared Cap Compromise (10 of 16 historical Tier-1 Avionics deals used a 50/50 tariff-sharing band above a 5% statutory threshold, capped at 2.5% of PO value)",
+            "precedent_stat": "63% Shared Cap Compromise (10 of 16 historical Tier-1 Avionics deals used a 50/50 tariff-sharing band above a 5% statutory threshold, capped at 2.0% ($900,000) of PO value)",
             "baseline_summary": "DDP Cymbal Everett/Renton; Seller bears 100% of all customs duties, import fees, and Section 232/301 tariffs inside the $45,000,000 Firm-Fixed-Price.",
             "redline_summary": "100% of any newly enacted or increased Section 232/301 tariffs on raw titanium, rare-earth magnets, or semiconductors passed through to Buyer as an automatic line-item surcharge.",
             "vendor_comment": "Apex Tax & Treasury: Volatile Section 232/301 trade actions on Japanese titanium and Taiwanese wafers cannot be absorbed inside fixed unit pricing.",
-            "recommended_action": "Execute Joint Tax & Procurement Harmonization: Seller absorbs first 5.0% of verified Section 232/301 tariff increases; 50/50 split above 5.0%, strictly capped at +2.5% ($1,125,000) of Total PO Value under GP1 §3.1.",
+            "recommended_action": "Execute Joint Tax & Procurement Harmonization: Seller absorbs first 5.0% of verified Section 232/301 tariff increases; 50/50 split above 5.0%, strictly capped at +2.0% ($900,000) of Total PO Value under GP1 §3.1.",
         },
         {
             "team": "CYBER",
@@ -1950,7 +1950,10 @@ def generate_canvas_workbench_html(
         this.renderAll();
         setTimeout(() => {{
           const el = document.getElementById(d === 'REWRITE' ? 'rewrite-textarea' : 'comment-textarea');
-          if (el) el.focus();
+          if (el) {{
+            el.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
+            el.focus();
+          }}
         }}, 40);
       }}
 
@@ -1967,21 +1970,20 @@ def generate_canvas_workbench_html(
 
       applyPreset(optionKey) {{
         const clause = this.getActiveClause();
-        const pa = clause.precedent_analysis || {{}};
-        const opts = pa.playbook_options || [];
-        const match = opts.find(o => o.option_key === optionKey);
-        if (match && match.counter_text) {{
-          clause.proposed_counter_text = match.counter_text;
+        const opts = (clause.precedent_analysis && clause.precedent_analysis.playbook_options) || [];
+        const matchedOpt = opts.find(o => o.option_key === optionKey);
+        if (matchedOpt && matchedOpt.counter_text) {{
+          clause.proposed_counter_text = matchedOpt.counter_text;
         }} else if (optionKey === 'hold_firm') {{
           clause.proposed_counter_text = clause.boeing_baseline_text;
         }} else if (optionKey === 'accept_vendor') {{
           clause.proposed_counter_text = clause.vendor_redline_text;
-        }} else if (optionKey === 'compromise_tier_1') {{
+        }} else {{
           clause.proposed_counter_text = clause.recommended_counter_text || clause.boeing_baseline_text;
         }}
         clause.proposed_option_key = optionKey;
         clause.counter_diff_html = computeWordDiffHtml(clause.vendor_redline_text, clause.proposed_counter_text);
-        this.toastMessage = `✦ Loaded Playbook Option ("${{optionKey}}") into Counter-Position for ${{clause.clause_ref}}`;
+        this.toastMessage = `✦ Loaded Playbook Option ("${{matchedOpt ? matchedOpt.label : optionKey}}") into Counter-Position for ${{clause.clause_ref}}`;
         this.renderAll();
       }}
 
@@ -2378,7 +2380,7 @@ def generate_canvas_workbench_html(
                 </div>
 
                 <!-- Right Word Margin Balloons (<w:comment w:author="...">) -->
-                <div>
+                <div style="position:sticky;top:12px;">
                   <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-muted);margin-bottom:8px;">
                     💬 Word Margin Comments (<code>comments.xml</code>)
                   </div>
@@ -2487,11 +2489,16 @@ def generate_canvas_workbench_html(
                   <div style="display:flex;flex-direction:column;gap:8px;">
                     ${{opts.map(o => {{
                       const isSel = clause.proposed_option_key === o.option_key;
+                      const isRec = o.recommended || o.option_key === clause.recommended_option_key;
+                      const isLockoutBadge = o.badge && o.badge.toUpperCase().includes('LOCKOUT');
                       return `
                         <div onclick="window.app.applyPreset('${{o.option_key}}')" style="cursor:pointer;padding:10px 12px;border-radius:9px;border:1.5px solid ${{isSel ? '#6366f1' : '#e2e8f0'}};background:${{isSel ? 'var(--pastel-indigo-bg)' : '#ffffff'}};">
-                          <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+                          <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;">
                             <span style="font-weight:800;font-size:12px;color:#1e1b4b;">${{escapeHtml(o.label)}}</span>
-                            ${{o.recommended ? '<span class="pill pill-green" style="font-size:10px;padding:2px 7px;">★ RECOMMENDED</span>' : ''}}
+                            <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
+                              ${{o.badge ? `<span class="pill ${{isLockoutBadge ? 'pill-red' : 'pill-indigo'}}" style="font-size:10px;padding:2px 7px;">${{escapeHtml(o.badge)}}</span>` : ''}}
+                              ${{isRec ? '<span class="pill pill-green" style="font-size:10px;padding:2px 7px;">★ RECOMMENDED</span>' : ''}}
+                            </div>
                           </div>
                           <div style="font-size:12px;color:var(--ink-secondary);margin-top:4px;line-height:1.45;">
                             ${{escapeHtml(o.counter_text)}}
@@ -2810,7 +2817,7 @@ def apply_local_harmonize(state: Dict[str, Any], rule_id: str, actor: str) -> Di
         "Section 232 or Section 301 tariff rate increases taking effect after the Effective Date. Verified "
         "increases exceeding the 5.0% threshold on raw titanium or semiconductor wafers shall be shared "
         "50% by Buyer and 50% by Seller upon audited customs entry documentation, provided Buyer's maximum "
-        "aggregate tariff adjustment across the Contract term shall never exceed 2.5% ($1,125,000) of the "
+        "aggregate tariff adjustment across the Contract term shall never exceed 2.0% ($900,000) of the "
         "Total Firm-Fixed-Price PO Value under GP1 §3.1."
     )
     state["active_conflicts"] = [
@@ -2825,7 +2832,7 @@ def apply_local_harmonize(state: Dict[str, Any], rule_id: str, actor: str) -> Di
             c["sme_rationale"] = (
                 "Joint Tax & Procurement Harmonization: Resolved CONFLICT-SP3-04-GP1-03 by replacing uncapped "
                 "tariff surcharge with 50/50 risk-sharing above 5.0% statutory threshold, strictly capped at "
-                "+2.5% ($1,125,000) of Total Firm-Fixed-Price PO Value under GP1 §3.1."
+                "+2.0% ($900,000) of Total Firm-Fixed-Price PO Value under GP1 §3.1."
             )
     state.setdefault("recent_events", []).insert(
         0,
@@ -4075,25 +4082,25 @@ def main() -> None:
         default_counters = {
             "GP1-12": (
                 "hold_firm",
-                state["clauses"][4]["boeing_baseline_text"],
+                RECOMMENDED_COUNTER_DEFAULTS["GP1-12"]["counter_text"],
                 "Megan Bowen",
                 "Hold Firm per FAA 14 CFR Part 21.140 quality system flow-down mandate and 88% (14/16) Tier-1 Avionics precedent.",
             ),
             "GP1-19": (
                 "compromise_tier_1",
-                "19.1 Tier-1 Avionics Super-Cap & Flight-Safety Carveout. Except for (a) Seller's intellectual property and airworthiness indemnification obligations under Section 24, (b) breach of confidentiality or DFARS cybersecurity obligations, (c) gross negligence or willful misconduct, or (d) any Airworthiness Directive (AD), fleet grounding, or flight-safety recall event attributable to a defect in the Goods (for which liability remains uncapped), Seller's aggregate liability for general commercial claims under this Contract shall not exceed two times (2x) the Total PO Value ($90,000,000).",
+                RECOMMENDED_COUNTER_DEFAULTS["GP1-19"]["counter_text"],
                 "Rahul Kasanagottu",
                 "Approved Tier-1 Avionics Compromise (69% precedent / 11 of 16 deals): 2x PO Value ($90M) Super-Cap with mandatory uncapped carveout for Flight-Safety/Airworthiness and IP Indemnity.",
             ),
             "SP3-04": (
                 "compromise_tier_1",
-                "4.1 Customs, Duties & Section 232/301 Tariff Risk-Sharing Cap. Delivery remains DDP Buyer's Everett/Renton facility per Incoterms 2020. Seller absorbs the first 5.0% of any newly enacted Section 232 or Section 301 tariff rate increases taking effect after the Effective Date. Verified increases exceeding the 5.0% threshold on raw titanium or semiconductor wafers shall be shared 50% by Buyer and 50% by Seller upon audited customs entry documentation, provided Buyer's maximum aggregate tariff adjustment across the Contract term shall never exceed 2.5% ($1,125,000) of the Total Firm-Fixed-Price PO Value under GP1 §3.1.",
+                RECOMMENDED_COUNTER_DEFAULTS["SP3-04"]["counter_text"],
                 "Pradeep Gupta",
-                "Harmonized CONFLICT-SP3-04-GP1-03 (63% precedent / 10 of 16 deals): 50/50 tariff sharing above 5.0% threshold, capped at +2.5% ($1,125,000) of Total Firm-Fixed-Price PO Value.",
+                "Harmonized CONFLICT-SP3-04-GP1-03 (63% precedent / 10 of 16 deals): 50/50 tariff sharing above 5.0% threshold, capped at +2.0% ($900,000) of Total Firm-Fixed-Price PO Value.",
             ),
             "SP5-03": (
                 "hold_firm",
-                state["clauses"][11]["boeing_baseline_text"],
+                RECOMMENDED_COUNTER_DEFAULTS["SP5-03"]["counter_text"],
                 "Alex Wilber",
                 "Hold Firm per mandatory DoD DFARS 252.204-7012 72-hour cyber incident reporting & 24-hour isolated forensic media preservation flow-down (94% precedent / 15 of 16 deals).",
             ),
