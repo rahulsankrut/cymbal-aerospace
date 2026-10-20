@@ -178,31 +178,72 @@ def _graph_req(
 
 
 def stage_1_reset_deal_and_sync_skills() -> None:
-    _banner(1, "Reset Deal BA-2026-AV-8921 State, Start Loopback Bridge & Sync 4 Focused CLM Skills")
+    _banner(1, "Reset Deal BA-2026-AV-8921 State, Start Loopback Bridge & Sync Cymbal Aerospace CLM Plugin")
     cli_src = ROOT / "skills" / "clm_cli.py"
     seed_src = ROOT / "skills" / "cymbal_clm_seed.json"
+    plugin_src = ROOT / "plugins" / "cymbal-aerospace-clm"
 
+    # Keep plugin bundle files synchronized with repo root
+    (plugin_src / "rules").mkdir(parents=True, exist_ok=True)
+    if (ROOT / "AGENTS.md").exists():
+        shutil.copy2(ROOT / "AGENTS.md", plugin_src / "rules" / "AGENTS.md")
+    if (ROOT / "sidecars" / "cymbal-clm-workbench").exists():
+        shutil.copytree(
+            ROOT / "sidecars" / "cymbal-clm-workbench",
+            plugin_src / "sidecars" / "cymbal-clm-workbench",
+            dirs_exist_ok=True,
+        )
+    (plugin_src / "skills").mkdir(parents=True, exist_ok=True)
+    shutil.copy2(cli_src, plugin_src / "skills" / "clm_cli.py")
+    shutil.copy2(seed_src, plugin_src / "skills" / "cymbal_clm_seed.json")
+    if (ROOT / "skills" / "clm-ux-design-system").exists():
+        shutil.copytree(
+            ROOT / "skills" / "clm-ux-design-system",
+            plugin_src / "skills" / "clm-ux-design-system",
+            dirs_exist_ok=True,
+        )
+
+    # Sync each skill + its per-skill scripts from plugins/cymbal-aerospace-clm/skills/<s_name>
+    target_skill_roots = [ROOT / "skills", ROOT / ".agents" / "skills"]
     if SPARK_WORKSPACE.exists():
         skills_dst = SPARK_WORKSPACE / "skills"
         skills_dst.mkdir(parents=True, exist_ok=True)
         shutil.copy2(cli_src, skills_dst / "clm_cli.py")
         shutil.copy2(seed_src, skills_dst / "cymbal_clm_seed.json")
+        target_skill_roots.append(skills_dst)
 
-        for rem in REDUNDANT_SKILLS_TO_REMOVE:
-            for base_dir in (skills_dst / rem, ROOT / ".agents" / "skills" / rem):
-                if base_dir.exists():
-                    shutil.rmtree(base_dir, ignore_errors=True)
+    for rem in REDUNDANT_SKILLS_TO_REMOVE:
+        for sr in target_skill_roots:
+            if (sr / rem).exists():
+                shutil.rmtree(sr / rem, ignore_errors=True)
 
-        for s in CLM_SKILLS:
-            skill_md_src = ROOT / "skills" / s / "SKILL.md"
-            for base_dir in (ROOT / "skills" / s, ROOT / ".agents" / "skills" / s, skills_dst / s):
-                scripts_dir = base_dir / "scripts"
-                scripts_dir.mkdir(parents=True, exist_ok=True)
-                if skill_md_src.exists() and (base_dir / "SKILL.md") != skill_md_src:
-                    shutil.copy2(skill_md_src, base_dir / "SKILL.md")
-                shutil.copy2(cli_src, scripts_dir / "clm_cli.py")
-                shutil.copy2(seed_src, scripts_dir / "cymbal_clm_seed.json")
-        print(f"  ✓ Synced {len(CLM_SKILLS)} focused CLM skills ({', '.join(CLM_SKILLS)}) to {skills_dst}")
+    for s in CLM_SKILLS:
+        plugin_skill_dir = plugin_src / "skills" / s
+        for sr in target_skill_roots:
+            dest_skill_dir = sr / s
+            dest_scripts_dir = dest_skill_dir / "scripts"
+            dest_scripts_dir.mkdir(parents=True, exist_ok=True)
+            if (plugin_skill_dir / "SKILL.md").exists() and (dest_skill_dir / "SKILL.md") != (plugin_skill_dir / "SKILL.md"):
+                shutil.copy2(plugin_skill_dir / "SKILL.md", dest_skill_dir / "SKILL.md")
+            if (plugin_skill_dir / "scripts").exists():
+                for py_script in (plugin_skill_dir / "scripts").glob("*.py"):
+                    if (dest_scripts_dir / py_script.name) != py_script:
+                        shutil.copy2(py_script, dest_scripts_dir / py_script.name)
+            shutil.copy2(cli_src, dest_scripts_dir / "clm_cli.py")
+            shutil.copy2(seed_src, dest_scripts_dir / "cymbal_clm_seed.json")
+
+    # Install/sync the full plugin bundle to .agents/plugins and ~/.gemini/config/plugins
+    for plugin_dst in (
+        ROOT / ".agents" / "plugins" / "cymbal-aerospace-clm",
+        pathlib.Path.home() / ".gemini" / "config" / "plugins" / "cymbal-aerospace-clm",
+    ):
+        plugin_dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(plugin_src, plugin_dst, dirs_exist_ok=True)
+
+    print(
+        f"  ✓ Synced plugin `cymbal-aerospace-clm` and {len(CLM_SKILLS)} focused CLM skills "
+        f"({', '.join(CLM_SKILLS)}) across workspace, global plugins, and Spark"
+    )
 
     ensure_host_loopback_bridge()
 

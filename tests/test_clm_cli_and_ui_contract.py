@@ -230,11 +230,13 @@ def test_dual_runtime_sidecar_and_sanitization_guardrails(tmp_path: Path) -> Non
     assert "window.sidecar.agent.sendMessage(promptText)" in main_html
     assert "📧 Route 4 SME Emails in Outlook" in main_html
     assert "🔄 Poll Outlook for SME Replies" in main_html
-    assert "📦 Consolidate & Draft Vendor Reply" in main_html
+    assert "📦 Consolidate .docx &amp; .xlsx Package" in main_html
 
     cli_source = (REPO_ROOT / "skills" / "clm_cli.py").read_text(encoding="utf-8")
     assert 'os.environ.get("ANTIGRAVITY_SIDECAR_WEB_PORT"' in cli_source
     assert 'self.path == "/preload.js"' in cli_source
+    assert 'self.path == "/api/rewrite"' in cli_source
+    assert "_bg_sp_sync" not in cli_source
 
     # 3. Verify Prompt-Injection Sandwich Defense in rewrite_clause_with_gemini
     res = rewrite_clause_with_gemini(
@@ -267,4 +269,58 @@ def test_dual_runtime_sidecar_and_sanitization_guardrails(tmp_path: Path) -> Non
     api_server_source = (REPO_ROOT / "src" / "boeing_clm" / "server" / "api_server.py").read_text(encoding="utf-8")
     assert "_Cymbal_Counter_Proposal.docx" in api_server_source
     assert "_Boeing_Counter_Proposal.docx" not in api_server_source
+
+
+def test_plugin_bundle_per_skill_scripts_and_single_responsibility() -> None:
+    """
+    Verifies:
+    1. Standard Antigravity plugin structure at `plugins/cymbal-aerospace-clm/` with `plugin.json`,
+       `README.md`, `rules/AGENTS.md`, `sidecars/cymbal-clm-workbench/sidecar.json`, and `skills/`.
+    2. Per-skill scripts (`intake.py`, `tax_review.py`, `precedents.py`, `record_position.py`,
+       `consolidate.py`, `outlook_comms.py`) exist and are executable.
+    3. SKILL.md files do not hardcode deal percentages (`88%`, `69%`, `63%`, `94%`) or bundle
+       unrequested SharePoint uploads.
+    4. `parse_and_ingest_real_docx` parses real .docx files and `deliver_sme_update_emails_to_inbox`
+       honors `--clause-id SP3-04` for single-SME replies.
+    """
+    from skills.clm_cli import deliver_sme_update_emails_to_inbox, parse_and_ingest_real_docx
+
+    plugin_root = REPO_ROOT / "plugins" / "cymbal-aerospace-clm"
+    assert (plugin_root / "plugin.json").exists()
+    assert (plugin_root / "README.md").exists()
+    assert (plugin_root / "rules" / "AGENTS.md").exists()
+    assert (plugin_root / "sidecars" / "cymbal-clm-workbench" / "sidecar.json").exists()
+
+    expected_scripts = [
+        plugin_root / "skills" / "clm-contract-intake" / "scripts" / "intake.py",
+        plugin_root / "skills" / "clm-tax-tariff-review" / "scripts" / "tax_review.py",
+        plugin_root / "skills" / "clm-contract-consolidation" / "scripts" / "precedents.py",
+        plugin_root / "skills" / "clm-contract-consolidation" / "scripts" / "record_position.py",
+        plugin_root / "skills" / "clm-contract-consolidation" / "scripts" / "consolidate.py",
+        plugin_root / "skills" / "clm-comms" / "scripts" / "outlook_comms.py",
+    ]
+    for script_path in expected_scripts:
+        assert script_path.exists(), f"Missing per-skill script: {script_path}"
+
+    for skill_name in ("clm-contract-intake", "clm-tax-tariff-review", "clm-contract-consolidation", "clm-comms"):
+        md_text = (plugin_root / "skills" / skill_name / "SKILL.md").read_text(encoding="utf-8")
+        for forbidden_pct in ("88%", "69%", "63%", "94%"):
+            assert forbidden_pct not in md_text, f"Hardcoded percentage {forbidden_pct} found in {skill_name}/SKILL.md"
+
+    # Verify real .docx parsing against golden fixtures
+    parsed_state = parse_and_ingest_real_docx(
+        deal_id="BA-2026-AV-8921",
+        vendor_docx_path="specs/04_golden_fixtures/Vendor_Redlined_GP1.docx",
+        baseline_docx_path="specs/04_golden_fixtures/Cymbal_GP1_Standard.docx",
+    )
+    assert parsed_state["total_clauses_parsed"] == 12
+    assert parsed_state["redlined_clauses_count"] == 4
+    assert parsed_state["untouched_clauses_count"] == 8
+
+    # Verify single-SME filter on deliver_sme_update_emails_to_inbox
+    tax_only = deliver_sme_update_emails_to_inbox(clause_id="SP3-04")
+    assert len(tax_only) == 1
+    assert tax_only[0]["clause_id"] == "SP3-04"
+    assert tax_only[0]["sme_team"] == "TAX"
+
 

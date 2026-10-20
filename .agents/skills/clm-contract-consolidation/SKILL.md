@@ -1,44 +1,79 @@
 ---
 name: clm-contract-consolidation
-description: Verifies BigQuery historical precedents across all 4 redlined positions (`GP1-12`, `GP1-19`, `SP3-04`, `SP5-03`), consolidates all SME and Contract Owner positions and user comments from `BA-2026-AV-8921_Working_Review.docx` into the final `BA-2026-AV-8921_Cymbal_Counter_Proposal.docx` (with Word Track Changes `<w:ins>`/`<w:del>` and user-attributed `<w:comment>` margins) and `BA-2026-AV-8921_SharePoint_Deviation_Matrix.xlsx`, and updates the Reviewer UI in Spark Canvas.
+description: Queries BigQuery historical precedents across redlined positions, records SME or Contract Owner review positions and user-attributed Word comments into the Working Review .docx, and consolidates all approved positions into the final Counter-Proposal .docx (with OOXML Track Changes <w:ins>/<w:del> and <w:comment> margins) and 4-Tab SharePoint Deviation Matrix .xlsx.
 ---
 
-# Cymbal Aerospace CLM — Precedent Verification & Final Counter-Proposal Consolidation (`clm-contract-consolidation`)
+# Cymbal Aerospace CLM — Precedent Verification & Contract Consolidation (`clm-contract-consolidation`)
 
-## 1. When to Activate
-Activate this skill in **Workflow 4 (Contract Owner Precedent Check & Final Consolidation)** whenever the user asks to:
-- Check historical precedents across all redlined positions (or verify the remaining `GP1 §19 & §24` Limitation of Liability & IP Indemnity position) using BigQuery (`vertex-ai-demos-468803.boeing_clm.historical_clause_exceptions`),
-- Consolidate all SME and Contract Owner decisions and user comments from **`BA-2026-AV-8921_Working_Review.docx`** into the final Counter-Proposal Word document (**`BA-2026-AV-8921_Cymbal_Counter_Proposal.docx`**) and 4-tab Deviation Matrix (**`BA-2026-AV-8921_SharePoint_Deviation_Matrix.xlsx`**).
+Use this skill when the Contract Owner or reviewer asks to:
+1. Verify BigQuery historical precedents for a specific clause (e.g., `GP1-19`) or across all redlined clauses (`ALL`).
+2. Record a review decision (`hold_firm`, `compromise_tier_1`, `accept_vendor`, or `custom_counter`) and a human-attributed Word comment (`w:author`) into `<deal_id>_Working_Review.docx`.
+3. Consolidate all recorded positions and comments from `<deal_id>_Working_Review.docx` into the final `<deal_id>_Cymbal_Counter_Proposal.docx` and `<deal_id>_SharePoint_Deviation_Matrix.xlsx`.
 
-*(Note: SharePoint upload and Outlook vendor reply emails are called explicitly as separate steps when requested by the user.)*
+> **Single-Responsibility Boundary**: This skill performs BigQuery precedent verification, Working Review `.docx` position recording, and local `.docx` + `.xlsx` package generation ONLY. Do **NOT** auto-upload files to SharePoint or auto-draft/send Outlook emails inside this skill. Uploading to SharePoint (via the SharePoint connector) or drafting/sending the vendor reply email (via `clm-comms`) must only occur when explicitly requested by the user.
 
 ---
 
-## 2. Step-by-Step Execution
+## Step 1 — Verify BigQuery Precedents (`scripts/precedents.py`)
 
-### Step 1 — Verify Historical Precedents Across All 4 Positions (`precedents --clause-id ALL`)
-When asked to check BigQuery precedents across all 4 redlined clauses (`64` total historical Tier-1 Avionics deals, `16` per clause):
-
-```bash
-python3 ~/ge_spark_workspace/skills/clm_cli.py precedents --deal-id BA-2026-AV-8921 --clause-id ALL
-```
-
-- **`GP1-12` (Engineering / FAA Quality):** `88%` (`14/16` deals) **Held Firm** on 36-Month Warranty & 24-Hr FAA Source Inspection.
-- **`GP1-19` (Legal / Liability & IP):** `69%` (`11/16` deals) **Tier-1 Compromise** — `2.0x PO ($90,000,000) Super-Cap` with uncapped Airworthiness Directive (AD) recall & IP combination indemnity carveouts.
-- **`SP3-04` (Global Tax / Tariffs):** `63%` (`10/16` deals) **Tier-1 Compromise** — `50/50 shared tariff adjustment above 5.0%`, capped at `+2.0% ($900,000)` of FFP SOW.
-- **`SP5-03` (Cyber / DFARS 252.204-7012):** `94%` (`15/16` deals) **Held Firm** on mandatory 72-Hour Cyber Incident Reporting & 24-Hour Forensic Media Preservation.
-
-### Step 2 — Generate the Final Consolidated `.docx` & `.xlsx` (`consolidate`)
-When asked to consolidate all approved positions and comments into the final Word and Excel package:
+To inspect live BigQuery `VECTOR_SEARCH` precedents for a specific clause (e.g., `GP1-19`) or across all redlined positions (`ALL`):
 
 ```bash
-python3 ~/ge_spark_workspace/skills/clm_cli.py consolidate --deal-id BA-2026-AV-8921 --output-dir .
+python3 /Users/rahulsankrut/ge_spark_workspace/skills/clm-contract-consolidation/scripts/precedents.py \
+  --deal-id BA-2026-AV-8921 \
+  --clause-id ALL
 ```
 
-This command:
-1. Consolidates all accepted/edited counter-positions and human user comments (`w:author="Megan Bowen"`, `w:author="Rahul Kasanagottu"`, `w:author="Pradeep Gupta"`, `w:author="Alex Wilber"` — never system comments) from **`BA-2026-AV-8921_Working_Review.docx`** into **`./BA-2026-AV-8921_Cymbal_Counter_Proposal.docx`** and **`./BA-2026-AV-8921_SharePoint_Deviation_Matrix.xlsx`**.
-2. Updates **`./cymbal_clm_redline_workbench.html`** in the current directory.
+*(Or pass `--clause-id GP1-19` to focus on a single clause.)*
 
-### Step 3 — Open the Updated Reviewer UI & Provide File Links (Mandatory)
-1. Open **`./cymbal_clm_redline_workbench.html`** in **Spark Canvas**.
-2. Provide clickable links to **`./BA-2026-AV-8921_Cymbal_Counter_Proposal.docx`** and **`./BA-2026-AV-8921_SharePoint_Deviation_Matrix.xlsx`**.
+---
+
+## Step 2 — Record a Clause Position & User Comment (`scripts/record_position.py`)
+
+When a reviewer or Contract Owner approves or updates a counter-position for a clause (or when syncing an SME decision into `<deal_id>_Working_Review.docx`):
+
+```bash
+python3 /Users/rahulsankrut/ge_spark_workspace/skills/clm-contract-consolidation/scripts/record_position.py \
+  --deal-id BA-2026-AV-8921 \
+  --clause-id GP1-19 \
+  --sme-team LEGAL \
+  --option compromise_tier_1 \
+  --counter-text "<approved_counter_language>" \
+  --reviewer "Rahul Kasanagottu" \
+  --rationale "<reviewer_word_comment>"
+```
+
+This updates the clause state, writes the accepted change and `<w:comment w:author="...">` into `<deal_id>_Working_Review.docx`, and refreshes `cymbal_clm_redline_workbench.html`.
+
+---
+
+## Step 3 — Consolidate the Final `.docx` & `.xlsx` Package (`scripts/consolidate.py`)
+
+When the user asks to consolidate the contract into the final Word Counter-Proposal and Excel Deviation Matrix:
+
+```bash
+python3 /Users/rahulsankrut/ge_spark_workspace/skills/clm-contract-consolidation/scripts/consolidate.py \
+  --deal-id BA-2026-AV-8921 \
+  --output-dir .
+```
+
+*(If the user explicitly asks to apply the recommended Playbook counter-positions to any remaining unreviewed clauses during consolidation, pass `--approve-recommended`.)*
+
+### What `scripts/consolidate.py` Produces:
+1. **`<deal_id>_Working_Review.docx`**: Clean working contract with accepted changes applied in-place and user-attributed `<w:comment>` margins.
+2. **`<deal_id>_Cymbal_Counter_Proposal.docx`**: Official external redlined Word contract with native OOXML `<w:del>`, `<w:ins>`, and `<w:comment>` balloons attributed to each human reviewer, verified by `assert_external_docx_sanitized()` so zero internal playbook markers leak externally.
+3. **`<deal_id>_SharePoint_Deviation_Matrix.xlsx`**: 4-tab Excel workbook (`Executive Summary`, `Clause Sign-Off Matrix`, `BigQuery Precedents`, `Immutable Audit Trail`).
+4. **`cymbal_clm_redline_workbench.html`**: Refreshed interactive Reviewer UI in the current working directory.
+
+---
+
+## Step 4 — Present the Consolidation Summary
+
+Using the live JSON output from the scripts:
+1. Report `status`, `approved_redlined_clauses_count`, and `pending_redlined_clauses_count`.
+2. Present a summary table of the redlined clauses showing each clause's final status, selected option, reviewer name (`w:author`), and counter-language.
+3. Provide clickable Markdown links to:
+   - `[cymbal_clm_redline_workbench.html](cymbal_clm_redline_workbench.html)` (to open the Reviewer UI in Canvas)
+   - `[BA-2026-AV-8921_Working_Review.docx](BA-2026-AV-8921_Working_Review.docx)`
+   - `[BA-2026-AV-8921_Cymbal_Counter_Proposal.docx](BA-2026-AV-8921_Cymbal_Counter_Proposal.docx)`
+   - `[BA-2026-AV-8921_SharePoint_Deviation_Matrix.xlsx](BA-2026-AV-8921_SharePoint_Deviation_Matrix.xlsx)`

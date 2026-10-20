@@ -45,12 +45,12 @@ Before starting the demo, run (or say **`"Bake CLM demo"`** in chat):
 
 ---
 
-### Workflow 3 — Email Progress Polling
+### Workflow 3 — Scheduled Email Progress Polling (`/schedule`)
 **Window 1 (Contract Owner — Rahul Kasanagottu):**
 
-**Prompt 3A (Poll Outlook Inbox for SME Replies):**
-> *"Check my Outlook Inbox for SME review replies on Deal BA-2026-AV-8921 and update the review workbench."*
-*(Or to schedule recurring polling: *"Schedule a recurring check every 5 minutes (and run the first check now) to poll my Outlook Inbox for SME replies on Deal BA-2026-AV-8921."*)*
+**Prompt 3A (Schedule Recurring Outlook Inbox Polling via Spark `/schedule`):**
+> *"/schedule Check my Outlook Inbox every 5 minutes (and run the first check immediately) for SME review replies on Deal BA-2026-AV-8921 and update the review workbench."*
+*(Or for an immediate one-shot check: *"Check my Outlook Inbox for SME review replies on Deal BA-2026-AV-8921 and update the review workbench."*)*
 
 ---
 
@@ -72,12 +72,23 @@ Before starting the demo, run (or say **`"Bake CLM demo"`** in chat):
 
 ---
 
+## Plugin & Per-Skill Script Architecture (`plugins/cymbal-aerospace-clm/`)
+
+All skills, rules, sidecar configurations, and per-skill CLI scripts are packaged as a standard Antigravity plugin in `plugins/cymbal-aerospace-clm/`:
+- `plugins/cymbal-aerospace-clm/plugin.json` — Plugin manifest
+- `plugins/cymbal-aerospace-clm/skills/clm-contract-intake/scripts/intake.py` — OOXML `.docx` parser, Playbook comparison, and BigQuery precedent evaluation
+- `plugins/cymbal-aerospace-clm/skills/clm-tax-tariff-review/scripts/tax_review.py` — `SP3-04` Tax/Tariff review, cross-clause `GP1-03` FFP harmonization, and full-document context toggle
+- `plugins/cymbal-aerospace-clm/skills/clm-contract-consolidation/scripts/precedents.py`, `record_position.py`, `consolidate.py` — Precedent verification, SME position recording, and `.docx`/`.xlsx` consolidation
+- `plugins/cymbal-aerospace-clm/skills/clm-comms/scripts/outlook_comms.py` — Microsoft Graph Outlook draft/send routing, SME reply delivery, Inbox polling (`poll-inbox`), and vendor transmittal
+
+---
+
 ## Interactive Review Workbench Reference (What to Show in the UI)
 
 Whenever the Review Workbench opens in Canvas (or in the Antigravity UI Sidecar):
-- **Word Doc & Playbook Review**: Shows the 12-clause contract with the **8 unchanged clauses auto-collapsed into 1-line strips** so the 4 redlined clauses (`GP1-12`, `GP1-19`, `SP3-04`, `SP5-03`) are immediately visible.
+- **Word Doc & Playbook Review**: Shows the 12-clause contract with the **8 unchanged clauses auto-collapsed into 1-line strips** so the 4 redlined clauses (`GP1-12`, `GP1-19`, `SP3-04`, `SP5-03`) are immediately visible. In the Tax SME view (`--persona tax`), the UI focuses on `SP3-04` & `GP1-03` by default with a **`📄 Show All 12 Contract Clauses (Full Context)`** toggle in the header so the SME can inspect the entire contract for context at any time.
 - **Sticky 3-Tab Right Inspector**:
-  - **`🎯 Decision & Counter`**: Click **`✓ Accept changes`**, **`✕ Reject changes`**, **`✦ Rewrite with Input`** (or `↺ Revert to Recommended Counter`), or select Playbook Options A/B/C.
+  - **`🎯 Decision & Counter`**: Click **`✓ Accept changes`**, **`✕ Reject changes`**, **`✦ Rewrite with Input`** (calls live Vertex AI `gemini-2.5-flash` with `<untrusted_vendor_redline>` XML sandwiching), or select Playbook Options A/B/C.
   - **`📊 Precedents (16)`**: Inspect the 16 BigQuery historical Tier-1 deals and click **`📋 Use Language`** on any precedent row.
-  - **`💬 Comments`**: Add or edit a Word margin comment attributed directly to the human reviewer (`w:author="Rahul Kasanagottu"`, `w:author="Pradeep Gupta"`, etc.), which is saved immediately to `BA-2026-AV-8921_Working_Review.docx` and synced to SharePoint.
+  - **`💬 Comments`**: Add or edit a Word margin comment attributed directly to the human reviewer (`w:author="Rahul Kasanagottu"`, `w:author="Pradeep Gupta"`, etc.), which is saved immediately to `BA-2026-AV-8921_Working_Review.docx`.
 - **Top Surface Mode Switcher**: Switch between **`📄 Word Doc & Playbook Review`**, **`⚖️ 3-Column Compare`**, **`🕸️ Dependency Graph`**, and **`🏛️ Pre-Consolidation Gate`**.

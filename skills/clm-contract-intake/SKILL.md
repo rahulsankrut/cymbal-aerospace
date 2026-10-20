@@ -1,33 +1,50 @@
 ---
 name: clm-contract-intake
-description: Compares Apex AeroSystems' redlined contract (`Vendor_Redlined_GP1.docx`) against the Cymbal Tier-1 Avionics Playbook (`Cymbal_GP1_Standard.docx` — Preferred Standard, Pre-Approved Tier-1 Fallbacks, Regulatory Lockout Guardrails, and BigQuery historical precedents across all 4 redlined positions), identifies the 4 SME owners, initializes the Working Review Document (`BA-2026-AV-8921_Working_Review.docx`), and renders the interactive Word 365 & Playbook Reviewer UI in Spark Canvas.
+description: Compares a supplier's redlined contract (.docx) against the Cymbal Tier-1 Avionics Playbook baseline (.docx — Preferred Standard, Pre-Approved Tier-1 Fallbacks, Regulatory Lockout Guardrails, and live BigQuery historical precedents across redlined positions), identifies the SME domain owners, initializes the Working Review Document, and renders the interactive Word 365 & Playbook Reviewer UI in Spark Canvas.
 ---
 
-# Cymbal Aerospace CLM — Contract Intake, Playbook Comparison & Document Reviewer UI (`clm-contract-intake`)
+# Cymbal Aerospace CLM — Contract Intake, Playbook Diff & SME Identification (`clm-contract-intake`)
 
-## 1. When to Activate
-Activate this skill in **Workflow 1 (Contract Playbook Evaluation)** whenever the user asks to:
-- Compare the vendor redlined contract (**`Vendor_Redlined_GP1.docx`**) against the **Cymbal Tier-1 Avionics Playbook** (which defines the Playbook Preferred Standard, Pre-Approved Tier-1 Fallback rules, Regulatory/Cross-Clause Lockouts, and BigQuery historical precedents across `64` Tier-1 Avionics deals),
-- Identify the **4 SME Owners** (`Engineering`, `Legal`, `Tax`, `Cyber`), initialize the working review document (**`BA-2026-AV-8921_Working_Review.docx`**), and open the interactive **Word 365 & Playbook Reviewer UI** in Spark Canvas.
+Use this skill when a user asks to ingest, compare, or triage a supplier's redlined contract (`.docx`) against the Cymbal Aerospace Standard Playbook/Proforma, check historical precedents across redlined clauses, identify which Subject Matter Experts (SMEs) own each exception, and open the interactive **Word 365 & Playbook Reviewer UI** in Canvas.
 
-*(Note: Do NOT use this skill just to upload files to SharePoint or send Outlook emails — SharePoint uploads and Outlook routing are called explicitly as separate steps.)*
+> **Single-Responsibility Boundary**: This skill performs contract parsing, Playbook & BigQuery precedent evaluation, Working Review `.docx` initialization, and Reviewer UI generation ONLY. Do **NOT** create or send Outlook emails or upload files to SharePoint unless the user explicitly asks for those actions (which are handled by `clm-comms` or the SharePoint connector).
 
 ---
 
-## 2. Step-by-Step Execution
+## Step 1 — Run the Contract Intake & Playbook Comparison Script
 
-### Step 1 — Run the CLM Playbook Comparison Engine (`ingest`)
-Run the following command in your current working directory:
+Execute `scripts/intake.py` (which invokes the `ingest` workflow on the actual `.docx` files and queries BigQuery in parallel):
 
 ```bash
-python3 ~/ge_spark_workspace/skills/clm_cli.py ingest --deal-id BA-2026-AV-8921
+python3 /Users/rahulsankrut/ge_spark_workspace/skills/clm-contract-intake/scripts/intake.py \
+  --deal-id BA-2026-AV-8921 \
+  --vendor-docx-path specs/04_golden_fixtures/Vendor_Redlined_GP1.docx \
+  --baseline-docx-path specs/04_golden_fixtures/Cymbal_GP1_Standard.docx
 ```
 
-This command:
-1. Parses all **12 clauses** (`8` untouched fast-tracked + `4` redlined exceptions: `GP1-12`, `GP1-19`, `SP3-04`, `SP5-03`) against the **Cymbal Tier-1 Avionics Playbook** and retrieves the **BigQuery historical precedent distribution** (`16` Tier-1 Avionics deals per position = `64` total deals).
-2. Identifies the **4 SME Owners** (`Megan Bowen`, `Lee Gu`, `Pradeep Gupta`, `Alex Wilber`).
-3. Initializes **`BA-2026-AV-8921_Working_Review.docx`** so any edits, approvals, or user comments submitted from the UI are immediately saved to the working review document.
-4. Generates **`./cymbal_clm_redline_workbench.html`** in the current directory.
+*(Fallback path if running directly from the repository root: `python3 skills/clm-contract-intake/scripts/intake.py --deal-id BA-2026-AV-8921`)*
 
-### Step 2 — Open the Interactive Reviewer UI in Spark Canvas (Mandatory)
-Always open/render **`./cymbal_clm_redline_workbench.html`** in **Spark Canvas** (or provide the clickable artifact link `[Open Cymbal CLM Playbook Review Workbench](./cymbal_clm_redline_workbench.html)`).
+### What the Script Computes Live:
+1. **Real `.docx` OOXML Track Changes & Word-Level Diff**: Parses `vendor_docx_path` against `baseline_docx_path`, separating untouched baseline clauses (`untouched_clauses`) from redlined exceptions (`redlined_exceptions`) and extracting embedded vendor margin comments (`<w:comment>`).
+2. **Parallel BigQuery Precedent Search (`VECTOR_SEARCH`)**: Queries `boeing_clm.historical_clause_exceptions` concurrently across all redlined clauses (`bigquery_precedent_distribution`) to compute the historical `% Held Firm`, `% Compromise`, and `% Accepted Vendor` distribution and retrieve top matching historical supplier deals.
+3. **Cross-Clause Conflict & Regulatory Lockout Detection**: Evaluates `boeing_clm.clause_conflict_rules` and statutory regulatory lockouts (`active_conflicts`).
+4. **Working Review Document & Interactive Canvas UI**: Writes `<deal_id>_Working_Review.docx` and `cymbal_clm_redline_workbench.html` in the current working directory.
+
+---
+
+## Step 2 — Present the Live Intake & Playbook Triage Report
+
+Using the JSON output returned by `scripts/intake.py`:
+1. **Contract & Playbook Summary**:
+   - State `total_clauses_parsed`, `untouched_clauses_count` (auto-cleared against the Playbook Preferred Standard), and `redlined_clauses_count` requiring SME review, along with the initialized `working_review_docx` filename.
+2. **Redlined Exceptions, Playbook Guardrails & BigQuery Precedent Table**:
+   - Render a Markdown table from `redlined_exceptions` and `sme_routing_owners` showing for each redlined clause:
+     - Clause Ref & Title (`clause_ref`, `clause_title`)
+     - Assigned SME Team & Owner (`sme_team`, `owner_name`, `owner_email`)
+     - Playbook Verdict & Guardrail (`playbook_verdict`, `playbook_guardrail_summary`, `regulatory_flag`)
+     - Live BigQuery Historical Precedent Distribution (`held_firm_pct`, `compromise_tier_1_pct`, `accepted_vendor_pct`, `total_historical_deals`)
+     - Recommended Counter-Position (`recommended_counter_position`)
+3. **Active Cross-Clause Conflicts**:
+   - Surface any active cross-clause conflicts reported in `active_conflicts` (such as `rule_id`, `source_clause_id`, `conflicting_clause_id`, and `description`).
+4. **Open the Interactive Reviewer UI in Spark Canvas**:
+   - Output a clickable Markdown file link to `[cymbal_clm_redline_workbench.html](cymbal_clm_redline_workbench.html)` so the user can click it to open the **Word 365 & Playbook Review Workbench** in the right-hand Canvas pane.

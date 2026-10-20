@@ -20,6 +20,7 @@ from boeing_clm.ingestion.clause_segmenter import (
 )
 from boeing_clm.ingestion.diff_engine import (
     DiffSegment,
+    compute_untracked_diff,
     render_segments_to_diff_html,
 )
 from boeing_clm.models import ExtractedClauseDiff
@@ -125,14 +126,32 @@ def _parse_clause_paragraph(
     )
 
 
-def parse_redlined_docx(docx_path: str | Path) -> List[ExtractedClauseDiff]:
+def parse_redlined_docx(
+    docx_path: str | Path,
+    baseline_docx_path: str | Path | None = None,
+) -> List[ExtractedClauseDiff]:
     """
     Parse word/document.xml and word/comments.xml inside a .docx archive using lxml.etree
     and return a validated list of ExtractedClauseDiff models.
+    If `baseline_docx_path` is provided and any clause was modified without native Word Track Changes
+    (<w:ins>/<w:del>), deterministically computes the word-level diff against `baseline_docx_path`.
     """
     path = Path(docx_path)
     if not path.exists():
         raise FileNotFoundError(f"DOCX file not found: {path}")
+
+    baseline_by_clause: Dict[str, str] = {}
+    if baseline_docx_path is not None:
+        base_path = Path(baseline_docx_path)
+        if base_path.exists() and base_path.resolve() != path.resolve():
+            try:
+                base_diffs = parse_redlined_docx(base_path, baseline_docx_path=None)
+                baseline_by_clause = {
+                    d.clause_id: (d.boeing_baseline_text or d.vendor_redline_text)
+                    for d in base_diffs
+                }
+            except Exception:
+                baseline_by_clause = {}
 
     with zipfile.ZipFile(path, "r") as zf:
         if "word/document.xml" not in zf.namelist():
@@ -175,7 +194,13 @@ def parse_redlined_docx(docx_path: str | Path) -> List[ExtractedClauseDiff]:
             if not baseline_text and not vendor_text:
                 continue
 
-            diff_html = render_segments_to_diff_html(segments)
+            ext_base = baseline_by_clause.get(current_meta.clause_id)
+            if not insertions and not deletions and ext_base and ext_base != vendor_text:
+                baseline_text = ext_base
+                insertions, deletions, diff_html = compute_untracked_diff(baseline_text, vendor_text)
+            else:
+                diff_html = render_segments_to_diff_html(segments)
+
             has_redline = bool(insertions or deletions or (baseline_text != vendor_text))
 
             results.append(
@@ -218,7 +243,13 @@ def parse_redlined_docx(docx_path: str | Path) -> List[ExtractedClauseDiff]:
             if meta is None:
                 continue
 
-            diff_html = render_segments_to_diff_html(segments)
+            ext_base = baseline_by_clause.get(meta.clause_id)
+            if not insertions and not deletions and ext_base and ext_base != vendor_text:
+                baseline_text = ext_base
+                insertions, deletions, diff_html = compute_untracked_diff(baseline_text, vendor_text)
+            else:
+                diff_html = render_segments_to_diff_html(segments)
+
             has_redline = bool(insertions or deletions or (baseline_text != vendor_text))
 
             results.append(

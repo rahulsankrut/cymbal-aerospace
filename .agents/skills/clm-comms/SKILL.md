@@ -1,75 +1,82 @@
 ---
 name: clm-comms
-description: CLM Email Routing, SME Reply Delivery, Outlook Inbox Polling, and Vendor Counter-Proposal Transmittal for Cymbal Aerospace (Deal BA-2026-AV-8921). Use whenever the user asks Spark to save or send the 4 SME review routing emails in Microsoft Outlook, send an SME review reply back to the Contract Owner's Inbox, poll Outlook Inbox for SME review updates, or save/send the final consolidated Counter-Proposal email with .docx and .xlsx attachments back to the vendor.
+description: CLM Email Routing, SME Reply Delivery, Outlook Inbox Polling (including Spark /schedule recurring automations), and Vendor Counter-Proposal Transmittal for Cymbal Aerospace. Use whenever the user asks to save or send the SME review routing emails in Microsoft Outlook, send an SME review reply back to the Contract Owner's Inbox, poll Outlook Inbox for SME review updates (on-demand or via /schedule), or save/send the final consolidated Counter-Proposal email with .docx and .xlsx attachments back to the vendor.
 ---
 
-# Cymbal Aerospace CLM — Communications & Outlook Sync (`clm-comms`)
+# Cymbal Aerospace CLM — Microsoft Outlook Communications & Scheduled Inbox Polling (`clm-comms`)
 
-This skill handles all Microsoft Outlook email communications for Cymbal Aerospace Contract Lifecycle Management (`Deal BA-2026-AV-8921` — Apex AeroSystems `$45,000,000` FCC-900 Flight Control Computer Subsystem) via Microsoft Graph (`m365-admin@rahulsankrut.demo.altostrat.com`).
-
-> **Why `clm-comms` is separate from CLM document analysis skills:**
-> During `Bake CLM demo`, the Outlook `Drafts` folder is wiped completely clean (`0` drafts) so that **Spark** creates the real Outlook drafts live during the demo when prompted!
-
----
-
-## 1. Subcommands Available
-
-### A. Workflow 1 — Route Redlined Clauses to the 4 SME Owners (`route-smes`)
-
-When the Contract Owner asks Spark to route the 4 redlined clauses (`GP1 §12.2`, `GP1 §19 & §24`, `SP3 §4.1`, `SP5 §3.2`) to the respective SME owners via Outlook:
-
-- **Default (Save 4 Ready-to-Send Drafts in Outlook `Drafts` folder):**
-```bash
-python3 ~/ge_spark_workspace/skills/clm_cli.py route-smes --deal-id BA-2026-AV-8921
-```
-- **If the user explicitly says *"send now"* (Send immediately via Outlook):**
-```bash
-python3 ~/ge_spark_workspace/skills/clm_cli.py route-smes --deal-id BA-2026-AV-8921 --send
-```
-
-This creates (or sends) 4 rich HTML emails in `m365-admin@rahulsankrut.demo.altostrat.com`'s real Microsoft Outlook `Drafts` folder:
-1. **Engineering & Quality (`GP1 §12.2`)** → `Megan Bowen <MeganB@36zrbd.onmicrosoft.com>` (includes FAA 14 CFR Part 21.140 lockout warning + `88%` Held Firm precedent stat)
-2. **Corporate Legal & Aviation IP (`GP1 §19 & §24`)** → `Lee Gu <LeeG@36zrbd.onmicrosoft.com>` (includes `69%` Tier-1 `2.0x PO / $90M Super-Cap` precedent stat)
-3. **Global Tax, Customs & Trade (`SP3 §4.1`)** → `Pradeep Gupta <PradeepG@36zrbd.onmicrosoft.com>` (includes Cross-Clause Conflict alert against `GP1 §3.1` `$45M` FFP SOW + `63%` `50/50 shared cap` precedent stat)
-4. **Supplier Cyber Defense (`SP5 §3.2`)** → `Alex Wilber <AlexW@36zrbd.onmicrosoft.com>` (includes DoD DFARS 252.204-7012 72-hour lockout warning + `94%` Held Firm precedent stat)
+Use this skill ONLY when the user explicitly asks to perform an email communication action in Microsoft Outlook (`m365-admin@rahulsankrut.demo.altostrat.com`) via `scripts/outlook_comms.py`:
+1. **Route SME Review Emails** (`route-smes` — save to `Drafts` or `--send` immediately)
+2. **Send SME Review Reply to Contract Owner's Inbox** (`send-sme-reply` — e.g., `--clause-id SP3-04` for Tax SME reply, or `--clause-id GP1-12,SP3-04,SP5-03` for all 3 external SMEs)
+3. **Poll Contract Owner's Outlook Inbox for SME Replies** (`poll-inbox` — runs on-demand or as the action inside a Spark `/schedule` recurring automation)
+4. **Draft or Send Final Vendor Counter-Proposal Reply with `.docx` & `.xlsx` Attachments** (`draft-vendor-reply` — save to `Drafts` or `--send` immediately)
 
 ---
 
-### B. Workflow 2 — Send SME Review Update Back to Contract Owner's Inbox (`send-sme-reply`)
+## Action 1 — Route the 4 SME Review Emails in Microsoft Outlook (`route-smes`)
 
-When the Tax SME (or any SME in Workflow 2) finishes reviewing their clause and asks Spark to send their recommended counter-position back to the Contract Owner via Outlook email:
+When the Contract Owner asks to save the 4 SME review routing emails in Outlook `Drafts` (or send them immediately):
 
-```bash
-python3 ~/ge_spark_workspace/skills/clm_cli.py send-sme-reply --deal-id BA-2026-AV-8921
-```
+- **Save in Outlook `Drafts` (default)**:
+  ```bash
+  python3 /Users/rahulsankrut/ge_spark_workspace/skills/clm-comms/scripts/outlook_comms.py route-smes --deal-id BA-2026-AV-8921
+  ```
+- **Send immediately via Outlook (`--send`)**:
+  ```bash
+  python3 /Users/rahulsankrut/ge_spark_workspace/skills/clm-comms/scripts/outlook_comms.py route-smes --deal-id BA-2026-AV-8921 --send
+  ```
 
-This delivers the SME review update emails (`[SME REVIEW UPDATE: TAX — SP3 §4.1]`, `[SME REVIEW UPDATE: ENGINEERING — GP1 §12.2]`, `[SME REVIEW UPDATE: CYBER — SP5 §3.2]`) directly into the Contract Owner's real Microsoft Outlook `Inbox` (`m365-admin@rahulsankrut.demo.altostrat.com`).
-
----
-
-### C. Workflow 3 — Poll Contract Owner's Outlook Inbox for SME Progress (`poll-inbox`)
-
-When the Contract Owner (or a scheduled `/schedule` job in Spark) polls Outlook to check which SMEs have replied and what clauses remain pending:
-
-```bash
-python3 ~/ge_spark_workspace/skills/clm_cli.py poll-inbox --deal-id BA-2026-AV-8921
-```
-
-**Mandatory Step After Running `poll-inbox`:**
-1. Open the updated **`./cymbal_clm_redline_workbench.html`** in Spark Canvas so the user sees the live progress tracker (`3 of 4 Redlined Clauses Approved via SME Email Replies: Engineering GP1-12 ✅, Tax SP3-04 ✅, Cyber SP5-03 ✅; Remaining: GP1-19`) and the updated `BA-2026-AV-8921_Working_Review.docx`.
-2. Summarize the detected Outlook Inbox SME emails and highlight that `GP1-19` (*Limitation of Liability & IP Indemnity*) is ready for final precedent verification and consolidation.
+Present a Markdown table from `outlook_sme_routing_emails` showing the SME Team, Recipient (`to`), Subject (`subject`), Clause (`clause_ref`), and Outlook Status (`status` / `outlook_folder`).
 
 ---
 
-### D. Workflow 4 — Create or Send Final Vendor Counter-Proposal Email (`draft-vendor-reply`)
+## Action 2 — Send an SME Review Reply Email to the Contract Owner's Inbox (`send-sme-reply`)
 
-When the Contract Owner finishes consolidating the counter-proposal and asks Spark to create (or send) the transmittal email back to Adele Vance (`AdeleV@36zrbd.onmicrosoft.com`) at Apex AeroSystems with both `.docx` and `.xlsx` files attached:
+When an SME (such as Pradeep Gupta in Global Tax & Trade) finishes reviewing a clause and asks to send their SME review update email back to the Contract Owner's Outlook Inbox (`m365-admin@rahulsankrut.demo.altostrat.com`):
 
-- **Default (Save in Outlook `Drafts` folder with `.docx` & `.xlsx` attached):**
+- **Send only the Tax SME reply (`--clause-id SP3-04`)**:
+  ```bash
+  python3 /Users/rahulsankrut/ge_spark_workspace/skills/clm-comms/scripts/outlook_comms.py send-sme-reply --deal-id BA-2026-AV-8921 --clause-id SP3-04
+  ```
+- **Deliver all 3 external SME replies (`--clause-id GP1-12,SP3-04,SP5-03` or `--clause-id ALL`)**:
+  ```bash
+  python3 /Users/rahulsankrut/ge_spark_workspace/skills/clm-comms/scripts/outlook_comms.py send-sme-reply --deal-id BA-2026-AV-8921 --clause-id ALL
+  ```
+
+Report the delivered email subject(s), sender(s), recipient (`recipient_contract_owner`), and delivery status from `sme_reply_emails_delivered_to_owner_inbox`.
+
+---
+
+## Action 3 — Poll Outlook Inbox for SME Replies (On-Demand or via Spark `/schedule`)
+
+When the Contract Owner asks to poll their Outlook Inbox for SME review replies — either as an immediate check or by setting up a recurring **Spark `/schedule`** automation (`automation` skill):
+
 ```bash
-python3 ~/ge_spark_workspace/skills/clm_cli.py draft-vendor-reply --deal-id BA-2026-AV-8921 --output-dir .
+python3 /Users/rahulsankrut/ge_spark_workspace/skills/clm-comms/scripts/outlook_comms.py poll-inbox --deal-id BA-2026-AV-8921
 ```
-- **If the user explicitly says *"send now"*:**
-```bash
-python3 ~/ge_spark_workspace/skills/clm_cli.py draft-vendor-reply --deal-id BA-2026-AV-8921 --output-dir . --send
-```
+
+### How `poll-inbox` Works with Spark `/schedule`:
+- When the user invokes `/schedule` (or asks to schedule a recurring inbox poller for Deal `BA-2026-AV-8921`), configure the scheduled automation prompt to run `outlook_comms.py poll-inbox --deal-id BA-2026-AV-8921` (or check Outlook via `gemini-enterprise-connectors` and record each detected `[SME REVIEW UPDATE: ...]` decision via `record_position.py`).
+- `poll-inbox` queries `m365-admin@rahulsankrut.demo.altostrat.com`'s live Outlook `Inbox` for messages matching `[SME REVIEW UPDATE: ...]`, parses which SME teams have replied (`sme_update_emails_detected`), updates only those clauses in `<deal_id>_Working_Review.docx` (`sme_positions_synced`), refreshes `cymbal_clm_redline_workbench.html`, and reports `progress_summary` and `remaining_for_owner_review`.
+
+Present:
+1. The detected SME reply emails from `sme_update_emails_detected` (sender, subject, received timestamp).
+2. The updated clause sign-off tracker (`progress_summary` and `sme_positions_synced`) and any clauses still in `remaining_for_owner_review`.
+3. A clickable Markdown link to `[cymbal_clm_redline_workbench.html](cymbal_clm_redline_workbench.html)` and `[BA-2026-AV-8921_Working_Review.docx](BA-2026-AV-8921_Working_Review.docx)`.
+
+---
+
+## Action 4 — Draft or Send the Final Vendor Counter-Proposal Reply (`draft-vendor-reply`)
+
+When the Contract Owner asks to draft (or send) the official Counter-Proposal reply email to the vendor (`AdeleV@36zrbd.onmicrosoft.com`, CC'ing the 4 SMEs) with `<deal_id>_Cymbal_Counter_Proposal.docx` and `<deal_id>_SharePoint_Deviation_Matrix.xlsx` attached:
+
+- **Save in Outlook `Drafts` (default)**:
+  ```bash
+  python3 /Users/rahulsankrut/ge_spark_workspace/skills/clm-comms/scripts/outlook_comms.py draft-vendor-reply --deal-id BA-2026-AV-8921 --output-dir .
+  ```
+- **Send immediately via Outlook (`--send`)**:
+  ```bash
+  python3 /Users/rahulsankrut/ge_spark_workspace/skills/clm-comms/scripts/outlook_comms.py draft-vendor-reply --deal-id BA-2026-AV-8921 --output-dir . --send
+  ```
+
+Report the recipient (`to`), CC list (`cc`), subject (`subject`), attached files (`attachments`), and Outlook folder/status (`outlook_folder`, `status`) from `outlook_vendor_counter_proposal_email`.

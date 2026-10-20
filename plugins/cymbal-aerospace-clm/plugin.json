@@ -1,0 +1,11 @@
+{
+  "name": "cymbal-aerospace-clm",
+  "displayName": "Cymbal Aerospace Contract Lifecycle Management (CLM)",
+  "description": "End-to-end Aerospace Supplier Contract Redline Intake, Playbook & BigQuery Precedent Analysis, Cross-Clause Conflict Harmonization, Word 365 Track Changes & Comments Generation, and Outlook Routing for Cymbal Aerospace.",
+  "version": "1.2.0",
+  "suggestedPrompts": [
+    "Compare Apex AeroSystems' redlined contract against our Cymbal Playbook and open the CLM Workbench",
+    "Run the Tax & Tariff SME review on SP3 §4.1 and harmonize the Firm-Fixed-Price SOW conflict",
+    "Consolidate all approved SME counter-positions into the final Word Counter-Proposal and Excel Deviation Matrix"
+  ]
+}
