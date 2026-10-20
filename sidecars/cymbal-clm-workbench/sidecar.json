@@ -1,0 +1,30 @@
+{
+  "command": "python3",
+  "args": [
+    "start_sidecar.py"
+  ],
+  "description": "Cymbal Aerospace Pastel Word 365 & Playbook CLM Workbench (Deal BA-2026-AV-8921)",
+  "display_name": "Cymbal CLM Workbench",
+  "has_web_ui": true,
+  "restart_policy": "always",
+  "ui_config": {
+    "display_name": "Cymbal CLM Workbench",
+    "views": [
+      {
+        "entrypoint": "SIDECAR_UI_ENTRYPOINT_AUX_PANE",
+        "path": "/",
+        "title": "Word 365 & Playbook Review"
+      },
+      {
+        "entrypoint": "SIDECAR_UI_ENTRYPOINT_AUX_PANE",
+        "path": "/tax-workbench",
+        "title": "Tax SME Reviewer (SP3 §4.1)"
+      },
+      {
+        "entrypoint": "SIDECAR_UI_ENTRYPOINT_AUX_PANE",
+        "path": "/ui-lab",
+        "title": "12-Variation UX Lab"
+      }
+    ]
+  }
+}

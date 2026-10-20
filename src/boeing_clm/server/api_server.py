@@ -254,7 +254,7 @@ def download_counter_proposal_docx(deal_id: str) -> FileResponse:
         repo.get_deal_workbench_state(deal_id=deal_id, include_precedents=True)
     )
     EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
-    output_path = EXPORTS_DIR / f"{deal_id}_Boeing_Counter_Proposal.docx"
+    output_path = EXPORTS_DIR / f"{deal_id}_Cymbal_Counter_Proposal.docx"
     generated_path = Path(generate_counter_proposal_docx(state, output_path))
 
     notify_sse_subscribers(
@@ -303,7 +303,7 @@ def get_export_package_manifest(deal_id: str) -> dict[str, Any]:
     )
     EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
     docx_path = Path(
-        generate_counter_proposal_docx(state, EXPORTS_DIR / f"{deal_id}_Boeing_Counter_Proposal.docx")
+        generate_counter_proposal_docx(state, EXPORTS_DIR / f"{deal_id}_Cymbal_Counter_Proposal.docx")
     )
     xlsx_path = Path(
         generate_deviation_matrix_xlsx(state, EXPORTS_DIR / f"{deal_id}_SharePoint_Deviation_Matrix.xlsx")
