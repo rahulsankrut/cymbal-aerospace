@@ -66,17 +66,32 @@ Present:
 
 ---
 
-## Action 4 — Draft or Send the Final Vendor Counter-Proposal Reply (`draft-vendor-reply`)
+## Action 4 — Send Conflict Resolution Communication Email ("Legal Takes Precedence") (`send-conflict-resolution`)
 
-When the Contract Owner asks to draft (or send) the official Counter-Proposal reply email to the vendor (`AdeleV@36zrbd.onmicrosoft.com`, CC'ing the 4 SMEs) with `<deal_id>_Cymbal_Counter_Proposal.docx` and `<deal_id>_SharePoint_Deviation_Matrix.xlsx` attached:
+When the Contract Owner resolves the Stage 2 Finance vs. Legal conflict on `Deal BA-2026-TR-5510` (Vanguard Thrust Systems Corp.) and asks to shoot an email back to Finance (`Diego Siciliani`) and Legal (`Miriam Graham`) confirming that **Corporate Legal Playbook guardrails take precedence over commercial discount trade-offs**:
 
-- **Save in Outlook `Drafts` (default)**:
-  ```bash
-  python3 /Users/rahulsankrut/ge_spark_workspace/skills/clm-comms/scripts/outlook_comms.py draft-vendor-reply --deal-id BA-2026-AV-8921 --output-dir .
-  ```
 - **Send immediately via Outlook (`--send`)**:
   ```bash
-  python3 /Users/rahulsankrut/ge_spark_workspace/skills/clm-comms/scripts/outlook_comms.py draft-vendor-reply --deal-id BA-2026-AV-8921 --output-dir . --send
+  python3 /Users/rahulsankrut/ge_spark_workspace/skills/clm-comms/scripts/outlook_comms.py send-conflict-resolution --deal-id BA-2026-TR-5510 --send
+  ```
+- **Save in Outlook `Drafts`**:
+  ```bash
+  python3 /Users/rahulsankrut/ge_spark_workspace/skills/clm-comms/scripts/outlook_comms.py send-conflict-resolution --deal-id BA-2026-TR-5510
+  ```
+
+---
+
+## Action 5 — Draft or Send the Final Vendor Counter-Proposal Reply (`draft-vendor-reply`)
+
+When the Contract Owner asks to draft (or send) the official Counter-Proposal reply email to the vendor (e.g., `LidiaH@36zrbd.onmicrosoft.com` at Meridian Landing Gear Corp. for Stage 3 `BA-2026-LG-7740`, or `AdeleV@36zrbd.onmicrosoft.com` at Apex AeroSystems for `BA-2026-AV-8921`) with `<deal_id>_Cymbal_Counter_Proposal.docx` and `<deal_id>_SharePoint_Deviation_Matrix.xlsx` attached:
+
+- **Send immediately via Outlook (`--send`)**:
+  ```bash
+  python3 /Users/rahulsankrut/ge_spark_workspace/skills/clm-comms/scripts/outlook_comms.py draft-vendor-reply --deal-id BA-2026-LG-7740 --output-dir . --send
+  ```
+- **Save in Outlook `Drafts` (default)**:
+  ```bash
+  python3 /Users/rahulsankrut/ge_spark_workspace/skills/clm-comms/scripts/outlook_comms.py draft-vendor-reply --deal-id BA-2026-LG-7740 --output-dir .
   ```
 
 Report the recipient (`to`), CC list (`cc`), subject (`subject`), attached files (`attachments`), and Outlook folder/status (`outlook_folder`, `status`) from `outlook_vendor_counter_proposal_email`.

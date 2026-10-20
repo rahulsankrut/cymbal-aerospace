@@ -150,6 +150,313 @@ def fetch_live_precedents_map(state_or_deal_id: Any, clauses_opt: List[Dict[str,
     return load_seed().get("precedents", {})
 
 
+DEAL_VENDOR_CONTACTS: Dict[str, Dict[str, str]] = {
+    "BA-2026-AV-8921": {
+        "vendor_name": "Apex AeroSystems Inc.",
+        "contact_name": "Adele Vance (VP Contracts & Legal Counsel, Apex AeroSystems)",
+        "contact_short": "Adele Vance",
+        "contact_email": "AdeleV@36zrbd.onmicrosoft.com",
+        "program_summary": "$45,000,000 FFP | 787 / 737 MAX FCC-900 Flight Control Computer Subsystem",
+    },
+    "BA-2026-TR-5510": {
+        "vendor_name": "Vanguard Thrust Systems Corp.",
+        "contact_name": "Marcus Vance (VP Commercial Contracts, Vanguard Thrust Systems)",
+        "contact_short": "Marcus Vance",
+        "contact_email": "NestorW@36zrbd.onmicrosoft.com",
+        "program_summary": "$38,000,000 FFP | 777X / 787 Thrust Reverser Actuator (TRA-500) Subsystem",
+    },
+    "BA-2026-LG-7740": {
+        "vendor_name": "Meridian Landing Gear Corp.",
+        "contact_name": "Lidia Holloway (VP Global Contracts, Meridian Landing Gear Corp.)",
+        "contact_short": "Lidia Holloway",
+        "contact_email": "LidiaH@36zrbd.onmicrosoft.com",
+        "program_summary": "$52,000,000 FFP | 787-10 Titanium Main Landing Gear Assembly (TLG-800)",
+    },
+}
+
+
+def resolve_deal_id(deal_id_or_alias: str | None) -> str:
+    """Resolve a deal ID or human alias ('doc1', 'apex', 'doc2', 'vanguard', 'doc3', 'meridian') to canonical Deal ID."""
+    if not deal_id_or_alias:
+        return "BA-2026-AV-8921"
+    raw = str(deal_id_or_alias).strip()
+    u = raw.upper()
+    if u in ("BA-2026-AV-8921", "DOC1", "DOC-1", "DEAL1", "DEAL-1", "STAGE1", "1") or "APEX" in u or "8921" in u:
+        return "BA-2026-AV-8921"
+    if u in ("BA-2026-TR-5510", "DOC2", "DOC-2", "DEAL2", "DEAL-2", "STAGE2", "2") or "VANGUARD" in u or "5510" in u:
+        return "BA-2026-TR-5510"
+    if u in ("BA-2026-LG-7740", "DOC3", "DOC-3", "DEAL3", "DEAL-3", "STAGE3", "3") or "MERIDIAN" in u or "7740" in u:
+        return "BA-2026-LG-7740"
+    return raw
+
+
+def build_deal_initial_state(deal_id: str) -> Dict[str, Any]:
+    """
+    Construct the canonical starting state for any of the 3 portfolio deals:
+      - Doc 1 (`BA-2026-AV-8921` — Apex AeroSystems, $45M FCC-900): Stage 1 Fresh Vendor Redline Intake (`INGESTED`)
+      - Doc 2 (`BA-2026-TR-5510` — Vanguard Thrust Systems, $38M TRA-500): Stage 2 Middle-Stage Working Review Doc with
+        Finance (`Diego Siciliani` in `GP1-03`) vs. Legal (`Miriam Graham` in `GP1-19`) Conflict (`CONFLICT_DETECTED`)
+      - Doc 3 (`BA-2026-LG-7740` — Meridian Landing Gear, $52M TLG-800): Stage 3 Final-Stage Working Review Doc where
+        SMEs have signed off (`GP1-12`, `SP3-04`, `SP5-03` APPROVED) and `GP1-19` is ready for Owner acceptance & consolidation.
+    """
+    deal_id = resolve_deal_id(deal_id)
+    seed = load_seed()
+    base = json.loads(json.dumps(seed["initial_state"]))
+    now_str = utc_now_iso()
+
+    if deal_id == "BA-2026-AV-8921":
+        return base
+
+    if deal_id == "BA-2026-TR-5510":
+        base["deal_id"] = "BA-2026-TR-5510"
+        base["vendor_name"] = "Vanguard Thrust Systems Corp."
+        base["supplier_tier"] = "Tier-1 Actuation & Propulsion"
+        base["boeing_program"] = "777X / 787 Thrust Reverser Actuators (TRA-500)"
+        base["contract_value_usd"] = 38000000.0
+        base["status"] = "CONFLICT_DETECTED"
+        base["updated_at"] = now_str
+
+        for c in base.get("clauses", []):
+            cid = c["clause_id"]
+            c.pop("deal_id", None)
+            if cid == "GP1-03":
+                c["has_redline"] = True
+                c["sme_team"] = "PROCUREMENT"
+                c["sme_owner_label"] = "Diego Siciliani (VP Procurement Finance)"
+                c["risk_level"] = "HIGH"
+                c["regulatory_flag"] = "INTERNAL_FINANCE_CAP_LOCKOUT"
+                c["boeing_baseline_text"] = (
+                    "3.1 Firm-Fixed-Price (FFP) Ceiling: Total Contract price for all Thrust Reverser Actuator (TRA-500) "
+                    "shipsets under Schedule A is thirty-eight million U.S. dollars ($38,000,000.00) Firm-Fixed-Price (FFP). "
+                    "No commercial unit-price adjustments or liability-linked discounts are permitted without joint written "
+                    "approval of Procurement and Corporate Legal."
+                )
+                c["vendor_redline_text"] = (
+                    "3.1 Firm-Fixed-Price & Commercial Cap Trade-Off Discount: Total Contract price under Schedule A "
+                    "reflects a 3.5% ($1,330,000.00) commercial unit-price discount (net $36,670,000.00 FFP), granted by "
+                    "Seller in consideration of Buyer's agreement in GP1 §19 to reduce Seller's General Liability Cap to "
+                    "1.0x ($38,000,000.00) of Purchase Order value."
+                )
+                c["vendor_comment"] = (
+                    "Diego Siciliani (VP Procurement Finance): FINANCE EDIT IN WORKING DOC — Agreed to accept Vanguard's "
+                    "3.5% ($1,330,000) unit-price discount in GP1 §3.1 in exchange for lowering the GP1 §19 General Liability "
+                    "Cap to 1.0x ($38M) PO value to meet Q4 TRA-500 cost-down targets."
+                )
+                c["recommended_option_key"] = "hold_firm"
+                c["recommended_counter_text"] = c["boeing_baseline_text"]
+                c["selected_option_key"] = "accept_vendor"
+                c["selected_counter_text"] = c["vendor_redline_text"]
+                c["sme_status"] = "CONFLICT"
+                c["sme_reviewer"] = "Diego Siciliani"
+                c["sme_rationale"] = (
+                    "Diego Siciliani (VP Procurement Finance): Accepted 3.5% ($1.33M) unit-price discount in GP1 §3.1 "
+                    "conditioned on reducing GP1 §19 Liability Cap to 1.0x ($38M)."
+                )
+                c["diff_html"] = compute_inline_word_diff_html(c["boeing_baseline_text"], c["vendor_redline_text"])
+            elif cid == "GP1-19":
+                c["has_redline"] = True
+                c["sme_team"] = "LEGAL"
+                c["sme_owner_label"] = "Miriam Graham (VP Corporate Legal & IP)"
+                c["risk_level"] = "CRITICAL"
+                c["boeing_baseline_text"] = (
+                    "19.1 Seller's liability for direct damages under this Contract shall be uncapped. Under Corporate Legal "
+                    "Playbook Guardrails, Seller's General Liability Cap for Tier-1 flight-critical actuation hardware shall "
+                    "never be less than 1.5x ($57,000,000) of total Purchase Order value (with a 2.5x / $95,000,000 Super-Cap), "
+                    "and liability caps shall never be reduced in exchange for commercial unit-price discounts."
+                )
+                c["vendor_redline_text"] = (
+                    "19.1 Per the GP1 §3.1 Commercial Cap Trade-Off Discount (3.5% unit-price reduction approved by Finance), "
+                    "Seller's total aggregate liability for all claims under this Contract is capped at 1.0x ($38,000,000) "
+                    "of Purchase Order value."
+                )
+                c["vendor_comment"] = (
+                    "Miriam Graham (VP Legal & IP): CONFLICT WITH FINANCE (GP1 §3.1) — Corporate Legal Playbook Guardrails "
+                    "strictly mandate a minimum 1.5x ($57,000,000) General Liability Cap (and 2.5x Super-Cap with uncapped "
+                    "IP/Airworthiness carveouts) and prohibit trading away liability protections for commercial unit-price "
+                    "discounts. Legal guardrail must take precedence."
+                )
+                legal_counter = (
+                    "19.1 Seller's aggregate liability for general direct commercial damages arising out of or related to "
+                    "this Contract shall not exceed one hundred fifty percent (150% / 1.5x) of total Purchase Order value "
+                    "($57,000,000), with a 2.5x ($95,000,000) Super-Cap and uncapped carveouts for IP indemnification (§24), "
+                    "flight-safety Airworthiness Directives, and DFARS cybersecurity obligations. No commercial unit-price "
+                    "discount under GP1 §3.1 shall reduce Seller's liability cap below 1.5x PO value."
+                )
+                c["recommended_option_key"] = "compromise_tier_1"
+                c["recommended_counter_text"] = legal_counter
+                c["selected_option_key"] = "compromise_tier_1"
+                c["selected_counter_text"] = legal_counter
+                c["sme_status"] = "CONFLICT"
+                c["sme_reviewer"] = "Miriam Graham"
+                c["sme_rationale"] = (
+                    "Miriam Graham (VP Legal & IP): CONFLICT WITH FINANCE — Legal Playbook strictly requires minimum 1.5x "
+                    "($57M) Liability Cap and prohibits commercial cap-for-discount trade-offs in GP1 §3.1. Legal takes precedence."
+                )
+                c["diff_html"] = compute_inline_word_diff_html(c["boeing_baseline_text"], c["vendor_redline_text"])
+            elif cid == "GP1-12":
+                c["sme_status"] = "APPROVED"
+                c["selected_option_key"] = "hold_firm"
+                c["selected_counter_text"] = RECOMMENDED_COUNTER_DEFAULTS["GP1-12"]["counter_text"]
+                c["sme_reviewer"] = "Megan Bowen"
+                c["sme_rationale"] = RECOMMENDED_COUNTER_DEFAULTS["GP1-12"]["user_comment"]
+            elif cid == "SP3-04":
+                c["sme_status"] = "APPROVED"
+                c["selected_option_key"] = "compromise_tier_1"
+                c["selected_counter_text"] = RECOMMENDED_COUNTER_DEFAULTS["SP3-04"]["counter_text"]
+                c["sme_reviewer"] = "Pradeep Gupta"
+                c["sme_rationale"] = RECOMMENDED_COUNTER_DEFAULTS["SP3-04"]["user_comment"]
+            elif cid == "SP5-03":
+                c["sme_status"] = "APPROVED"
+                c["selected_option_key"] = "hold_firm"
+                c["selected_counter_text"] = RECOMMENDED_COUNTER_DEFAULTS["SP5-03"]["counter_text"]
+                c["sme_reviewer"] = "Alex Wilber"
+                c["sme_rationale"] = RECOMMENDED_COUNTER_DEFAULTS["SP5-03"]["user_comment"]
+
+        base["total_clauses_parsed"] = len(base["clauses"])
+        base["redlined_clauses_count"] = sum(1 for c in base["clauses"] if c.get("has_redline"))
+        base["untouched_clauses_count"] = base["total_clauses_parsed"] - base["redlined_clauses_count"]
+        base["active_conflicts"] = [
+            {
+                "rule_id": "CONFLICT-GP1-19-GP1-03-FINANCE-LEGAL",
+                "rule_type": "CROSS_CLAUSE_CONFLICT",
+                "source_clause_id": "GP1-19",
+                "target_clause_id": "GP1-03",
+                "source_sme_team": "LEGAL",
+                "target_sme_team": "PROCUREMENT",
+                "severity": "CRITICAL_CONFLICT",
+                "conflict_title": "FINANCE vs. LEGAL CONFLICT IN WORKING DOC: Finance 3.5% Discount for 1.0x Cap (GP1 §3.1) Violates Legal Minimum 1.5x Liability Cap Guardrail (GP1 §19)",
+                "conflict_description": (
+                    "In BA-2026-TR-5510_Working_Review.docx, Finance (Diego Siciliani) modified GP1 §3.1 to accept a 3.5% "
+                    "($1,330,000) unit-price discount in exchange for lowering Seller's GP1 §19 Liability Cap to 1.0x ($38M). "
+                    "Legal (Miriam Graham) rejected this in GP1 §19 because Corporate Legal Playbook Guardrails mandate a "
+                    "minimum 1.5x ($57M) General Liability Cap and strictly prohibit trading liability caps for commercial unit-price discounts."
+                ),
+                "harmonized_option_key": "compromise_tier_1",
+                "harmonized_resolution_text": (
+                    "Legal Takes Precedence: Enforce Legal's minimum 1.5x ($57,000,000) General Liability Cap (and 2.5x "
+                    "Super-Cap) in GP1 §19 and restore standard Firm-Fixed-Price ($38,000,000) language in GP1 §3.1 with zero liability-cap trade-offs."
+                ),
+            }
+        ]
+        return base
+
+    if deal_id == "BA-2026-LG-7740":
+        base["deal_id"] = "BA-2026-LG-7740"
+        base["vendor_name"] = "Meridian Landing Gear Corp."
+        base["supplier_tier"] = "Tier-1 Structural & Landing Gear"
+        base["boeing_program"] = "787-10 Titanium Main Landing Gear Assemblies (TLG-800)"
+        base["contract_value_usd"] = 52000000.0
+        base["status"] = "IN_SME_REVIEW"
+        base["updated_at"] = now_str
+        base["active_conflicts"] = []
+
+        for c in base.get("clauses", []):
+            cid = c["clause_id"]
+            c.pop("deal_id", None)
+            if cid == "GP1-12":
+                c["sme_status"] = "APPROVED"
+                c["selected_option_key"] = "hold_firm"
+                c["selected_counter_text"] = RECOMMENDED_COUNTER_DEFAULTS["GP1-12"]["counter_text"]
+                c["sme_reviewer"] = "Megan Bowen"
+                c["sme_rationale"] = (
+                    "Megan Bowen (Lead Airworthiness & QA DER): Approved Hold Firm — 36-month warranty from aircraft delivery "
+                    "and unannounced FAA 14 CFR Part 21.140 source inspection are non-waivable for primary landing gear forgings."
+                )
+            elif cid == "SP3-04":
+                c["sme_status"] = "APPROVED"
+                c["selected_option_key"] = "compromise_tier_1"
+                c["selected_counter_text"] = (
+                    "4.1 (a) Importer of Record: Seller shall act as Importer of Record for all imported titanium forgings. "
+                    "(b) Tariff Allocation: All unit prices in Schedule A are DDP Everett/Charleston facility. Any verified "
+                    "new Section 232/301 tariff increase exceeding 5.0% on aerospace titanium forgings shall be shared 50/50 "
+                    "between Buyer and Seller, strictly capped at a maximum aggregate adjustment of 2.0% ($1,040,000) of the "
+                    "GP1 §3.1 Firm-Fixed-Price SOW ceiling ($52,000,000)."
+                )
+                c["sme_reviewer"] = "Pradeep Gupta"
+                c["sme_rationale"] = (
+                    "Pradeep Gupta (Director, Global Tax & Trade): Approved Tier-1 50/50 tariff-sharing band above 5.0% "
+                    "threshold, strictly capped at +2.0% ($1,040,000) of the $52M Firm-Fixed-Price SOW."
+                )
+            elif cid == "SP5-03":
+                c["sme_status"] = "APPROVED"
+                c["selected_option_key"] = "hold_firm"
+                c["selected_counter_text"] = RECOMMENDED_COUNTER_DEFAULTS["SP5-03"]["counter_text"]
+                c["sme_reviewer"] = "Alex Wilber"
+                c["sme_rationale"] = (
+                    "Alex Wilber (CISO Lead, Supplier Cyber Defense): Approved Hold Firm on mandatory 72-hour DFARS "
+                    "252.204-7012 cyber incident reporting and 90-day raw forensic image preservation."
+                )
+            elif cid == "GP1-19":
+                c["sme_status"] = "PENDING"
+                c["selected_option_key"] = "compromise_tier_1"
+                c["selected_counter_text"] = (
+                    "19.1 Seller's aggregate liability for general direct commercial damages arising out of or related to "
+                    "this Contract shall not exceed two hundred percent (200% / 2.0x) of the total Purchase Order value "
+                    "($104,000,000), or 1.5x ($78,000,000) with a 2.5x ($130,000,000) Super-Cap, excluding (a) breaches of "
+                    "confidentiality or DFARS cybersecurity obligations, (b) gross negligence or willful misconduct, "
+                    "(c) Airworthiness Directive (AD) or flight-safety recall costs, and (d) Seller's Section 24 intellectual "
+                    "property indemnification obligations (for which liability remains uncapped)."
+                )
+                c["sme_reviewer"] = "Miriam Graham"
+                c["sme_rationale"] = (
+                    "Miriam Graham (VP Legal & IP): Recommended Tier-1 Super-Cap (2.0x / $104M or 1.5x / $78M floor) with "
+                    "mandatory uncapped carveouts for IP indemnity and flight-safety AD recalls — ready for Contract Owner final sign-off."
+                )
+        return base
+
+    return base
+
+
+def _deal_state_file(deal_id: str) -> Path:
+    cid = resolve_deal_id(deal_id)
+    return SHARED_SKILLS_DIR / f"cymbal_clm_state_{cid}.json"
+
+
+def load_local_state(deal_id: str | None = None) -> Dict[str, Any]:
+    if deal_id:
+        cid = resolve_deal_id(deal_id)
+        per_deal_path = _deal_state_file(cid)
+        if per_deal_path.exists():
+            try:
+                data = json.loads(per_deal_path.read_text(encoding="utf-8"))
+                if isinstance(data, dict) and "clauses" in data and data.get("deal_id") == cid:
+                    return data
+            except Exception:
+                pass
+        if STATE_FILE.exists():
+            try:
+                data = json.loads(STATE_FILE.read_text(encoding="utf-8"))
+                if isinstance(data, dict) and "clauses" in data and data.get("deal_id") == cid:
+                    return data
+            except Exception:
+                pass
+        state = build_deal_initial_state(cid)
+        save_local_state(state, cid)
+        return state
+
+    if STATE_FILE.exists():
+        try:
+            data = json.loads(STATE_FILE.read_text(encoding="utf-8"))
+            if isinstance(data, dict) and "clauses" in data and "vendor_name" in data:
+                return data
+        except Exception:
+            pass
+    state = build_deal_initial_state("BA-2026-AV-8921")
+    save_local_state(state, "BA-2026-AV-8921")
+    return state
+
+
+def save_local_state(state: Dict[str, Any], deal_id: str | None = None) -> None:
+    cid = resolve_deal_id(deal_id or state.get("deal_id", "BA-2026-AV-8921"))
+    targets = [STATE_FILE, _deal_state_file(cid), Path.cwd() / ".cymbal_clm_state.json"]
+    for target in targets:
+        try:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(json.dumps(state, indent=2), encoding="utf-8")
+        except Exception:
+            pass
+
+
 def parse_and_ingest_real_docx(
     deal_id: str,
     vendor_docx_path: str,
@@ -158,9 +465,38 @@ def parse_and_ingest_real_docx(
     """
     Execute real OOXML .docx Track Changes & baseline diff parsing via `boeing_clm.ingestion.docx_track_changes`
     and combine with live BigQuery `active_deals`, `proforma_clauses`, `clause_conflict_rules`, and
-    concurrent `VECTOR_SEARCH` precedent distributions.
+    concurrent `VECTOR_SEARCH` precedent distributions. Supports all 3 portfolio deals:
+      - `BA-2026-AV-8921` (Doc 1: Fresh intake from `Vendor_Redlined_GP1.docx`)
+      - `BA-2026-TR-5510` (Doc 2: Middle-stage Finance vs. Legal conflict in `BA-2026-TR-5510_Working_Review.docx`)
+      - `BA-2026-LG-7740` (Doc 3: Final-stage SME-reviewed working doc `BA-2026-LG-7740_Working_Review.docx`)
     """
     from boeing_clm.ingestion.docx_track_changes import parse_redlined_docx
+
+    deal_id = resolve_deal_id(deal_id)
+    if deal_id in ("BA-2026-TR-5510", "BA-2026-LG-7740"):
+        state = load_local_state(deal_id)
+        working_docx = Path.cwd() / f"{deal_id}_Working_Review.docx"
+        if not working_docx.exists():
+            try:
+                build_fresh_docx_and_xlsx(state, Path.cwd())
+            except Exception:
+                pass
+        if working_docx.exists():
+            try:
+                b_path = resolve_docx_path(baseline_docx_path)
+                extracted_diffs = parse_redlined_docx(working_docx, baseline_docx_path=b_path if b_path.exists() else None)
+                diffs_by_id = {d.clause_id: d for d in extracted_diffs}
+                for c in state.get("clauses", []):
+                    cid = c["clause_id"]
+                    if cid in diffs_by_id and c.get("has_redline"):
+                        d = diffs_by_id[cid]
+                        if d.vendor_comments and not c.get("vendor_comment"):
+                            c["vendor_comment"] = " | ".join(d.vendor_comments)
+            except Exception:
+                pass
+        state["updated_at"] = utc_now_iso()
+        save_local_state(state, deal_id)
+        return state
 
     v_path = resolve_docx_path(vendor_docx_path)
     b_path = resolve_docx_path(baseline_docx_path)
@@ -177,7 +513,7 @@ def parse_and_ingest_real_docx(
             base_state = None
 
     if not base_state:
-        base_state = json.loads(json.dumps(load_seed()["initial_state"]))
+        base_state = build_deal_initial_state(deal_id)
 
     # Overlay freshly parsed .docx clauses onto state and reset intake review status to fresh intake
     for c in base_state.get("clauses", []):
@@ -214,10 +550,12 @@ def parse_and_ingest_real_docx(
     base_state["updated_at"] = utc_now_iso()
     return base_state
 
+
 BASE_URL = os.environ.get(
     "CLM_ENGINE_URL",
     "https://boeing-clm-engine-5udif2v3cq-uc.a.run.app",
 ).rstrip("/")
+
 
 def _load_env_secret(key: str, default: str = "") -> str:
     if os.environ.get(key):
@@ -265,29 +603,6 @@ def load_seed() -> Dict[str, Any]:
         if candidate.exists():
             return json.loads(candidate.read_text(encoding="utf-8"))
     raise RuntimeError("Could not locate cymbal_clm_seed.json")
-
-
-def load_local_state() -> Dict[str, Any]:
-    if STATE_FILE.exists():
-        try:
-            data = json.loads(STATE_FILE.read_text(encoding="utf-8"))
-            if isinstance(data, dict) and "clauses" in data and "vendor_name" in data:
-                return data
-        except Exception:
-            pass
-    seed = load_seed()
-    state = json.loads(json.dumps(seed["initial_state"]))
-    save_local_state(state)
-    return state
-
-
-def save_local_state(state: Dict[str, Any]) -> None:
-    for target in [STATE_FILE, Path.cwd() / ".cymbal_clm_state.json"]:
-        try:
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(json.dumps(state, indent=2), encoding="utf-8")
-        except Exception:
-            pass
 
 
 def try_cloud_json(method: str, path: str, payload: dict | None = None, timeout: int = 8) -> dict | None:
@@ -541,9 +856,19 @@ def create_outlook_vendor_counter_draft(
 ) -> Dict[str, Any]:
     """Create (or send) the Final Vendor Counter-Proposal Reply Draft in Outlook Drafts with .docx & .xlsx attached."""
     now_str = utc_now_iso()
+    vc = DEAL_VENDOR_CONTACTS.get(
+        state["deal_id"],
+        {
+            "vendor_name": state.get("vendor_name", "Apex AeroSystems Inc."),
+            "contact_name": "Adele Vance (VP Contracts & Legal Counsel, Apex AeroSystems)",
+            "contact_short": "Adele Vance",
+            "contact_email": "AdeleV@36zrbd.onmicrosoft.com",
+            "program_summary": f"${state.get('contract_value_usd', 45000000):,.0f} FFP | {state.get('boeing_program', 'FCC-900')}",
+        },
+    )
     subject = (
         f"RE: [URGENT REDLINE] Deal {state['deal_id']} — Cymbal Aerospace Official Counter-Proposal & "
-        f"Deviation Matrix (${state['contract_value_usd']:,.0f} FCC-900 Flight Control Subsystem)"
+        f"Deviation Matrix ({vc['vendor_name']} — ${state['contract_value_usd']:,.0f})"
     )
     redlined = [c for c in state["clauses"] if c.get("has_redline")]
     rows_html = ""
@@ -561,15 +886,15 @@ def create_outlook_vendor_counter_draft(
 <div style="font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a; line-height: 1.55; max-width: 840px;">
   <div style="background: #0033a0; color: #ffffff; padding: 16px 22px; border-radius: 8px 8px 0 0;">
     <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.85;">Cymbal Aerospace Global Supply Chain Contracting • Official Counter-Proposal</div>
-    <div style="font-size: 18px; font-weight: 700; margin-top: 4px;">Deal {state['deal_id']} — Apex AeroSystems Inc. ($45,000,000 FFP | 787 / 737 MAX FCC-900)</div>
+    <div style="font-size: 18px; font-weight: 700; margin-top: 4px;">Deal {state['deal_id']} — {html.escape(vc['vendor_name'])} ({html.escape(vc['program_summary'])})</div>
   </div>
   <div style="border: 1px solid #cbd5e1; border-top: none; padding: 20px 22px; border-radius: 0 0 8px 8px; background: #ffffff;">
-    <p style="margin-top: 0;">Dear <strong>Adele Vance</strong> &amp; Apex AeroSystems Contracts Team,</p>
+    <p style="margin-top: 0;">Dear <strong>{html.escape(vc['contact_short'])}</strong> &amp; {html.escape(vc['vendor_name'])} Contracts Team,</p>
     <p>Thank you for transmitting your markup of the Cymbal Aerospace General Provisions (<strong>GP1</strong>), International &amp; Tariff Provisions (<strong>SP3</strong>), and Cybersecurity Supplement (<strong>SP5</strong>) for <strong>Deal {state['deal_id']}</strong>.</p>
     <p>Our cross-functional Subject Matter Expert (SME) governance board across <strong>Engineering &amp; FAA Quality (DER)</strong>, <strong>Corporate Legal &amp; IP</strong>, <strong>Global Tax &amp; Trade</strong>, and <strong>Supplier Cyber Defense</strong> has completed its formal review:</p>
     <ul>
-      <li><strong>8 Baseline Clauses Auto-Cleared</strong>: Sections GP1 §1.1, §3.1, §7.1, §11.1, §14.1, §15.1, §21.1, and §28.1 are accepted with zero changes.</li>
-      <li><strong>4 Redlined Clauses Consolidated Below</strong>: Please see our formal Counter-Proposal positions and regulatory/precedent rationales in the table below and in the attached redlined Word contract (<code>{docx_path.name}</code>) and 4-tab Deviation Matrix (<code>{xlsx_path.name}</code>).</li>
+      <li><strong>{state['untouched_clauses_count']} Baseline Clauses Auto-Cleared</strong>: All untouched proforma sections are accepted with zero changes.</li>
+      <li><strong>{state['redlined_clauses_count']} Redlined Clauses Consolidated Below</strong>: Please see our formal Counter-Proposal positions and regulatory/precedent rationales in the table below and in the attached redlined Word contract (<code>{docx_path.name}</code>) and 4-tab Deviation Matrix (<code>{xlsx_path.name}</code>).</li>
     </ul>
     <table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 12.5px;">
       <thead>
@@ -584,12 +909,12 @@ def create_outlook_vendor_counter_draft(
         {rows_html}
       </tbody>
     </table>
-    <p><strong>Attached Deliverables (also published to the <a href="{SHAREPOINT_FOLDER_WEB_URL}">Cymbal Aerospace SharePoint Deal Room</a>):</strong></p>
+    <p><strong>Attached Deliverables:</strong></p>
     <ol>
       <li><code>{docx_path.name}</code> — Native Word OOXML Track Changes (<code>&lt;w:del&gt;</code> / <code>&lt;w:ins&gt;</code>) and embedded SME Margin Comments (<code>&lt;w:comment&gt;</code>) generated at <strong>{now_str}</strong>.</li>
       <li><code>{xlsx_path.name}</code> — 4-Tab Executive Summary, Clause Sign-Off Matrix, BigQuery Precedent Benchmark (64 historical deals), and Immutable Audit Trail generated at <strong>{now_str}</strong>.</li>
     </ol>
-    <p style="margin-bottom: 0;">Best regards,<br/><strong>Rahul Kasanagottu</strong><br/>Senior Procurement &amp; Contracts Lead — 787 / 737 MAX Avionics<br/>Cymbal Aerospace Corporation</p>
+    <p style="margin-bottom: 0;">Best regards,<br/><strong>Rahul Kasanagottu</strong><br/>Senior Procurement &amp; Contracts Lead<br/>Cymbal Aerospace Corporation</p>
   </div>
 </div>
 """.strip()
@@ -597,12 +922,12 @@ def create_outlook_vendor_counter_draft(
     token = get_m365_token()
     draft_id = None
     web_link = None
+    sent_ok = False
     if token:
         headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
         }
-        # Clean up any previous RE: [URGENT REDLINE] counter-proposal drafts so the newest one is at the top
         try:
             list_url = f"https://graph.microsoft.com/v1.0/users/{M365_USER_EMAIL}/mailFolders/drafts/messages?$top=30&$select=id,subject"
             req = urllib.request.Request(list_url, headers=headers, method="GET")
@@ -610,7 +935,7 @@ def create_outlook_vendor_counter_draft(
                 items = json.loads(r.read().decode("utf-8")).get("value", [])
                 for item in items:
                     subj = item.get("subject") or ""
-                    if "Cymbal Aerospace Official Counter-Proposal" in subj or "[Cymbal Aerospace Counter-Proposal]" in subj:
+                    if f"Deal {state['deal_id']}" in subj and "Official Counter-Proposal" in subj:
                         del_req = urllib.request.Request(
                             f"https://graph.microsoft.com/v1.0/users/{M365_USER_EMAIL}/messages/{item['id']}",
                             headers=headers,
@@ -630,14 +955,14 @@ def create_outlook_vendor_counter_draft(
             "toRecipients": [
                 {
                     "emailAddress": {
-                        "name": "Adele Vance (VP Contracts & Legal Counsel, Apex AeroSystems)",
-                        "address": "AdeleV@36zrbd.onmicrosoft.com",
+                        "name": vc["contact_name"],
+                        "address": vc["contact_email"],
                     }
                 }
             ],
             "ccRecipients": [
                 {"emailAddress": {"name": "Megan Bowen (Engineering/FAA DER)", "address": "MeganB@36zrbd.onmicrosoft.com"}},
-                {"emailAddress": {"name": "Lee Gu (Corporate Legal & IP)", "address": "LeeG@36zrbd.onmicrosoft.com"}},
+                {"emailAddress": {"name": "Miriam Graham (Corporate Legal & IP)", "address": "MiriamG@36zrbd.onmicrosoft.com"}},
                 {"emailAddress": {"name": "Pradeep Gupta (Global Tax & Trade)", "address": "PradeepG@36zrbd.onmicrosoft.com"}},
                 {"emailAddress": {"name": "Alex Wilber (Supplier Cyber Defense)", "address": "AlexW@36zrbd.onmicrosoft.com"}},
             ],
@@ -656,7 +981,6 @@ def create_outlook_vendor_counter_draft(
                 },
             ],
         }
-        sent_ok = False
         try:
             req = urllib.request.Request(
                 f"https://graph.microsoft.com/v1.0/users/{M365_USER_EMAIL}/messages",
@@ -681,10 +1005,12 @@ def create_outlook_vendor_counter_draft(
             pass
 
     return {
-        "to": "Adele Vance <AdeleV@36zrbd.onmicrosoft.com>",
+        "deal_id": state["deal_id"],
+        "vendor_name": vc["vendor_name"],
+        "to": f"{vc['contact_short']} <{vc['contact_email']}>",
         "cc": [
             "MeganB@36zrbd.onmicrosoft.com",
-            "LeeG@36zrbd.onmicrosoft.com",
+            "MiriamG@36zrbd.onmicrosoft.com",
             "PradeepG@36zrbd.onmicrosoft.com",
             "AlexW@36zrbd.onmicrosoft.com",
         ],
@@ -694,7 +1020,7 @@ def create_outlook_vendor_counter_draft(
             if sent_ok
             else "Drafts (m365-admin@rahulsankrut.demo.altostrat.com)"
         ),
-        "draft_id": draft_id or "DRAFT-BA-2026-AV-8921-COUNTER-PROPOSAL",
+        "draft_id": draft_id or f"DRAFT-{state['deal_id']}-COUNTER-PROPOSAL",
         "web_link": web_link or "https://outlook.office.com/mail/drafts",
         "attachments": [docx_path.name, xlsx_path.name],
         "status": (
@@ -2681,7 +3007,7 @@ def generate_canvas_workbench_html(
                 <div class="step-pills">
                   ${{this.leftNavCollapsed ? `<button class="btn-outline" onclick="window.app.toggleLeftNav()">☰ Clauses (12)</button>` : ''}}
                   <span style="font-size:11px;font-weight:800;color:var(--pastel-indigo-text);text-transform:uppercase;">
-                    Exceptions (${{approvedCount}}/4):
+                    Exceptions (${{approvedCount}}/${{redlined.length}}):
                   </span>
                   ${{redlined.map((c, idx) => {{
                     const isAct = c.clause_id === this.activeClauseId;
@@ -2708,7 +3034,7 @@ def generate_canvas_workbench_html(
                     <option value="PR_STACKED" ${{this.markupMode === 'PR_STACKED' ? 'selected' : ''}}>PR Stacked Diff (-/+)</option>
                   </select>
                   <button class="btn-outline" style="padding:4px 9px;font-size:11px;" onclick="window.app.toggleAllUntouched()">
-                    ${{this.showAllUntouched ? '📁 Collapse 8 Unchanged' : '📂 Expand 8 Unchanged'}}
+                    ${{this.showAllUntouched ? '📁 Collapse Unchanged' : '📂 Expand Unchanged'}}
                   </button>
                 </div>
               </div>
@@ -2716,8 +3042,27 @@ def generate_canvas_workbench_html(
               <div class="word-sheet">
                 <div class="doc-h1">MASTER SUBCONTRACT AGREEMENT — CYMBAL AEROSPACE (${{this.data.deal.proforma_stack}})</div>
                 <div class="doc-context">
-                  Deal <strong>${{this.data.deal.deal_id}}</strong> • Buyer: <strong>Cymbal Aerospace Corporation</strong> • Supplier: <strong>${{this.data.deal.vendor_name}}</strong> • Value: <strong>$45,000,000 Firm-Fixed-Price (GP1 §3.1)</strong> • Working Doc: <code>${{this.data.working_docx_name}}</code>
+                  Deal <strong>${{this.data.deal.deal_id}}</strong> • Buyer: <strong>Cymbal Aerospace Corporation</strong> • Supplier: <strong>${{this.data.deal.vendor_name}}</strong> • Value: <strong>$${{Number(this.data.deal.contract_value_usd || 45000000).toLocaleString()}} (${{escapeHtml(this.data.deal.pricing_model || 'Firm-Fixed-Price')}})</strong> • Working Doc: <code>${{this.data.working_docx_name}}</code>
                 </div>
+
+                ${{(this.data.deal.active_conflicts || []).filter(cf => !cf.resolved).map(cf => `
+                  <div style="background:var(--pastel-rose-soft);border:1px solid var(--pastel-rose-border);border-left:5px solid #e11d48;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-family:Inter,sans-serif;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+                      <span style="font-size:11.5px;font-weight:800;color:var(--pastel-rose-text);text-transform:uppercase;">
+                        ⚡ ${{escapeHtml(cf.conflict_title || cf.banner_title || cf.rule_id)}}
+                      </span>
+                      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                        <button class="btn-outline" style="padding:3px 9px;font-size:11px;background:#fff;" onclick="window.app.selectClause('${{cf.source_clause_id}}')">Inspect ${{escapeHtml(cf.source_clause_id)}}</button>
+                        <button class="btn-outline" style="padding:3px 9px;font-size:11px;background:#fff;" onclick="window.app.selectClause('${{cf.target_clause_id}}')">Inspect ${{escapeHtml(cf.target_clause_id)}}</button>
+                        <button class="btn-accept" style="padding:4px 10px;font-size:11px;" onclick="window.app.selectClause('${{cf.source_clause_id}}');window.app.submitReviewAction('ACCEPT');">
+                          ⚖️ Resolve Conflict: Legal Takes Precedence
+                        </button>
+                      </div>
+                    </div>
+                    <div style="font-size:12.5px;color:var(--ink-primary);line-height:1.5;margin-bottom:4px;">${{escapeHtml(cf.conflict_description || '')}}</div>
+                    <div style="font-size:12px;color:var(--pastel-mint-text);font-weight:700;">Recommended Resolution: ${{escapeHtml(cf.harmonized_resolution_text || cf.recommended_harmonization || '')}}</div>
+                  </div>
+                `).join('')}}
 
                 ${{docClauses.map(c => {{
                   const isFocused = c.clause_id === this.activeClauseId;
@@ -3228,50 +3573,224 @@ def apply_local_position(
 
 def apply_local_harmonize(state: Dict[str, Any], rule_id: str, actor: str) -> Dict[str, Any]:
     now_str = utc_now_iso()
-    harmonized_text = (
-        "4.1 Customs, Duties & Section 232/301 Tariff Risk-Sharing Cap. Delivery remains DDP Buyer's "
-        "Everett/Renton facility per Incoterms 2020. Seller absorbs the first 5.0% of any newly enacted "
-        "Section 232 or Section 301 tariff rate increases taking effect after the Effective Date. Verified "
-        "increases exceeding the 5.0% threshold on raw titanium or semiconductor wafers shall be shared "
-        "50% by Buyer and 50% by Seller upon audited customs entry documentation, provided Buyer's maximum "
-        "aggregate tariff adjustment across the Contract term shall never exceed 2.0% ($900,000) of the "
-        "Total Firm-Fixed-Price PO Value under GP1 §3.1."
-    )
-    state["active_conflicts"] = [
-        c for c in state.get("active_conflicts", []) if c.get("rule_id") != rule_id
-    ]
-    for c in state["clauses"]:
-        if c["clause_id"] == "SP3-04":
-            c["selected_option_key"] = "compromise_tier_1"
-            c["selected_counter_text"] = harmonized_text
-            c["sme_status"] = "APPROVED"
-            c["sme_reviewer"] = actor
-            c["sme_rationale"] = (
-                "Joint Tax & Procurement Harmonization: Resolved CONFLICT-SP3-04-GP1-03 by replacing uncapped "
-                "tariff surcharge with 50/50 risk-sharing above 5.0% statutory threshold, strictly capped at "
-                "+2.0% ($900,000) of Total Firm-Fixed-Price PO Value under GP1 §3.1."
-            )
-    state.setdefault("recent_events", []).insert(
-        0,
-        {
-            "event_id": f"EVT-HARM-{int(datetime.now(timezone.utc).timestamp())}",
-            "deal_id": state["deal_id"],
-            "clause_id": "SP3-04",
-            "sme_team": "TAX",
-            "actor": actor,
-            "action": "CONFLICT_HARMONIZED",
-            "selected_option_key": "compromise_tier_1",
-            "rationale": f"Harmonized {rule_id} between SP3 §4.1 and GP1 §3.1 Firm-Fixed-Price lock.",
-            "source_surface": "SPARK_DESKTOP_CLM_SKILL",
-            "created_at": now_str,
-        },
-    )
+    deal_id = state.get("deal_id", "BA-2026-AV-8921")
+
+    if deal_id == "BA-2026-TR-5510" or "FINANCE-LEGAL" in rule_id.upper() or "GP1-19" in rule_id.upper():
+        rule_id = "CONFLICT-GP1-19-GP1-03-FINANCE-LEGAL"
+        legal_precedence_cap_text = (
+            "19.1 Seller's aggregate liability for general direct commercial damages arising out of or related to "
+            "this Contract shall not be less than one hundred fifty percent (150% / 1.5x) of total Purchase Order value "
+            "($57,000,000), with a 2.5x ($95,000,000) Super-Cap and uncapped carveouts for IP indemnification (§24), "
+            "flight-safety Airworthiness Directives, and DFARS cybersecurity obligations. No commercial unit-price "
+            "discount under GP1 §3.1 shall reduce Seller's liability cap below 1.5x PO value."
+        )
+        standard_ffp_text = (
+            "3.1 Firm-Fixed-Price (FFP) Ceiling: Total Contract price for all Thrust Reverser Actuator (TRA-500) "
+            "shipsets under Schedule A is thirty-eight million U.S. dollars ($38,000,000.00) Firm-Fixed-Price (FFP). "
+            "Per Corporate Legal Playbook Guardrails, no commercial unit-price discount tied to a reduction of Seller's "
+            "GP1 §19 General Liability Cap is permitted."
+        )
+        state["active_conflicts"] = []
+        for c in state["clauses"]:
+            if c["clause_id"] == "GP1-19":
+                c["selected_option_key"] = "compromise_tier_1"
+                c["selected_counter_text"] = legal_precedence_cap_text
+                c["sme_status"] = "APPROVED"
+                c["sme_reviewer"] = actor
+                c["sme_rationale"] = (
+                    f"{actor} (Contract Owner — Legal Precedence Ruling): Resolved CONFLICT-GP1-19-GP1-03-FINANCE-LEGAL "
+                    "in favor of Legal. Corporate Legal Playbook guardrails take precedence over commercial discount "
+                    "trade-offs; enforced minimum 1.5x ($57,000,000) General Liability Cap and 2.5x ($95,000,000) Super-Cap."
+                )
+            elif c["clause_id"] == "GP1-03":
+                c["selected_option_key"] = "hold_firm"
+                c["selected_counter_text"] = standard_ffp_text
+                c["sme_status"] = "APPROVED"
+                c["sme_reviewer"] = actor
+                c["sme_rationale"] = (
+                    f"{actor} (Contract Owner — Legal Precedence Ruling): Overruled Finance's 1.0x liability cap trade-off "
+                    "for a 3.5% discount; restored standard $38,000,000 Firm-Fixed-Price SOW ceiling in GP1 §3.1 because "
+                    "Legal Playbook guardrails take precedence over commercial pricing accommodations."
+                )
+        state.setdefault("recent_events", []).insert(
+            0,
+            {
+                "event_id": f"EVT-HARM-{int(datetime.now(timezone.utc).timestamp())}",
+                "deal_id": state["deal_id"],
+                "clause_id": "GP1-19",
+                "sme_team": "LEGAL",
+                "actor": actor,
+                "action": "CONFLICT_HARMONIZED",
+                "selected_option_key": "compromise_tier_1",
+                "rationale": (
+                    "Legal Takes Precedence: Resolved CONFLICT-GP1-19-GP1-03-FINANCE-LEGAL by enforcing Legal's "
+                    "1.5x ($57M) Liability Cap guardrail over Finance's 3.5% discount trade-off."
+                ),
+                "source_surface": "SPARK_DESKTOP_CLM_SKILL",
+                "created_at": now_str,
+            },
+        )
+    else:
+        harmonized_text = (
+            "4.1 Customs, Duties & Section 232/301 Tariff Risk-Sharing Cap. Delivery remains DDP Buyer's "
+            "Everett/Renton facility per Incoterms 2020. Seller absorbs the first 5.0% of any newly enacted "
+            "Section 232 or Section 301 tariff rate increases taking effect after the Effective Date. Verified "
+            "increases exceeding the 5.0% threshold on raw titanium or semiconductor wafers shall be shared "
+            "50% by Buyer and 50% by Seller upon audited customs entry documentation, provided Buyer's maximum "
+            "aggregate tariff adjustment across the Contract term shall never exceed 2.0% ($900,000) of the "
+            "Total Firm-Fixed-Price PO Value under GP1 §3.1."
+        )
+        state["active_conflicts"] = [
+            c for c in state.get("active_conflicts", []) if c.get("rule_id") != rule_id
+        ]
+        for c in state["clauses"]:
+            if c["clause_id"] == "SP3-04":
+                c["selected_option_key"] = "compromise_tier_1"
+                c["selected_counter_text"] = harmonized_text
+                c["sme_status"] = "APPROVED"
+                c["sme_reviewer"] = actor
+                c["sme_rationale"] = (
+                    "Joint Tax & Procurement Harmonization: Resolved CONFLICT-SP3-04-GP1-03 by replacing uncapped "
+                    "tariff surcharge with 50/50 risk-sharing above 5.0% statutory threshold, strictly capped at "
+                    "+2.0% ($900,000) of Total Firm-Fixed-Price PO Value under GP1 §3.1."
+                )
+        state.setdefault("recent_events", []).insert(
+            0,
+            {
+                "event_id": f"EVT-HARM-{int(datetime.now(timezone.utc).timestamp())}",
+                "deal_id": state["deal_id"],
+                "clause_id": "SP3-04",
+                "sme_team": "TAX",
+                "actor": actor,
+                "action": "CONFLICT_HARMONIZED",
+                "selected_option_key": "compromise_tier_1",
+                "rationale": f"Harmonized {rule_id} between SP3 §4.1 and GP1 §3.1 Firm-Fixed-Price lock.",
+                "source_surface": "SPARK_DESKTOP_CLM_SKILL",
+                "created_at": now_str,
+            },
+        )
     redlined = [c for c in state["clauses"] if c.get("has_redline")]
     if all(c.get("sme_status") == "APPROVED" for c in redlined) and not state["active_conflicts"]:
         state["status"] = "READY_FOR_CONSOLIDATION"
     state["updated_at"] = now_str
     save_local_state(state)
     return state
+
+
+def send_conflict_resolution_email(
+    state: Dict[str, Any],
+    send_immediately: bool = False,
+) -> Dict[str, Any]:
+    """
+    Create (or send) the Contract Owner's internal conflict-resolution email in Outlook
+    to Finance (`Diego Siciliani`) and Legal (`Miriam Graham`) confirming that Corporate Legal
+    Playbook guardrails take precedence over commercial cap-for-discount trade-offs.
+    """
+    now_str = utc_now_iso()
+    deal_id = state.get("deal_id", "BA-2026-TR-5510")
+    subject = (
+        f"[CONFLICT RESOLUTION: Deal {deal_id}] Legal Playbook Guardrails Take Precedence Over "
+        f"GP1 §3.1 Cap-for-Discount Trade-Off ({state.get('vendor_name', 'Vanguard Thrust Systems Corp.')})"
+    )
+    body_html = f"""
+<div style="font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a; line-height: 1.55; max-width: 820px;">
+  <div style="background: #312e81; color: #ffffff; padding: 14px 20px; border-radius: 8px 8px 0 0;">
+    <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.85;">Cymbal Aerospace CLM Governance Ruling • Deal {deal_id}</div>
+    <div style="font-size: 17px; font-weight: 700; margin-top: 4px;">Resolution of Finance vs. Legal Conflict in Working Review Document — Legal Takes Precedence</div>
+  </div>
+  <div style="border: 1px solid #cbd5e1; border-top: none; padding: 18px 20px; border-radius: 0 0 8px 8px; background: #ffffff;">
+    <p style="margin-top: 0;">Hi <strong>Diego</strong> (Procurement Finance) and <strong>Miriam</strong> (Corporate Legal &amp; IP),</p>
+    <p>I have reviewed the conflicting edits recorded in <code>{deal_id}_Working_Review.docx</code> for <strong>{html.escape(state.get('vendor_name', 'Vanguard Thrust Systems Corp.'))}</strong> (<strong>${state.get('contract_value_usd', 38000000):,.0f}</strong> — <em>{html.escape(state.get('boeing_program', '777X / 787 Thrust Reverser Actuators TRA-500'))}</em>):</p>
+    <ul>
+      <li><strong>Finance Position in Working Doc (<code>GP1 §3.1</code>):</strong> Proposed accepting Vanguard's <strong>3.5% ($1,330,000) unit-price discount</strong> conditioned on lowering Seller's General Liability Cap in <code>GP1 §19</code> to <strong>1.0x ($38,000,000)</strong>.</li>
+      <li><strong>Legal Guardrail Position in Working Doc (<code>GP1 §19</code>):</strong> Flagged a direct Playbook violation — Corporate Legal Playbook Guardrails strictly prohibit dropping the General Liability Cap below <strong>1.5x ($57,000,000)</strong> (with a <strong>2.5x / $95,000,000 Super-Cap</strong>) or trading away liability/indemnity protections for commercial unit-price discounts.</li>
+    </ul>
+    <div style="background: #eef2ff; border-left: 4px solid #4f46e5; padding: 12px 16px; border-radius: 6px; margin: 14px 0;">
+      <strong style="color: #1e1b4b;">Official Governance Decision — Legal Takes Precedence:</strong><br/>
+      Per Cymbal Aerospace contracting policy, <strong>Corporate Legal Playbook guardrails take precedence over commercial pricing accommodations</strong>. I have resolved the conflict in <code>{deal_id}_Working_Review.docx</code> in favor of Legal:
+      <ol style="margin-top: 6px; margin-bottom: 0;">
+        <li><strong><code>GP1 §19</code> (Limitation of Liability):</strong> Locked at Legal's <strong>1.5x ($57,000,000) General Liability Cap</strong> and <strong>2.5x ($95,000,000) Super-Cap</strong> with uncapped IP, Airworthiness, and DFARS Cyber carveouts.</li>
+        <li><strong><code>GP1 §3.1</code> (Firm-Fixed-Price SOW):</strong> Restored to the standard <strong>$38,000,000 Firm-Fixed-Price ceiling</strong> with zero liability-cap reduction trade-off.</li>
+      </ol>
+    </div>
+    <p style="margin-bottom: 0;">Best regards,<br/><strong>Rahul Kasanagottu</strong><br/>Senior Procurement &amp; Contracts Lead<br/>Cymbal Aerospace Corporation</p>
+  </div>
+</div>
+""".strip()
+
+    token = get_m365_token()
+    draft_id = None
+    web_link = None
+    sent_ok = False
+    if token:
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        }
+        msg_payload = {
+            "subject": subject,
+            "importance": "high",
+            "body": {"contentType": "HTML", "content": body_html},
+            "toRecipients": [
+                {
+                    "emailAddress": {
+                        "name": "Diego Siciliani (VP Procurement Finance)",
+                        "address": "DiegoS@36zrbd.onmicrosoft.com",
+                    }
+                },
+                {
+                    "emailAddress": {
+                        "name": "Miriam Graham (VP Corporate Legal & IP)",
+                        "address": "MiriamG@36zrbd.onmicrosoft.com",
+                    }
+                },
+            ],
+        }
+        try:
+            req = urllib.request.Request(
+                f"https://graph.microsoft.com/v1.0/users/{M365_USER_EMAIL}/messages",
+                data=json.dumps(msg_payload).encode("utf-8"),
+                headers=headers,
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=10) as r:
+                resp_obj = json.loads(r.read().decode("utf-8"))
+                draft_id = resp_obj.get("id")
+                web_link = resp_obj.get("webLink")
+            if send_immediately and draft_id:
+                send_req = urllib.request.Request(
+                    f"https://graph.microsoft.com/v1.0/users/{M365_USER_EMAIL}/messages/{draft_id}/send",
+                    data=b"",
+                    headers={"Authorization": f"Bearer {token}", "Content-Length": "0"},
+                    method="POST",
+                )
+                urllib.request.urlopen(send_req, timeout=10).close()
+                sent_ok = True
+        except Exception:
+            pass
+
+    return {
+        "deal_id": deal_id,
+        "ruling": "LEGAL_TAKES_PRECEDENCE",
+        "to": [
+            "Diego Siciliani (VP Procurement Finance) <DiegoS@36zrbd.onmicrosoft.com>",
+            "Miriam Graham (VP Corporate Legal & IP) <MiriamG@36zrbd.onmicrosoft.com>",
+        ],
+        "subject": subject,
+        "outlook_folder": (
+            "Sent Items (m365-admin@rahulsankrut.demo.altostrat.com)"
+            if sent_ok
+            else "Drafts (m365-admin@rahulsankrut.demo.altostrat.com)"
+        ),
+        "draft_id": draft_id or f"DRAFT-{deal_id}-LEGAL-PRECEDENCE",
+        "web_link": web_link or "https://outlook.office.com/mail/drafts",
+        "status": (
+            "SENT_VIA_OUTLOOK"
+            if sent_ok
+            else ("SAVED_IN_OUTLOOK_DRAFTS" if draft_id else "STAGED_LOCALLY")
+        ),
+        "created_at": now_str,
+    }
 
 
 def deliver_sme_update_emails_to_inbox(clause_id: str | None = None) -> List[Dict[str, Any]]:
@@ -4308,6 +4827,7 @@ def serve_loopback_bridge(port: int = HOST_BRIDGE_PORT) -> None:
                 return
 
             if self.path == "/api/review":
+                req_deal_id = resolve_deal_id(body.get("deal_id"))
                 clause_id = body.get("clause_id", "GP1-19")
                 sme_team = body.get("sme_team", "LEGAL")
                 option = body.get("option", "compromise_tier_1")
@@ -4316,16 +4836,23 @@ def serve_loopback_bridge(port: int = HOST_BRIDGE_PORT) -> None:
                 user_comment = (body.get("user_comment") or "").strip()
                 req_cwd = body.get("cwd")
 
-                state = load_local_state()
-                state = apply_local_position(
-                    state=state,
-                    clause_id=clause_id,
-                    sme_team=sme_team,
-                    option=option,
-                    counter_text=counter_text,
-                    reviewer=reviewer_name,
-                    rationale=user_comment,
-                )
+                state = load_local_state(req_deal_id)
+                if req_deal_id == "BA-2026-TR-5510" and clause_id in ("GP1-19", "GP1-03") and option != "accept_vendor":
+                    state = apply_local_harmonize(
+                        state=state,
+                        rule_id="CONFLICT-GP1-19-GP1-03-FINANCE-LEGAL",
+                        actor=reviewer_name,
+                    )
+                else:
+                    state = apply_local_position(
+                        state=state,
+                        clause_id=clause_id,
+                        sme_team=sme_team,
+                        option=option,
+                        counter_text=counter_text,
+                        reviewer=reviewer_name,
+                        rationale=user_comment,
+                    )
                 # Write updated working review document with user's comment (`w:author=reviewer_name`) across all active workspaces
                 target_dirs = [Path.cwd()]
                 if req_cwd and Path(req_cwd).exists():
@@ -4336,11 +4863,11 @@ def serve_loopback_bridge(port: int = HOST_BRIDGE_PORT) -> None:
                 if spark_ws.exists() and spark_ws.resolve() not in [d.resolve() for d in target_dirs]:
                     target_dirs.append(spark_ws)
 
-                working_docx_path = Path.cwd() / "BA-2026-AV-8921_Working_Review.docx"
+                working_docx_path = Path.cwd() / f"{state['deal_id']}_Working_Review.docx"
                 for d in target_dirs:
                     try:
                         build_fresh_docx_and_xlsx(state, d)
-                        w_path = d / "BA-2026-AV-8921_Working_Review.docx"
+                        w_path = d / f"{state['deal_id']}_Working_Review.docx"
                         working_docx_path = w_path
                     except Exception:
                         pass
@@ -4348,6 +4875,7 @@ def serve_loopback_bridge(port: int = HOST_BRIDGE_PORT) -> None:
                 resp_payload = json.dumps(
                     {
                         "status": "ok",
+                        "deal_id": state["deal_id"],
                         "clause_id": clause_id,
                         "option": option,
                         "reviewer_name": reviewer_name,
@@ -4446,28 +4974,28 @@ def main() -> None:
     p_state = sub.add_parser("state", help="Get full DealWorkbenchState and render Canvas Workbench")
     p_state.add_argument("--deal-id", default="BA-2026-AV-8921")
 
-    p_ingest = sub.add_parser("ingest", help="Workflow 1 (clm-contract-intake): Compare Vendor_Redlined_GP1.docx vs Cymbal Playbook & BigQuery precedents, identify SME owners, and render Canvas Diff Workbench")
+    p_ingest = sub.add_parser("ingest", help="Stage 1/2/3 (clm-contract-intake): Compare .docx vs Cymbal Playbook & BigQuery precedents, detect SME conflicts, and render Canvas Diff Workbench")
     p_ingest.add_argument("--deal-id", default="BA-2026-AV-8921")
     p_ingest.add_argument("--vendor-docx-path", default="specs/04_golden_fixtures/Vendor_Redlined_GP1.docx")
     p_ingest.add_argument("--baseline-docx-path", default="specs/04_golden_fixtures/Cymbal_GP1_Standard.docx")
     p_ingest.add_argument("--with-drafts", action="store_true", help="Also create the 4 SME routing drafts in Outlook")
 
-    p_route = sub.add_parser("route-smes", help="Workflow 1 (clm-comms): Create (or --send) the 4 SME routing draft emails in real Microsoft Outlook Drafts")
+    p_route = sub.add_parser("route-smes", help="Stage 1 (clm-comms): Create (or --send) the 4 SME routing draft emails in real Microsoft Outlook Drafts")
     p_route.add_argument("--deal-id", default="BA-2026-AV-8921")
     p_route.add_argument("--send", action="store_true", help="Send the 4 SME emails immediately instead of saving in Drafts")
 
-    p_tax = sub.add_parser("tax-review", help="Workflow 2 (clm-tax-tariff-review): Run Tax SME review on SP3-04 (precedents + GP1 §3.1 conflict harmonization) and render Tax Reviewer Canvas UI")
+    p_tax = sub.add_parser("tax-review", help="Stage 1 Window 2 (clm-tax-tariff-review): Run Tax SME review on SP3-04 (precedents + GP1 §3.1 conflict harmonization) and render Tax Reviewer Canvas UI")
     p_tax.add_argument("--deal-id", default="BA-2026-AV-8921")
     p_tax.add_argument("--actor", default="Pradeep Gupta")
 
-    p_sme_reply = sub.add_parser("send-sme-reply", help="Workflow 2 (clm-comms): Deliver SME review update email(s) into the Contract Owner's real Outlook Inbox")
+    p_sme_reply = sub.add_parser("send-sme-reply", help="Stage 1 (clm-comms): Deliver SME review update email(s) into the Contract Owner's real Outlook Inbox")
     p_sme_reply.add_argument("--deal-id", default="BA-2026-AV-8921")
     p_sme_reply.add_argument("--clause-id", default="ALL", help="Specific clause ID (e.g. SP3-04 for Tax, GP1-12 for Eng, SP5-03 for Cyber, or ALL)")
 
-    p_poll = sub.add_parser("poll", help="Workflow 3 (clm-comms): Poll Contract Owner's Outlook Inbox for SME review reply emails and update Canvas progress tracker")
+    p_poll = sub.add_parser("poll", help="Stage 1 /schedule (clm-comms): Poll Contract Owner's Outlook Inbox for SME review reply emails and update Canvas progress tracker")
     p_poll.add_argument("--deal-id", default="BA-2026-AV-8921")
 
-    p_poll_inbox = sub.add_parser("poll-inbox", help="Workflow 3 (clm-comms): Poll Contract Owner's Outlook Inbox for SME review reply emails and update Canvas progress tracker")
+    p_poll_inbox = sub.add_parser("poll-inbox", help="Stage 1 /schedule (clm-comms): Poll Contract Owner's Outlook Inbox for SME review reply emails and update Canvas progress tracker")
     p_poll_inbox.add_argument("--deal-id", default="BA-2026-AV-8921")
 
     p_prec = sub.add_parser("precedents", help="Run BigQuery VECTOR_SEARCH precedent analysis for any clause (or ALL clauses) and update Canvas Workbench")
@@ -4476,7 +5004,7 @@ def main() -> None:
     p_prec.add_argument("--supplier-tier", default="Tier-1 Avionics")
     p_prec.add_argument("--top-k", type=int, default=5)
 
-    p_pos = sub.add_parser("position", help="Record SME or Owner review position & user comment into BA-2026-AV-8921_Working_Review.docx and update Canvas Workbench")
+    p_pos = sub.add_parser("position", help="Record SME or Owner review position & user comment into <Deal-ID>_Working_Review.docx and update Canvas Workbench")
     p_pos.add_argument("--deal-id", default="BA-2026-AV-8921")
     p_pos.add_argument("--clause-id", required=True)
     p_pos.add_argument("--sme-team", required=True, choices=["ENGINEERING", "LEGAL", "TAX", "CYBER", "PROCUREMENT"])
@@ -4489,60 +5017,73 @@ def main() -> None:
     p_pos.add_argument("--reviewer", required=True, help="Human user name attributed on the Word comment (e.g. 'Rahul Kasanagottu')")
     p_pos.add_argument("--rationale", required=True, help="User comment text added to the review document")
 
-    p_harm = sub.add_parser("harmonize", help="Harmonize cross-clause conflict and update Canvas Workbench")
+    p_harm = sub.add_parser("harmonize", help="Harmonize cross-clause conflict (or resolve Finance vs. Legal conflict so Legal takes precedence) and update Canvas Workbench")
     p_harm.add_argument("--deal-id", default="BA-2026-AV-8921")
     p_harm.add_argument("--rule-id", default="CONFLICT-SP3-04-GP1-03")
-    p_harm.add_argument("--actor", default="Pradeep Gupta")
+    p_harm.add_argument("--actor", default="Rahul Kasanagottu")
 
-    p_cons = sub.add_parser("consolidate", help="Workflow 4 (clm-contract-consolidation): Generate final consolidated .docx & .xlsx from Working Review Doc and update Canvas Workbench")
-    p_cons.add_argument("--deal-id", default="BA-2026-AV-8921")
+    p_res_conf = sub.add_parser("resolve-conflict", help="Stage 2: Resolve Finance vs. Legal conflict in BA-2026-TR-5510_Working_Review.docx so Legal takes precedence")
+    p_res_conf.add_argument("--deal-id", default="BA-2026-TR-5510")
+    p_res_conf.add_argument("--rule-id", default="CONFLICT-GP1-19-GP1-03-FINANCE-LEGAL")
+    p_res_conf.add_argument("--actor", default="Rahul Kasanagottu")
+
+    p_conf_email = sub.add_parser("send-conflict-resolution", help="Stage 2 (clm-comms): Send or draft Outlook email to Finance and Legal confirming that Legal Playbook guardrails take precedence")
+    p_conf_email.add_argument("--deal-id", default="BA-2026-TR-5510")
+    p_conf_email.add_argument("--send", action="store_true", help="Send the conflict resolution email immediately via Outlook")
+
+    p_cons = sub.add_parser("consolidate", help="Stage 3 (clm-contract-consolidation): Generate final consolidated .docx & .xlsx from Working Review Doc and update Canvas Workbench")
+    p_cons.add_argument("--deal-id", default="BA-2026-LG-7740")
     p_cons.add_argument("--output-dir", default=".")
     p_cons.add_argument("--approve-recommended", action="store_true", help="Apply recommended Playbook counter-positions to any remaining unreviewed clauses before exporting")
 
-    p_vendor_reply = sub.add_parser("draft-vendor-reply", help="Workflow 4 (clm-comms): Create (or --send) the Final Counter-Proposal Reply Draft email with .docx & .xlsx attachments in real Microsoft Outlook Drafts")
-    p_vendor_reply.add_argument("--deal-id", default="BA-2026-AV-8921")
+    p_vendor_reply = sub.add_parser("draft-vendor-reply", help="Stage 3 (clm-comms): Create (or --send) the Final Counter-Proposal Reply Draft email with .docx & .xlsx attachments in real Microsoft Outlook")
+    p_vendor_reply.add_argument("--deal-id", default="BA-2026-LG-7740")
     p_vendor_reply.add_argument("--output-dir", default=".")
     p_vendor_reply.add_argument("--send", action="store_true", help="Send the reply email immediately instead of saving in Drafts")
 
-    p_exp = sub.add_parser("export", help="Workflow 4: Generate fresh .docx & .xlsx, upload to SharePoint, create Outlook Vendor Draft, and update Canvas")
-    p_exp.add_argument("--deal-id", default="BA-2026-AV-8921")
+    p_exp = sub.add_parser("export", help="Generate fresh .docx & .xlsx, upload to SharePoint, create Outlook Vendor Draft, and update Canvas")
+    p_exp.add_argument("--deal-id", default="BA-2026-LG-7740")
     p_exp.add_argument("--output-dir", default=".")
     p_exp.add_argument("--send", action="store_true", help="Send the reply email immediately instead of saving in Drafts")
 
-    p_reset = sub.add_parser("reset", help="Reset Deal BA-2026-AV-8921 to canonical initial state")
+    p_reset = sub.add_parser("reset", help="Reset all 3 portfolio deals (BA-2026-AV-8921, BA-2026-TR-5510, BA-2026-LG-7740) to canonical initial states")
     p_reset.add_argument("--deal-id", default="BA-2026-AV-8921")
 
     args = parser.parse_args()
+    deal_id = resolve_deal_id(getattr(args, "deal_id", "BA-2026-AV-8921"))
 
     if args.cmd == "state":
-        cloud_res = try_cloud_json("GET", f"/api/deals/{args.deal_id}")
-        if cloud_res:
-            save_local_state(cloud_res)
-            state = cloud_res
+        if deal_id == "BA-2026-AV-8921":
+            cloud_res = try_cloud_json("GET", f"/api/deals/{deal_id}")
+            if cloud_res:
+                save_local_state(cloud_res, deal_id)
+                state = cloud_res
+            else:
+                state = load_local_state(deal_id)
         else:
-            state = load_local_state()
+            state = load_local_state(deal_id)
         canvas_path = generate_canvas_workbench_html(state)
         state["canvas_workbench_html"] = str(canvas_path)
         print(json.dumps(state, indent=2))
 
     elif args.cmd == "ingest":
         state = parse_and_ingest_real_docx(
-            deal_id=args.deal_id,
+            deal_id=deal_id,
             vendor_docx_path=args.vendor_docx_path,
             baseline_docx_path=args.baseline_docx_path,
         )
-        save_local_state(state)
+        save_local_state(state, deal_id)
 
-        # Initialize the Working Review Document (`BA-2026-AV-8921_Working_Review.docx`) so every UI accept/edit/comment writes to it
         try:
             build_fresh_docx_and_xlsx(state, Path.cwd())
         except Exception:
             pass
 
         sme_drafts = create_outlook_sme_drafts(state) if getattr(args, "with_drafts", False) else []
+        active_cid = "GP1-19" if deal_id in ("BA-2026-TR-5510", "BA-2026-LG-7740") else "GP1-12"
         canvas_path = generate_canvas_workbench_html(
             state,
-            active_clause_id="GP1-12",
+            active_clause_id=active_cid,
             sme_drafts=sme_drafts,
         )
 
@@ -4564,9 +5105,10 @@ def main() -> None:
             "deal_id": state["deal_id"],
             "vendor_name": state["vendor_name"],
             "contract_value_usd": state["contract_value_usd"],
-            "playbook_compared_against": "Cymbal Tier-1 Avionics Contract Playbook (GP1 / SP3 / SP5 — Preferred Standards, Pre-Approved Tier-1 Fallbacks & Regulatory Lockouts)",
-            "proforma_compared_against": "https://36zrbd.sharepoint.com/sites/CymbalAerospace/Shared%20Documents/BA-2026-AV-8921/Cymbal_GP1_Standard.docx",
-            "working_review_docx": str(Path.cwd() / "BA-2026-AV-8921_Working_Review.docx"),
+            "status": state["status"],
+            "playbook_compared_against": "Cymbal Tier-1 Aerospace Contract Playbook (GP1 / SP3 / SP5 — Preferred Standards, Pre-Approved Tier-1 Fallbacks & Regulatory Lockouts)",
+            "proforma_compared_against": f"https://36zrbd.sharepoint.com/sites/CymbalAerospace/Shared%20Documents/{state['deal_id']}/Cymbal_GP1_Standard.docx",
+            "working_review_docx": str(Path.cwd() / f"{state['deal_id']}_Working_Review.docx"),
             "total_clauses_parsed": state["total_clauses_parsed"],
             "untouched_clauses_count": state["untouched_clauses_count"],
             "redlined_clauses_count": state["redlined_clauses_count"],
@@ -4582,6 +5124,9 @@ def main() -> None:
                     "clause_title": c["clause_title"],
                     "sme_team": c["sme_team"],
                     "sme_owner_label": c["sme_owner_label"],
+                    "sme_status": c["sme_status"],
+                    "sme_reviewer": c.get("sme_reviewer", ""),
+                    "sme_rationale": c.get("sme_rationale", ""),
                     "risk_level": c["risk_level"],
                     "regulatory_flag": c["regulatory_flag"],
                     "playbook_rule_name": RECOMMENDED_COUNTER_DEFAULTS.get(c["clause_id"], {}).get("playbook_rule_name", ""),
@@ -4590,7 +5135,7 @@ def main() -> None:
                     "boeing_baseline_text": c["boeing_baseline_text"],
                     "vendor_redline_text": c["vendor_redline_text"],
                     "vendor_comment": c.get("vendor_comment", ""),
-                    "recommended_counter_position": RECOMMENDED_COUNTER_DEFAULTS.get(c["clause_id"], {}).get("counter_text", ""),
+                    "recommended_counter_position": c.get("selected_counter_text") or RECOMMENDED_COUNTER_DEFAULTS.get(c["clause_id"], {}).get("counter_text", ""),
                     "bigquery_precedent_distribution": {
                         "total_historical_deals": prec_map.get(c["clause_id"], {}).get("total_historical_deals", 16),
                         "held_firm_pct": prec_map.get(c["clause_id"], {}).get("distribution", {}).get("held_firm_pct", 0),
@@ -4604,14 +5149,18 @@ def main() -> None:
             "active_conflicts": state.get("active_conflicts", []),
             "sme_routing_owners": sme_owners,
             "canvas_workbench_html": str(canvas_path),
-            "next_step_hint": "To save or send the 4 SME routing emails in Microsoft Outlook, run `clm-comms` (`outlook_comms.py route-smes --deal-id BA-2026-AV-8921`).",
+            "next_step_hint": (
+                f"To resolve the Finance vs. Legal conflict on {state['deal_id']} so Legal takes precedence, run `resolve_conflict.py --deal-id {state['deal_id']}`."
+                if state["deal_id"] == "BA-2026-TR-5510"
+                else f"To save or send the 4 SME routing emails in Microsoft Outlook, run `clm-comms` (`outlook_comms.py route-smes --deal-id {state['deal_id']}`)."
+            ),
         }
         if sme_drafts:
             out["outlook_sme_routing_drafts"] = sme_drafts
         print(json.dumps(out, indent=2))
 
     elif args.cmd == "route-smes":
-        state = load_local_state()
+        state = load_local_state(deal_id)
         sme_drafts = create_outlook_sme_drafts(state, send_immediately=getattr(args, "send", False))
         out = {
             "deal_id": state["deal_id"],
@@ -4624,15 +5173,27 @@ def main() -> None:
     elif args.cmd == "send-sme-reply":
         sme_emails = deliver_sme_update_emails_to_inbox(clause_id=getattr(args, "clause_id", "ALL"))
         out = {
-            "deal_id": args.deal_id,
+            "deal_id": deal_id,
             "clause_id_filter": getattr(args, "clause_id", "ALL"),
             "recipient_contract_owner": M365_USER_EMAIL,
             "sme_reply_emails_delivered_to_owner_inbox": sme_emails,
         }
         print(json.dumps(out, indent=2))
 
+    elif args.cmd == "send-conflict-resolution":
+        state = load_local_state(deal_id)
+        res_email = send_conflict_resolution_email(state, send_immediately=getattr(args, "send", False))
+        out = {
+            "deal_id": state["deal_id"],
+            "vendor_name": state["vendor_name"],
+            "ruling": "LEGAL_TAKES_PRECEDENCE",
+            "mailbox": M365_USER_EMAIL,
+            "conflict_resolution_email": res_email,
+        }
+        print(json.dumps(out, indent=2))
+
     elif args.cmd == "position":
-        state = load_local_state()
+        state = load_local_state(deal_id)
         state = apply_local_position(
             state=state,
             clause_id=args.clause_id,
@@ -4651,58 +5212,86 @@ def main() -> None:
             "option": args.option,
             "comment_author_user": args.reviewer,
             "user_comment": args.rationale,
-            "working_review_docx": str(Path.cwd() / "BA-2026-AV-8921_Working_Review.docx"),
+            "working_review_docx": str(Path.cwd() / f"{state['deal_id']}_Working_Review.docx"),
             "canvas_workbench_html": str(canvas_path),
         }
         print(json.dumps(out, indent=2))
 
-    elif args.cmd in ("tax-review", "harmonize"):
-        rule_id = getattr(args, "rule_id", "CONFLICT-SP3-04-GP1-03")
-        actor = getattr(args, "actor", "Pradeep Gupta")
-        cloud_res = try_cloud_json(
-            "POST",
-            f"/api/deals/{args.deal_id}/conflicts/{rule_id}/harmonize",
-            {"actor": actor},
+    elif args.cmd in ("tax-review", "harmonize", "resolve-conflict"):
+        rule_id = getattr(
+            args,
+            "rule_id",
+            "CONFLICT-GP1-19-GP1-03-FINANCE-LEGAL" if deal_id == "BA-2026-TR-5510" else "CONFLICT-SP3-04-GP1-03",
         )
-        state = load_local_state()
+        actor = getattr(args, "actor", "Rahul Kasanagottu" if deal_id == "BA-2026-TR-5510" else "Pradeep Gupta")
+        if deal_id == "BA-2026-AV-8921":
+            cloud_res = try_cloud_json(
+                "POST",
+                f"/api/deals/{deal_id}/conflicts/{rule_id}/harmonize",
+                {"actor": actor},
+            )
+        else:
+            cloud_res = None
+
+        state = load_local_state(deal_id)
         state = apply_local_harmonize(state, rule_id=rule_id, actor=actor)
-        if cloud_res and isinstance(cloud_res, dict) and "clauses" in cloud_res:
-            save_local_state(cloud_res)
+        if cloud_res and isinstance(cloud_res, dict) and "clauses" in cloud_res and deal_id == "BA-2026-AV-8921":
+            save_local_state(cloud_res, deal_id)
             state = cloud_res
 
-        tax_prec = fetch_live_precedents_map(state).get("SP3-04", {})
         build_fresh_docx_and_xlsx(state, Path.cwd())
-        tax_canvas_path = generate_tax_reviewer_workbench_html(state, tax_prec)
-        main_canvas_path = generate_canvas_workbench_html(state, active_clause_id="SP3-04")
-
-        out = {
-            "deal_id": state["deal_id"],
-            "reviewed_clause_id": "SP3-04",
-            "reviewed_clause_ref": "SP3 §4.1 (Customs, Duties & Section 232/301 Tariffs)",
-            "cross_clause_conflict_resolved": {
-                "rule_id": "CONFLICT-SP3-04-GP1-03",
-                "conflicting_clause": "GP1 §3.1 (Firm-Fixed-Price SOW Ceiling — $45,000,000)",
-                "resolution_status": "HARMONIZED",
-                "harmonized_counter_language": "4.1 All unit prices are DDP Everett/Renton facility. Any verified new Section 232/301 tariff increase exceeding 5.0% on raw titanium forgings or semiconductor wafers shall be shared 50/50 between Buyer and Seller, strictly capped at a maximum aggregate adjustment of 2.0% ($900,000) of the GP1 §3.1 Firm-Fixed-Price SOW unit price.",
-            },
-            "comment_author_user": actor,
-            "working_review_docx": str(Path.cwd() / "BA-2026-AV-8921_Working_Review.docx"),
-            "bigquery_tax_precedents": tax_prec,
-            "tax_reviewer_canvas_html": str(tax_canvas_path),
-            "canvas_workbench_html": str(main_canvas_path),
-            "next_step_hint": "To send the Tax SME review update email back to the Contract Owner's Outlook Inbox when requested, run `clm-comms` (`outlook_comms.py send-sme-reply --deal-id BA-2026-AV-8921 --clause-id SP3-04`).",
-        }
-        print(json.dumps(out, indent=2))
+        if deal_id == "BA-2026-TR-5510" or args.cmd == "resolve-conflict":
+            main_canvas_path = generate_canvas_workbench_html(state, active_clause_id="GP1-19")
+            out = {
+                "deal_id": state["deal_id"],
+                "vendor_name": state["vendor_name"],
+                "status": state["status"],
+                "conflict_resolved": {
+                    "rule_id": "CONFLICT-GP1-19-GP1-03-FINANCE-LEGAL",
+                    "ruling": "LEGAL_TAKES_PRECEDENCE",
+                    "conflicting_departments": ["PROCUREMENT_FINANCE (Diego Siciliani — GP1 §3.1 3.5% Discount for 1.0x Cap)", "CORPORATE_LEGAL (Miriam Graham — GP1 §19 Mandatory 1.5x Minimum Liability Cap)"],
+                    "resolution_status": "RESOLVED_IN_FAVOR_OF_LEGAL",
+                    "enforced_gp1_19_language": next((c["selected_counter_text"] for c in state["clauses"] if c["clause_id"] == "GP1-19"), ""),
+                    "enforced_gp1_03_language": next((c["selected_counter_text"] for c in state["clauses"] if c["clause_id"] == "GP1-03"), ""),
+                },
+                "comment_author_user": actor,
+                "working_review_docx": str(Path.cwd() / f"{state['deal_id']}_Working_Review.docx"),
+                "canvas_workbench_html": str(main_canvas_path),
+                "next_step_hint": f"To send the conflict resolution communication email to Finance and Legal via Outlook, run `clm-comms` (`outlook_comms.py send-conflict-resolution --deal-id {state['deal_id']} --send`).",
+            }
+            print(json.dumps(out, indent=2))
+        else:
+            tax_prec = fetch_live_precedents_map(state).get("SP3-04", {})
+            tax_canvas_path = generate_tax_reviewer_workbench_html(state, tax_prec)
+            main_canvas_path = generate_canvas_workbench_html(state, active_clause_id="SP3-04")
+            out = {
+                "deal_id": state["deal_id"],
+                "reviewed_clause_id": "SP3-04",
+                "reviewed_clause_ref": "SP3 §4.1 (Customs, Duties & Section 232/301 Tariffs)",
+                "cross_clause_conflict_resolved": {
+                    "rule_id": "CONFLICT-SP3-04-GP1-03",
+                    "conflicting_clause": "GP1 §3.1 (Firm-Fixed-Price SOW Ceiling — $45,000,000)",
+                    "resolution_status": "HARMONIZED",
+                    "harmonized_counter_language": "4.1 All unit prices are DDP Everett/Renton facility. Any verified new Section 232/301 tariff increase exceeding 5.0% on raw titanium forgings or semiconductor wafers shall be shared 50/50 between Buyer and Seller, strictly capped at a maximum aggregate adjustment of 2.0% ($900,000) of the GP1 §3.1 Firm-Fixed-Price SOW unit price.",
+                },
+                "comment_author_user": actor,
+                "working_review_docx": str(Path.cwd() / f"{state['deal_id']}_Working_Review.docx"),
+                "bigquery_tax_precedents": tax_prec,
+                "tax_reviewer_canvas_html": str(tax_canvas_path),
+                "canvas_workbench_html": str(main_canvas_path),
+                "next_step_hint": "To send the Tax SME review update email back to the Contract Owner's Outlook Inbox when requested, run `clm-comms` (`outlook_comms.py send-sme-reply --deal-id BA-2026-AV-8921 --clause-id SP3-04`).",
+            }
+            print(json.dumps(out, indent=2))
 
     elif args.cmd in ("poll", "poll-inbox"):
-        state = load_local_state()
+        state = load_local_state(deal_id)
         poll_report = poll_outlook_for_sme_updates(state)
         canvas_path = generate_canvas_workbench_html(state, active_clause_id="GP1-19")
         poll_report["canvas_workbench_html"] = str(canvas_path)
         print(json.dumps(poll_report, indent=2))
 
     elif args.cmd == "precedents":
-        state = load_local_state()
+        state = load_local_state(deal_id)
         all_prec = fetch_live_precedents_map(state, top_k=args.top_k)
         if args.clause_id.upper() == "ALL":
             total_deals = sum(
@@ -4711,7 +5300,7 @@ def main() -> None:
             )
             canvas_path = generate_canvas_workbench_html(state, active_clause_id="GP1-19")
             out = {
-                "deal_id": args.deal_id,
+                "deal_id": deal_id,
                 "total_historical_precedents_in_bigquery": total_deals or 64,
                 "clauses_analyzed": list(all_prec.keys()),
                 "precedents_by_clause": all_prec,
@@ -4720,7 +5309,7 @@ def main() -> None:
             print(json.dumps(out, indent=2))
         else:
             qs = urllib.parse.urlencode({"supplier_tier": args.supplier_tier, "top_k": args.top_k})
-            res = try_cloud_json("GET", f"/api/deals/{args.deal_id}/clauses/{args.clause_id}/precedents?{qs}")
+            res = try_cloud_json("GET", f"/api/deals/{deal_id}/clauses/{args.clause_id}/precedents?{qs}")
             if not res:
                 res = dict(all_prec.get(args.clause_id, {}))
             canvas_path = generate_canvas_workbench_html(state, active_clause_id=args.clause_id)
@@ -4728,7 +5317,7 @@ def main() -> None:
             print(json.dumps(res, indent=2))
 
     elif args.cmd in ("consolidate", "export", "draft-vendor-reply"):
-        state = load_local_state()
+        state = load_local_state(deal_id)
         default_counters = {
             "GP1-12": (
                 "hold_firm",
@@ -4740,13 +5329,13 @@ def main() -> None:
                 "compromise_tier_1",
                 RECOMMENDED_COUNTER_DEFAULTS["GP1-19"]["counter_text"],
                 "Rahul Kasanagottu",
-                "Approved Tier-1 Avionics Compromise (69% precedent / 11 of 16 deals): 2x PO Value ($90M) Super-Cap with mandatory uncapped carveout for Flight-Safety/Airworthiness and IP Indemnity.",
+                "Approved Tier-1 Compromise (69% precedent / 11 of 16 deals): Super-Cap with mandatory uncapped carveout for Flight-Safety/Airworthiness and IP Indemnity.",
             ),
             "SP3-04": (
                 "compromise_tier_1",
                 RECOMMENDED_COUNTER_DEFAULTS["SP3-04"]["counter_text"],
                 "Pradeep Gupta",
-                "Harmonized CONFLICT-SP3-04-GP1-03 (63% precedent / 10 of 16 deals): 50/50 tariff sharing above 5.0% threshold, capped at +2.0% ($900,000) of Total Firm-Fixed-Price PO Value.",
+                "Harmonized CONFLICT-SP3-04-GP1-03 (63% precedent / 10 of 16 deals): 50/50 tariff sharing above 5.0% threshold, capped at +2.0% of Total Firm-Fixed-Price PO Value.",
             ),
             "SP5-03": (
                 "hold_firm",
@@ -4767,6 +5356,8 @@ def main() -> None:
                     c["sme_rationale"] = c.get("sme_rationale") or rat
                 if auto_approve and c.get("sme_status") != "APPROVED":
                     c["sme_status"] = "APPROVED"
+                    if cid == "GP1-19":
+                        c["sme_reviewer"] = "Rahul Kasanagottu"
 
         redlined = [c for c in state["clauses"] if c.get("has_redline")]
         approved_count = sum(1 for c in redlined if c.get("sme_status") == "APPROVED")
@@ -4780,7 +5371,7 @@ def main() -> None:
         out_dir = Path(args.output_dir).resolve()
         docx_path, xlsx_path = build_fresh_docx_and_xlsx(state, out_dir)
         assert_external_docx_sanitized(docx_path)
-        save_local_state(state)
+        save_local_state(state, deal_id)
 
         if args.cmd == "consolidate":
             canvas_path = generate_canvas_workbench_html(
@@ -4789,11 +5380,12 @@ def main() -> None:
             )
             out = {
                 "deal_id": state["deal_id"],
+                "vendor_name": state["vendor_name"],
                 "status": state["status"],
                 "approved_redlined_clauses_count": approved_count,
                 "pending_redlined_clauses_count": pending_count,
                 "generated_at_utc": state["updated_at"],
-                "working_review_docx": str(out_dir / "BA-2026-AV-8921_Working_Review.docx"),
+                "working_review_docx": str(out_dir / f"{state['deal_id']}_Working_Review.docx"),
                 "local_docx_path": str(docx_path),
                 "local_xlsx_path": str(xlsx_path),
                 "canvas_workbench_html": str(canvas_path),
@@ -4805,6 +5397,7 @@ def main() -> None:
             )
             out = {
                 "deal_id": state["deal_id"],
+                "vendor_name": state["vendor_name"],
                 "mailbox": M365_USER_EMAIL,
                 "outlook_vendor_counter_proposal_email": vendor_draft,
             }
@@ -4822,9 +5415,10 @@ def main() -> None:
             )
             out = {
                 "deal_id": state["deal_id"],
+                "vendor_name": state["vendor_name"],
                 "status": state["status"],
                 "generated_at_utc": state["updated_at"],
-                "working_review_docx": str(out_dir / "BA-2026-AV-8921_Working_Review.docx"),
+                "working_review_docx": str(out_dir / f"{state['deal_id']}_Working_Review.docx"),
                 "local_docx_path": str(docx_path),
                 "local_xlsx_path": str(xlsx_path),
                 "canvas_workbench_html": str(canvas_path),
@@ -4834,14 +5428,29 @@ def main() -> None:
             print(json.dumps(out, indent=2))
 
     elif args.cmd == "reset":
-        cloud_res = try_cloud_json("POST", f"/api/deals/{args.deal_id}/reset")
+        # Reset all 3 portfolio deals (`BA-2026-AV-8921`, `BA-2026-TR-5510`, `BA-2026-LG-7740`) and generate their working .docx files
+        for portfolio_id in ("BA-2026-TR-5510", "BA-2026-LG-7740"):
+            st_other = build_deal_initial_state(portfolio_id)
+            save_local_state(st_other, portfolio_id)
+            try:
+                build_fresh_docx_and_xlsx(st_other, Path.cwd())
+                build_fresh_docx_and_xlsx(st_other, Path.cwd() / "exports")
+                spark_ws = Path.home() / "ge_spark_workspace"
+                if spark_ws.exists():
+                    build_fresh_docx_and_xlsx(st_other, spark_ws)
+            except Exception:
+                pass
+
+        cloud_res = try_cloud_json("POST", "/api/deals/BA-2026-AV-8921/reset")
         seed = load_seed()
         state = (
             cloud_res
             if (isinstance(cloud_res, dict) and "clauses" in cloud_res and "vendor_name" in cloud_res)
             else json.loads(json.dumps(seed["initial_state"]))
         )
-        save_local_state(state)
+        save_local_state(state, "BA-2026-AV-8921")
+        if deal_id != "BA-2026-AV-8921":
+            state = load_local_state(deal_id)
         canvas_path = generate_canvas_workbench_html(state)
         state["canvas_workbench_html"] = str(canvas_path)
         print(json.dumps(state, indent=2))

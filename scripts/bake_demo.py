@@ -255,7 +255,11 @@ def stage_1_reset_deal_and_sync_skills() -> None:
         check=False,
     )
     if res.returncode == 0:
-        print("  ✓ Reset Deal BA-2026-AV-8921 in Cloud Run / BigQuery and local Spark state (`status = INGESTED`)")
+        print(
+            "  ✓ Reset all 3 portfolio deals (`BA-2026-AV-8921` Stage 1 Intake, "
+            "`BA-2026-TR-5510` Stage 2 Finance vs. Legal Conflict, "
+            "`BA-2026-LG-7740` Stage 3 Final Consolidation) in Cloud Run / BigQuery and local Spark state"
+        )
     else:
         print(f"  ! Deal reset warning: {res.stderr or res.stdout}")
 
@@ -299,24 +303,54 @@ def stage_2_purge_outlook_mail_and_calendar(token: str) -> None:
 
 
 def stage_3_seed_clm_outlook_inbox(token: str) -> None:
-    _banner(3, "Seed Fresh Cymbal Aerospace CLM Emails (with Today's Dates & Attachments) into Outlook Inbox")
+    _banner(3, "Seed Fresh Cymbal Aerospace CLM Emails (3 Portfolio Deals at Stages 1, 2 & 3) into Outlook Inbox")
     today = date.today()
     yesterday = today - timedelta(days=1)
 
     vendor_docx = ROOT / "specs" / "04_golden_fixtures" / "Vendor_Redlined_GP1.docx"
     memo_docx = ROOT / "specs" / "04_golden_fixtures" / "Apex_AeroSystems_Redline_Transmittal_Memo.docx"
+    doc2_working_docx = ROOT / "BA-2026-TR-5510_Working_Review.docx"
+    doc3_working_docx = ROOT / "BA-2026-LG-7740_Working_Review.docx"
 
-    attachments = []
-    for path in (vendor_docx, memo_docx):
-        if path.exists():
-            attachments.append(
-                {
-                    "@odata.type": "#microsoft.graph.fileAttachment",
-                    "name": path.name,
-                    "contentType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                    "contentBytes": base64.b64encode(path.read_bytes()).decode("ascii"),
-                }
-            )
+    def _att(path: pathlib.Path) -> list[dict]:
+        if not path.exists():
+            return []
+        return [
+            {
+                "@odata.type": "#microsoft.graph.fileAttachment",
+                "name": path.name,
+                "contentType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                "contentBytes": base64.b64encode(path.read_bytes()).decode("ascii"),
+            }
+        ]
+
+    attachments = _att(vendor_docx) + _att(memo_docx)
+    doc2_attachments = _att(doc2_working_docx)
+    doc3_attachments = _att(doc3_working_docx)
+
+    # Also ensure SharePoint folders for Deal 2 (BA-2026-TR-5510) and Deal 3 (BA-2026-LG-7740) hold their mid/final Working Review .docx
+    try:
+        site = _graph_req(token, "GET", "/sites/36zrbd.sharepoint.com:/sites/CymbalAerospace")
+        drive = _graph_req(token, "GET", f"/sites/{site['id']}/drive")
+        for deal_folder, w_path in (
+            ("BA-2026-TR-5510", doc2_working_docx),
+            ("BA-2026-LG-7740", doc3_working_docx),
+        ):
+            if w_path.exists():
+                upload_url = f"https://graph.microsoft.com/v1.0/drives/{drive['id']}/root:/{deal_folder}/{w_path.name}:/content"
+                req = urllib.request.Request(
+                    upload_url,
+                    data=w_path.read_bytes(),
+                    headers={
+                        "Authorization": f"Bearer {token}",
+                        "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    },
+                    method="PUT",
+                )
+                with urllib.request.urlopen(req, timeout=30) as _:
+                    print(f"  ✓ [SHAREPOINT] Uploaded `{w_path.name}` to `/sites/CymbalAerospace/Shared Documents/{deal_folder}/`")
+    except Exception as exc:
+        print(f"  ! Note uploading pre-baked Working Review .docx to SharePoint: {exc}")
 
     emails = [
         {
@@ -333,8 +367,8 @@ def stage_3_seed_clm_outlook_inbox(token: str) -> None:
                 {"name": "Pradeep Gupta", "address": "PradeepG@36zrbd.onmicrosoft.com"},
                 {"name": "Alex Wilber", "address": "AlexW@36zrbd.onmicrosoft.com"},
             ],
-            "sent_at": f"{today.isoformat()}T12:42:00Z",
-            "received_at": f"{today.isoformat()}T12:42:10Z",
+            "sent_at": f"{today.isoformat()}T13:15:00Z",
+            "received_at": f"{today.isoformat()}T13:15:10Z",
             "attachments": attachments,
             "body_html": f"""
 <div style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; color: #1e293b; line-height: 1.55;">
@@ -350,7 +384,7 @@ def stage_3_seed_clm_outlook_inbox(token: str) -> None:
     <li><strong><code>SP3 §4.1</code> (Customs, Duties &amp; Section 232/301 Tariffs):</strong> Added a <strong>100% pass-through to Buyer</strong> for any new or increased Section 232 or Section 301 tariffs exceeding <strong>5.0%</strong> on specialty titanium forgings or radiation-hardened semiconductor wafers.</li>
     <li><strong><code>SP5 §3.2</code> (Cybersecurity Incident Reporting):</strong> Adjusted cyber incident reporting to <strong>10 business days following internal confirmation of a material breach</strong> (from 72 hours of discovery) and limited disclosures to an executive summary rather than raw forensic log images.</li>
   </ol>
-  <p>Both files have also been uploaded to the shared deal room folder in SharePoint (<code>sites/CymbalAerospace/Shared Documents/BA-2026-AV-8921</code>). Please let me know once your Engineering, Legal, Tax, and Cyber SMEs complete their review.</p>
+  <p>Please upload <code>Vendor_Redlined_GP1.docx</code> to the shared deal room folder in SharePoint (<code>sites/CymbalAerospace/Shared Documents/BA-2026-AV-8921</code>) and let me know once your Engineering, Legal, Tax, and Cyber SMEs complete their review.</p>
   <p>Best regards,<br/>
   <strong>Adele Vance</strong><br/>
   VP of Contracts &amp; Legal Counsel | Apex AeroSystems Inc.<br/>
@@ -359,8 +393,67 @@ def stage_3_seed_clm_outlook_inbox(token: str) -> None:
 """,
         },
         {
-            "key": "clm-002-patti-exec-escalation",
-            "subject": "URGENT: Close Apex AeroSystems FCC-900 Contract Redlines (BA-2026-AV-8921) Before Today's 4:00 PM Executive Gate",
+            "key": "clm-002-vanguard-finance-legal-conflict",
+            "subject": "[CONFLICT ESCALATION] Deal BA-2026-TR-5510 (Vanguard Thrust Systems $38M) — Finance vs. Legal Conflict in Working Review .docx",
+            "importance": "high",
+            "is_read": False,
+            "from_name": "Miriam Graham (Corporate Legal)",
+            "from_addr": "MiriamG@36zrbd.onmicrosoft.com",
+            "to": [{"name": "Rahul Kasanagottu", "address": ADMIN_UPN}],
+            "cc": [
+                {"name": "Diego Siciliani", "address": "DiegoS@36zrbd.onmicrosoft.com"},
+                {"name": "Lee Gu", "address": "LeeG@36zrbd.onmicrosoft.com"},
+            ],
+            "sent_at": f"{today.isoformat()}T13:10:00Z",
+            "received_at": f"{today.isoformat()}T13:10:10Z",
+            "attachments": doc2_attachments,
+            "body_html": """
+<div style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; color: #1e293b; line-height: 1.55;">
+  <p>Rahul,</p>
+  <p>On <strong>Deal BA-2026-TR-5510 (Vanguard Thrust Systems Corp. — $38,000,000 Thrust Reverser Actuators TRA-500)</strong>, both <strong>Finance (Diego Siciliani)</strong> and <strong>Corporate Legal (Miriam Graham)</strong> have directly updated the shared working document (<code>BA-2026-TR-5510_Working_Review.docx</code>, attached and saved in SharePoint <code>/sites/CymbalAerospace/Shared Documents/BA-2026-TR-5510</code>), resulting in a direct <strong>Cross-Clause Conflict (<code>CONFLICT-GP1-19-GP1-03-FINANCE-LEGAL</code>)</strong>:</p>
+  <ul>
+    <li><strong>Finance Edit in <code>GP1 §3.1</code> (Diego Siciliani, VP Procurement Finance):</strong>Inserted redline accepting Vanguard's <strong>3.5% ($1,330,000) unit-price discount</strong> (reducing the PO ceiling to $36,670,000) in exchange for lowering the <code>GP1 §19</code> General Liability Cap to <strong>1.0x ($38,000,000)</strong>.</li>
+    <li><strong>Legal Edit in <code>GP1 §19.1 &amp; §24.1</code> (Miriam Graham, VP Corporate Legal &amp; IP):</strong>Inserted redline enforcing a minimum <strong>1.5x PO ($57,000,000) General Liability Cap</strong> (with a 2.5x / $95,000,000 Super-Cap) and strictly prohibiting any commercial discount trade-off that reduces DAL-A actuator liability below 1.5x PO.</li>
+  </ul>
+  <p>Please open the compared view for <strong>Deal <code>BA-2026-TR-5510</code></strong> to inspect the Finance vs. Legal conflict in the working <code>.docx</code>, resolve the conflict so <strong>Legal takes precedence over everything</strong>, and send the resolution confirmation email back to Finance and Legal.</p>
+  <p>Regards,<br/>
+  <strong>Miriam Graham</strong><br/>
+  VP, Corporate Legal &amp; Intellectual Property | Cymbal Aerospace</p>
+</div>
+""",
+        },
+        {
+            "key": "clm-003-meridian-ready-for-consolidation",
+            "subject": "[FINAL STAGE READY] Deal BA-2026-LG-7740 (Meridian Landing Gear $52M) — SMEs Approved in Working .docx, Ready for Owner Consolidation & Vendor Dispatch",
+            "importance": "high",
+            "is_read": False,
+            "from_name": "Lidia Holloway (Meridian Landing Gear)",
+            "from_addr": "LidiaH@36zrbd.onmicrosoft.com",
+            "to": [{"name": "Rahul Kasanagottu", "address": ADMIN_UPN}],
+            "cc": [
+                {"name": "Megan Bowen", "address": "MeganB@36zrbd.onmicrosoft.com"},
+                {"name": "Lee Gu", "address": "LeeG@36zrbd.onmicrosoft.com"},
+                {"name": "Pradeep Gupta", "address": "PradeepG@36zrbd.onmicrosoft.com"},
+                {"name": "Alex Wilber", "address": "AlexW@36zrbd.onmicrosoft.com"},
+            ],
+            "sent_at": f"{today.isoformat()}T13:08:00Z",
+            "received_at": f"{today.isoformat()}T13:08:10Z",
+            "attachments": doc3_attachments,
+            "body_html": """
+<div style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; color: #1e293b; line-height: 1.55;">
+  <p>Rahul,</p>
+  <p>Following up on <strong>Deal BA-2026-LG-7740 ($52,000,000 Titanium Main Landing Gear Assemblies TLG-800)</strong>: your Engineering (<code>GP1 §12.2</code>), Global Tax (<code>SP3 §4.1</code>), and Cybersecurity (<code>SP5 §3.2</code>) SMEs have completed their reviews and recorded their approved redlines and comments directly inside <code>BA-2026-LG-7740_Working_Review.docx</code> (attached and in SharePoint <code>/sites/CymbalAerospace/Shared Documents/BA-2026-LG-7740</code>).</p>
+  <p>Only <strong><code>GP1 §19.1 &amp; §24.1</code> (Limitation of Liability &amp; IP Indemnity — 2.0x PO / $104,000,000 Tier-1 Super-Cap)</strong> remains for your final Contract Owner acceptance. Once you accept or select your position on <code>GP1 §19.1</code>, please consolidate the final Counter-Proposal <code>.docx</code> and SharePoint Deviation Matrix <code>.xlsx</code> and send them back to me so Meridian can execute today.</p>
+  <p>Best regards,<br/>
+  <strong>Lidia Holloway</strong><br/>
+  SVP, Commercial Contracts | Meridian Landing Gear Corp.<br/>
+  <code>LidiaH@36zrbd.onmicrosoft.com</code></p>
+</div>
+""",
+        },
+        {
+            "key": "clm-004-patti-exec-escalation",
+            "subject": "URGENT: Today's 3 Critical-Path Supplier Contracts (BA-2026-AV-8921 Intake, BA-2026-TR-5510 Conflict, BA-2026-LG-7740 Final Consolidation)",
             "importance": "high",
             "is_read": False,
             "from_name": "Patti Fernandez",
@@ -378,14 +471,12 @@ def stage_3_seed_clm_outlook_inbox(token: str) -> None:
             "body_html": f"""
 <div style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; color: #1e293b; line-height: 1.55;">
   <p>Rahul,</p>
-  <p>Closing <strong>Deal BA-2026-AV-8921 ($45,000,000 FCC-900 Flight Control Computer Subsystem with Apex AeroSystems)</strong> is our <strong>#1 Supply Chain &amp; Procurement priority today</strong>. If we miss the 4:00 PM executive sign-off gate, our Next-Gen Narrowbody flight test instrumentation milestone slips by 6 weeks.</p>
-  <p>Here is what I need from you prior to our <strong>1:30 PM Cross-Functional SME Redline Review</strong>:</p>
-  <ul>
-    <li><strong>Step 1 (Intake &amp; Triage):</strong> Pull Apex AeroSystems' redlined Word contract (<code>Vendor_Redlined_GP1.docx</code>), separate the untouched clauses from the 4 redlined clauses in a clear clause-by-clause diff view, and prepare routing emails for our 4 SME leads.</li>
-    <li><strong>Step 2 (FAA &amp; DFARS Non-Negotiables):</strong> Coordinate with <strong>Megan Bowen</strong> (FAA DER) on <code>GP1 §12.2</code> and <strong>Alex Wilber</strong> (CISO) on <code>SP5 §3.2</code> — we cannot violate our FAA Part 21 Production Certificate PC-700 or DoD DFARS 252.204-7012 72-hour cyber reporting mandate.</li>
-    <li><strong>Step 3 (Legal &amp; Tariff Harmonization):</strong> Work with <strong>Lee Gu</strong> (Legal) on our Tier-1 Playbook 2.0x PO ($90M) super-cap for <code>GP1 §19 &amp; §24</code>, and with <strong>Pradeep Gupta</strong> (Global Tax) to ensure Apex's <code>SP3 §4.1</code> tariff pass-through does not break our <code>GP1 §3.1</code> $45M Firm-Fixed-Price SOW ceiling.</li>
-    <li><strong>Step 4 (Final Counter-Proposal Package):</strong> Generate the official redlined Counter-Proposal <code>.docx</code> and SharePoint Deviation Matrix <code>.xlsx</code> and stage the reply draft back to Adele Vance before our <strong>4:00 PM Executive Contract Sign-Off Gate</strong>.</li>
-  </ul>
+  <p>Ahead of our <strong>1:30 PM Cross-Functional SME Redline Review</strong> and <strong>4:00 PM Executive Contract Sign-Off Gate</strong>, here are the <strong>3 critical-path Tier-1 supplier contracts</strong> sitting on your desk across the 3 stages of our CLM lifecycle today:</p>
+  <ol>
+    <li><strong>Stage 1 — Fresh Intake &amp; SME Routing: Deal <code>BA-2026-AV-8921</code> (Apex AeroSystems — $45M FCC-900 Flight Control Computers):</strong> Review Adele Vance's incoming redline email, upload <code>Vendor_Redlined_GP1.docx</code> to SharePoint (<code>BA-2026-AV-8921</code>), open the Playbook &amp; Historical Precedent comparison view, route review emails to our 4 SME owners, and set a scheduled job (<code>/schedule</code>) to monitor SME replies.</li>
+    <li><strong>Stage 2 — Middle-Stage Conflict Resolution: Deal <code>BA-2026-TR-5510</code> (Vanguard Thrust Systems — $38M Thrust Reverser Actuators TRA-500):</strong> Inspect <code>BA-2026-TR-5510_Working_Review.docx</code> where Finance (Diego Siciliani) and Legal (Miriam Graham) entered conflicting edits on <code>GP1 §3.1</code> (3.5% price discount) vs. <code>GP1 §19</code> (1.5x / $57M minimum Liability Cap). Resolve the conflict so <strong>Legal takes precedence over everything</strong> and send the resolution confirmation email.</li>
+    <li><strong>Stage 3 — Final Consolidation &amp; Vendor Counter-Proposal: Deal <code>BA-2026-LG-7740</code> (Meridian Landing Gear — $52M Titanium Landing Gear TLG-800):</strong> Review the SME-approved edits in <code>BA-2026-LG-7740_Working_Review.docx</code>, accept the final <code>GP1 §19</code> position, consolidate the official Counter-Proposal <code>.docx</code> and Deviation Matrix <code>.xlsx</code>, and send the counter-proposal package back to Lidia Holloway at Meridian.</li>
+  </ol>
   <p>Thanks,<br/>
   <strong>Patti Fernandez</strong><br/>
   EVP, Global Supply Chain &amp; Commercial Aircraft Programs | Cymbal Aerospace Corporation</p>
@@ -393,7 +484,7 @@ def stage_3_seed_clm_outlook_inbox(token: str) -> None:
 """,
         },
         {
-            "key": "clm-003-megan-faa-der-advisory",
+            "key": "clm-005-megan-faa-der-advisory",
             "subject": "FAA MIDO Audit Alert — Zero Waivers on GP1 §12.2 Source Inspection & 36-Month Avionics Warranty (PC-700)",
             "importance": "high",
             "is_read": False,
@@ -419,7 +510,7 @@ def stage_3_seed_clm_outlook_inbox(token: str) -> None:
 """,
         },
         {
-            "key": "clm-004-pradeep-tariff-conflict-note",
+            "key": "clm-006-pradeep-tariff-conflict-note",
             "subject": "Section 232 Titanium & Semiconductor Tariff Exposure vs. GP1 §3.1 Firm-Fixed-Price SOW Cap (BA-2026-AV-8921)",
             "importance": "normal",
             "is_read": False,
@@ -442,7 +533,7 @@ def stage_3_seed_clm_outlook_inbox(token: str) -> None:
 """,
         },
         {
-            "key": "clm-005-nestor-fal-weekly-digest",
+            "key": "clm-007-nestor-fal-weekly-digest",
             "subject": f"[FYI] Everett & Renton Final Assembly Line (FAL) Supplier Readiness Digest — Week of {today.isoformat()}",
             "importance": "normal",
             "is_read": True,
@@ -456,10 +547,11 @@ def stage_3_seed_clm_outlook_inbox(token: str) -> None:
             "body_html": """
 <div style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; color: #1e293b; line-height: 1.55;">
   <p>Team,</p>
-  <p>Weekly Everett &amp; Renton Final Assembly Line (FAL) material readiness summary:</p>
+  <p>Weekly Everett &amp; Renton Final Assembly Line (FAL) material readiness summary across our 3 active Tier-1 supplier negotiations:</p>
   <ul>
-    <li><strong>Green (14/15 Subsystems):</strong> Composite wing spars, landing gear assemblies, APU generators, and cabin environmental control systems are on dock and cleared.</li>
-    <li><strong>Red / Critical Path (1/15 Subsystems):</strong> <strong>Deal BA-2026-AV-8921 (Apex AeroSystems — FCC-900 Flight Control Computer Subsystem, $45M)</strong> is awaiting final CLM contract redline reconciliation and counter-proposal signature today.</li>
+    <li><strong>Stage 1 (Intake &amp; SME Routing) — Deal BA-2026-AV-8921 (Apex AeroSystems — FCC-900 Flight Control Computers, $45M):</strong> Vendor redline received this morning from Adele Vance.</li>
+    <li><strong>Stage 2 (Finance vs. Legal Conflict) — Deal BA-2026-TR-5510 (Vanguard Thrust Systems — TRA-500 Actuators, $38M):</strong> Working Review <code>.docx</code> awaiting Contract Owner conflict resolution between Finance (GP1 §3.1 discount) and Legal (GP1 §19 1.5x cap).</li>
+    <li><strong>Stage 3 (Ready for Consolidation) — Deal BA-2026-LG-7740 (Meridian Landing Gear — TLG-800 Assemblies, $52M):</strong> SMEs approved; awaiting final Owner sign-off and Counter-Proposal dispatch to Lidia Holloway.</li>
   </ul>
   <p>— <strong>Nestor Wilke</strong>, Director of Supply Chain Operations, Cymbal Aerospace</p>
 </div>

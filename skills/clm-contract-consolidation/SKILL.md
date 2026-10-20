@@ -47,17 +47,32 @@ This updates the clause state, writes the accepted change and `<w:comment w:auth
 
 ---
 
+## Step 2B — Resolve Cross-Department Conflict in the Working Review `.docx` (`scripts/resolve_conflict.py`)
+
+When the Contract Owner inspects the Stage 2 middle-stage contract (`Deal BA-2026-TR-5510` — Vanguard Thrust Systems Corp.) where **Finance (`Diego Siciliani` in `GP1 §3.1`)** and **Legal (`Miriam Graham` in `GP1 §19`)** have recorded conflicting edits in `BA-2026-TR-5510_Working_Review.docx` (Finance traded a lower `1.0x` Liability Cap for a `3.5%` unit-price discount, while Legal requires a minimum `1.5x` Liability Cap with zero cap-for-discount trade-offs), and the Owner rules that **Legal takes precedence**:
+
+```bash
+python3 /Users/rahulsankrut/ge_spark_workspace/skills/clm-contract-consolidation/scripts/resolve_conflict.py \
+  --deal-id BA-2026-TR-5510 \
+  --actor "Rahul Kasanagottu"
+```
+
+This resolves `CONFLICT-GP1-19-GP1-03-FINANCE-LEGAL` in favor of Legal (`1.5x` Liability Cap enforced in `GP1-19` and standard `$38M` Firm-Fixed-Price restored in `GP1-03`), updates `BA-2026-TR-5510_Working_Review.docx`, and refreshes `cymbal_clm_redline_workbench.html`.
+
+---
+
 ## Step 3 — Consolidate the Final `.docx` & `.xlsx` Package (`scripts/consolidate.py`)
 
-When the user asks to consolidate the contract into the final Word Counter-Proposal and Excel Deviation Matrix:
+When the user asks to consolidate a contract (such as Stage 3 `Deal BA-2026-LG-7740` — Meridian Landing Gear Corp., or `BA-2026-AV-8921`) into the final Word Counter-Proposal and Excel Deviation Matrix:
 
 ```bash
 python3 /Users/rahulsankrut/ge_spark_workspace/skills/clm-contract-consolidation/scripts/consolidate.py \
-  --deal-id BA-2026-AV-8921 \
-  --output-dir .
+  --deal-id BA-2026-LG-7740 \
+  --output-dir . \
+  --approve-recommended
 ```
 
-*(If the user explicitly asks to apply the recommended Playbook counter-positions to any remaining unreviewed clauses during consolidation, pass `--approve-recommended`.)*
+*(Pass `--deal-id BA-2026-LG-7740` for Doc 3 Meridian Landing Gear, `--deal-id BA-2026-TR-5510` for Doc 2 Vanguard Thrust Systems, or `--deal-id BA-2026-AV-8921` for Doc 1 Apex AeroSystems.)*
 
 ### What `scripts/consolidate.py` Produces:
 1. **`<deal_id>_Working_Review.docx`**: Clean working contract with accepted changes applied in-place and user-attributed `<w:comment>` margins.

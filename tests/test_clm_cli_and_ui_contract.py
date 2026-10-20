@@ -324,3 +324,88 @@ def test_plugin_bundle_per_skill_scripts_and_single_responsibility() -> None:
     assert tax_only[0]["sme_team"] == "TAX"
 
 
+def test_three_deal_portfolio_stages_and_finance_legal_conflict_resolution(tmp_path: Path, monkeypatch) -> None:
+    """
+    Verifies the 3-deal portfolio lifecycle stages:
+    1. Deal 1 (`BA-2026-AV-8921` — Apex AeroSystems $45M): Stage 1 Fresh Intake (4 PENDING).
+    2. Deal 2 (`BA-2026-TR-5510` — Vanguard Thrust Systems $38M): Stage 2 Finance vs. Legal Conflict
+       in `BA-2026-TR-5510_Working_Review.docx` (`CONFLICT-GP1-19-GP1-03-FINANCE-LEGAL`), rendered in
+       the HTML Workbench and resolved so Legal takes precedence over Finance.
+    3. Deal 3 (`BA-2026-LG-7740` — Meridian Landing Gear $52M): Stage 3 Final Consolidation (3 APPROVED,
+       1 PENDING `GP1-19` for Owner sign-off, consolidated into Counter-Proposal .docx and .xlsx).
+    """
+    from skills.clm_cli import build_deal_initial_state, resolve_deal_id
+
+    monkeypatch.chdir(tmp_path)
+    plugin_root = REPO_ROOT / "plugins" / "cymbal-aerospace-clm"
+    assert (plugin_root / "skills" / "clm-contract-consolidation" / "scripts" / "resolve_conflict.py").exists()
+
+    # 1. Verify deal alias resolution
+    assert resolve_deal_id("doc1") == "BA-2026-AV-8921"
+    assert resolve_deal_id("apex") == "BA-2026-AV-8921"
+    assert resolve_deal_id("doc2") == "BA-2026-TR-5510"
+    assert resolve_deal_id("vanguard") == "BA-2026-TR-5510"
+    assert resolve_deal_id("doc3") == "BA-2026-LG-7740"
+    assert resolve_deal_id("meridian") == "BA-2026-LG-7740"
+
+    # 2. Verify Deal 2 (`BA-2026-TR-5510`) Stage 2 Finance vs. Legal conflict state, .docx, UI & resolution
+    state_d2 = DealWorkbenchState.model_validate(build_deal_initial_state("BA-2026-TR-5510")).model_dump(mode="json")
+    assert state_d2["deal_id"] == "BA-2026-TR-5510"
+    assert state_d2["vendor_name"] == "Vanguard Thrust Systems Corp."
+    assert len(state_d2["active_conflicts"]) == 1
+    assert state_d2["active_conflicts"][0]["rule_id"] == "CONFLICT-GP1-19-GP1-03-FINANCE-LEGAL"
+
+    build_fresh_docx_and_xlsx(state_d2, tmp_path)
+    working_d2 = tmp_path / "BA-2026-TR-5510_Working_Review.docx"
+    assert working_d2.exists()
+    with zipfile.ZipFile(working_d2, "r") as zf:
+        comments_d2 = zf.read("word/comments.xml").decode("utf-8")
+    assert "Diego Siciliani" in comments_d2
+    assert "Miriam Graham" in comments_d2
+
+    html_d2 = generate_canvas_workbench_html(state_d2, active_clause_id="GP1-19").read_text(encoding="utf-8")
+    assert "CONFLICT-GP1-19-GP1-03-FINANCE-LEGAL" in html_d2
+    assert "Resolve Conflict: Legal Takes Precedence" in html_d2
+
+    resolved_d2 = apply_local_harmonize(
+        state_d2,
+        "CONFLICT-GP1-19-GP1-03-FINANCE-LEGAL",
+        "Rahul Kasanagottu (Contract Owner)",
+    )
+    assert resolved_d2["active_conflicts"] == []
+    c19_d2 = next(c for c in resolved_d2["clauses"] if c["clause_id"] == "GP1-19")
+    c03_d2 = next(c for c in resolved_d2["clauses"] if c["clause_id"] == "GP1-03")
+    assert c19_d2["sme_status"] == "APPROVED"
+    assert "$57,000,000" in c19_d2["selected_counter_text"]
+    assert c03_d2["sme_status"] == "APPROVED"
+    assert "$38,000,000" in c03_d2["selected_counter_text"]
+
+    # 3. Verify Deal 3 (`BA-2026-LG-7740`) Stage 3 Final Consolidation state & Counter-Proposal export
+    state_d3 = DealWorkbenchState.model_validate(build_deal_initial_state("BA-2026-LG-7740")).model_dump(mode="json")
+    assert state_d3["deal_id"] == "BA-2026-LG-7740"
+    assert state_d3["vendor_name"] == "Meridian Landing Gear Corp."
+    redlined_d3 = {c["clause_id"]: c["sme_status"] for c in state_d3["clauses"] if c["has_redline"]}
+    assert redlined_d3 == {
+        "GP1-12": "APPROVED",
+        "GP1-19": "PENDING",
+        "SP3-04": "APPROVED",
+        "SP5-03": "APPROVED",
+    }
+
+    # Owner accepts GP1-19 and consolidates
+    state_d3 = apply_local_position(
+        state=state_d3,
+        clause_id="GP1-19",
+        sme_team="LEGAL",
+        option="compromise_tier_1",
+        counter_text="19.1 Tier-1 Super-Cap (2.0x PO / $104,000,000) with uncapped AD recall & IP.",
+        reviewer="Rahul Kasanagottu (Contract Owner)",
+        rationale="Contract Owner accepted Legal recommended 2.0x ($104M) Tier-1 Super-Cap.",
+    )
+    counter_d3, xlsx_d3 = build_fresh_docx_and_xlsx(state_d3, tmp_path)
+    assert counter_d3.name == "BA-2026-LG-7740_Cymbal_Counter_Proposal.docx"
+    assert xlsx_d3.name == "BA-2026-LG-7740_SharePoint_Deviation_Matrix.xlsx"
+    assert counter_d3.exists() and xlsx_d3.exists()
+
+
+

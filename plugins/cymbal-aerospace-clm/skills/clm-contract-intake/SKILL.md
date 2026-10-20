@@ -13,7 +13,10 @@ Use this skill when a user asks to ingest, compare, or triage a supplier's redli
 
 ## Step 1 — Run the Contract Intake & Playbook Comparison Script
 
-Execute `scripts/intake.py` (which invokes the `ingest` workflow on the actual `.docx` files and queries BigQuery in parallel):
+Execute `scripts/intake.py` (which invokes the `ingest` workflow on the actual `.docx` files and queries BigQuery in parallel). Pass the appropriate `--deal-id` for the contract being inspected:
+- **`BA-2026-AV-8921`** (Doc 1 — Apex AeroSystems Inc. — `$45M` Flight Control Computers FCC-900 — Stage 1 Fresh Vendor Redline Intake)
+- **`BA-2026-TR-5510`** (Doc 2 — Vanguard Thrust Systems Corp. — `$38M` Thrust Reverser Actuators TRA-500 — Stage 2 Middle-Stage Working Review `.docx` with Finance vs. Legal Conflict)
+- **`BA-2026-LG-7740`** (Doc 3 — Meridian Landing Gear Corp. — `$52M` Titanium Landing Gear Assemblies TLG-800 — Stage 3 Final-Stage SME-Reviewed Working `.docx`)
 
 ```bash
 python3 /Users/rahulsankrut/ge_spark_workspace/skills/clm-contract-intake/scripts/intake.py \
@@ -22,7 +25,8 @@ python3 /Users/rahulsankrut/ge_spark_workspace/skills/clm-contract-intake/script
   --baseline-docx-path specs/04_golden_fixtures/Cymbal_GP1_Standard.docx
 ```
 
-*(Fallback path if running directly from the repository root: `python3 skills/clm-contract-intake/scripts/intake.py --deal-id BA-2026-AV-8921`)*
+*(For Stage 2 Doc 2 Finance vs. Legal conflict inspection: `python3 /Users/rahulsankrut/ge_spark_workspace/skills/clm-contract-intake/scripts/intake.py --deal-id BA-2026-TR-5510`)*
+*(Fallback path if running directly from the repository root: `python3 skills/clm-contract-intake/scripts/intake.py --deal-id <DEAL_ID>`)*
 
 ### What the Script Computes Live:
 1. **Real `.docx` OOXML Track Changes & Word-Level Diff**: Parses `vendor_docx_path` against `baseline_docx_path`, separating untouched baseline clauses (`untouched_clauses`) from redlined exceptions (`redlined_exceptions`) and extracting embedded vendor margin comments (`<w:comment>`).
