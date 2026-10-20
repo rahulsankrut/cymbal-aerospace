@@ -156,6 +156,15 @@ def test_document_reviewer_ui_generation(tmp_path: Path, monkeypatch) -> None:
     assert "switchTaxTab('DECISION')" in tax_text
     assert "switchTaxTab('PRECEDENTS')" in tax_text
     assert "switchTaxTab('COMMENTS')" in tax_text
+    assert "setTaxDocContextMode('TUNNELED')" in tax_text
+    assert "setTaxDocContextMode('FULL_DOC')" in tax_text
+    assert "jumpToTaxContextClause('GP1-03')" in tax_text
+    for c in state["clauses"]:
+        cid = c["clause_id"]
+        if cid == "SP3-04":
+            assert 'id="active-tax-clause-SP3-04"' in tax_text
+        else:
+            assert f'id="ctx-clause-{cid}"' in tax_text
 
     # Fix 3 & 4: Off-by-one GP1-12 index removed & SP3-04 tariff cap standardized to 2.0% ($900,000) everywhere
     cli_source = (REPO_ROOT / "skills" / "clm_cli.py").read_text(encoding="utf-8")

@@ -3188,6 +3188,61 @@ def generate_tax_reviewer_workbench_html(state: Dict[str, Any], tax_prec: Dict[s
         }
     )
 
+    def _render_context_clause_strip(c: Dict[str, Any]) -> str:
+        cid = c["clause_id"]
+        cref = html.escape(c["clause_ref"])
+        ctitle = html.escape(c["clause_title"])
+        has_red = bool(c.get("has_redline"))
+        is_gp1_03 = cid == "GP1-03"
+        badge_html = (
+            '<span style="font-family:monospace;font-size:10.5px;font-weight:800;padding:1px 6px;border-radius:4px;background:#ffe4e6;color:#9f1239;border:1px solid #fda4af;">M</span>'
+            if has_red
+            else '<span style="font-family:monospace;font-size:10.5px;font-weight:800;padding:1px 6px;border-radius:4px;background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1;">0</span>'
+        )
+        right_pill = (
+            '<span style="font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:999px;background:#ffedd5;color:#9a3412;border:1px solid #fdba74;">⚡ Cross-Clause FFP Cap Target ($45,000,000 Ceiling) • Click to expand ▾</span>'
+            if is_gp1_03
+            else (
+                f'<span style="font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;">Redlined ({html.escape(c.get("sme_team", ""))}) • Click to expand ▾</span>'
+                if has_red
+                else '<span style="font-size:10.5px;font-weight:700;color:#64748b;">✓ Playbook Standard Unchanged • Click to expand ▾</span>'
+            )
+        )
+        strip_bg = "#fffbeb" if is_gp1_03 else "#f8fafc"
+        strip_border = "#fdba74" if is_gp1_03 else "#e2e8f0"
+        body_inner = (
+            compute_inline_word_diff_html(c["boeing_baseline_text"], c["vendor_redline_text"])
+            if has_red
+            else html.escape(c["boeing_baseline_text"])
+        )
+        return f"""
+      <details class="context-clause-strip" id="ctx-clause-{cid}" style="margin-bottom:8px;background:{strip_bg};border:1px solid {strip_border};border-radius:8px;padding:8px 12px;font-size:12.5px;">
+        <summary style="cursor:pointer;font-weight:800;color:#1e1b4b;display:flex;justify-content:space-between;align-items:center;gap:8px;list-style:none;">
+          <span style="display:flex;align-items:center;gap:8px;">{badge_html} <span>{cref} — {ctitle}</span></span>
+          {right_pill}
+        </summary>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #e2e8f0;font-family:Georgia,serif;font-size:13.8px;line-height:1.72;color:#1e293b;">
+          {body_inner}
+        </div>
+      </details>"""
+
+    clauses_before_sp3_html = "".join(
+        _render_context_clause_strip(c)
+        for c in state.get("clauses", [])
+        if c["clause_id"] not in ("SP3-04", "SP5-03")
+    )
+    clauses_after_sp3_html = "".join(
+        _render_context_clause_strip(c)
+        for c in state.get("clauses", [])
+        if c["clause_id"] == "SP5-03"
+    )
+    clause_jump_options_html = "".join(
+        f'<option value="{c["clause_id"]}" {"selected" if c["clause_id"] == "SP3-04" else ""}>'
+        f'{"[TAX FOCUS] " if c["clause_id"] == "SP3-04" else ("[FFP CAP] " if c["clause_id"] == "GP1-03" else ("[M] " if c.get("has_redline") else "[0] "))}'
+        f'{html.escape(c["clause_ref"])} — {html.escape(c["clause_title"])}</option>'
+        for c in state.get("clauses", [])
+    )
+
     doc_html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -3341,32 +3396,56 @@ def generate_tax_reviewer_workbench_html(state: Dict[str, Any], tax_prec: Dict[s
   <div id="saveBanner" style="display:none;padding:10px 14px;border-radius:10px;background:#dcfce7;border:1px solid #86efac;color:#065f46;font-size:12.5px;font-weight:700;"></div>
 
   <div class="doc-stage">
-    <!-- Left Pane: Clean Wide 8.5"x11" Contract Sheet for SP3 §4.1 & GP1 §3.1 Reference -->
+    <!-- Left Pane: Clean Wide 8.5"x11" Contract Sheet (Tunneled SP3 §4.1 Focus + Full 12-Clause Contract Context) -->
     <div class="doc-paper">
-      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #f1f5f9;padding-bottom:12px;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #f1f5f9;padding-bottom:12px;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
         <div>
-          <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:#4f46e5;">Cymbal Aerospace Working Review Document • SP3 Special Provisions</div>
+          <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:#4f46e5;">MASTER SUBCONTRACT AGREEMENT — CYMBAL AEROSPACE (GP1 + SP3 + SP5)</div>
           <div style="font-size:16px;font-weight:800;color:#1e1b4b;margin-top:2px;">SP3 §4.1 — Customs, Duties &amp; Section 232/301 Tariffs</div>
         </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
           <span style="font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:999px;background:#eef2ff;color:#312e81;border:1px solid #c7d2fe;">📘 {html.escape(playbook_verdict)}</span>
           <span style="font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:999px;background:#ffedd5;color:#9a3412;border:1px solid #fdba74;">Cross-Clause Harmonized vs GP1 §3.1</span>
+          <a href="http://127.0.0.1:58921/api/download/working-docx" target="_blank" style="font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:999px;background:#dcfce7;color:#065f46;border:1px solid #86efac;text-decoration:none;">⬇️ Working .docx</a>
         </div>
       </div>
 
-      <!-- Collapsed 1-Line Reference Strip for GP1 §3.1 FFP Ceiling -->
-      <details style="margin-bottom:14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;font-size:12.5px;">
-        <summary style="cursor:pointer;font-weight:800;color:#1e1b4b;">[0] GP1 §3.1 — Firm-Fixed-Price SOW Lock ($45,000,000 Ceiling • Click to inspect baseline)</summary>
-        <div style="margin-top:8px;font-family:Georgia,serif;font-size:13.5px;line-height:1.7;color:#334155;">
-          3.1 Total Contract Value is locked at $45,000,000 Firm-Fixed-Price across 150 shipsets ($300,000/unit). Uncapped cost pass-throughs in Special Provisions are prohibited without a strict percentage cap.
+      <!-- Tunneled Tax View vs. Full 12-Clause Contract Context Bar -->
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:8px 12px;margin-bottom:14px;">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <span style="font-size:11px;font-weight:800;color:#312e81;text-transform:uppercase;">Contract Context:</span>
+          <button id="btnTaxContextTunneled" onclick="setTaxDocContextMode('TUNNELED')" style="padding:5px 10px;border-radius:7px;border:1px solid #4338ca;background:#4f46e5;color:#ffffff;font-size:11.5px;font-weight:700;cursor:pointer;">
+            🎯 Tunneled Tax View (SP3 §4.1 Focus)
+          </button>
+          <button id="btnTaxContextFull" onclick="setTaxDocContextMode('FULL_DOC')" style="padding:5px 10px;border-radius:7px;border:1px solid #cbd5e1;background:#ffffff;color:#334155;font-size:11.5px;font-weight:700;cursor:pointer;">
+            📄 Full 12-Clause Contract (Expand All)
+          </button>
+          <button onclick="jumpToTaxContextClause('GP1-03')" style="padding:5px 10px;border-radius:7px;border:1px solid #fdba74;background:#fff7ed;color:#9a3412;font-size:11.5px;font-weight:700;cursor:pointer;">
+            ⚡ Inspect GP1 §3.1 ($45M FFP Cap)
+          </button>
         </div>
-      </details>
-
-      <div class="doc-section-heading">
-        <span>4.1 Customs, Duties &amp; Tariffs (Inline Word Markup)</span>
-        <span style="font-size:11px;color:#64748b;font-weight:600;">Compared Against: Cymbal Tier-1 Avionics Playbook</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:11px;font-weight:700;color:#64748b;">Jump to Clause:</span>
+          <select id="taxClauseJumpSelect" onchange="jumpToTaxContextClause(this.value)" style="padding:4px 8px;border-radius:6px;border:1px solid #cbd5e1;background:#ffffff;font-size:11.5px;font-weight:700;color:#1e293b;cursor:pointer;">
+            {clause_jump_options_html}
+          </select>
+        </div>
       </div>
-      <div class="doc-clause-body" id="docInlineDiff"></div>
+
+      <!-- Preceding 10 Clauses (GP1 §1.1 through GP1 §28.1, including GP1 §3.1 FFP Ceiling) as Collapsible Context Strips -->
+      {clauses_before_sp3_html}
+
+      <!-- Active Tunneled Tax Clause: SP3 §4.1 -->
+      <div id="active-tax-clause-SP3-04" style="margin:12px 0;padding:14px 16px;border-radius:12px;background:#fffdf9;border:2px solid #6366f1;box-shadow:0 0 0 3px rgba(99, 102, 241, 0.14);">
+        <div class="doc-section-heading">
+          <span>🎯 SP3 §4.1 — Customs, Duties &amp; Section 232/301 Tariffs (Active Tax SME Review)</span>
+          <span style="font-size:11px;color:#4f46e5;font-weight:800;">Compared Against: Cymbal Tier-1 Avionics Playbook</span>
+        </div>
+        <div class="doc-clause-body" id="docInlineDiff"></div>
+      </div>
+
+      <!-- Following Clause (SP5 §3.2 Cybersecurity) as Collapsible Context Strip -->
+      {clauses_after_sp3_html}
     </div>
 
     <!-- Right Pane: Unified 3-Tab Tax SME Inspector (🎯 Decision & Counter | 📊 Precedents (16) | 💬 Comments) -->
@@ -3496,6 +3575,43 @@ function switchTaxTab(tab) {{
     if (btn) btn.classList.toggle('active', t === tab);
     if (pane) pane.style.display = (t === tab) ? 'flex' : 'none';
   }});
+}}
+
+function setTaxDocContextMode(mode) {{
+  const strips = document.querySelectorAll('details.context-clause-strip');
+  const isFull = mode === 'FULL_DOC';
+  strips.forEach(d => {{ d.open = isFull; }});
+  const btnTun = document.getElementById('btnTaxContextTunneled');
+  const btnFull = document.getElementById('btnTaxContextFull');
+  if (btnTun) {{
+    btnTun.style.background = isFull ? '#ffffff' : '#4f46e5';
+    btnTun.style.color = isFull ? '#334155' : '#ffffff';
+    btnTun.style.borderColor = isFull ? '#cbd5e1' : '#4338ca';
+  }}
+  if (btnFull) {{
+    btnFull.style.background = isFull ? '#4f46e5' : '#ffffff';
+    btnFull.style.color = isFull ? '#ffffff' : '#334155';
+    btnFull.style.borderColor = isFull ? '#4338ca' : '#cbd5e1';
+  }}
+  if (!isFull) {{
+    const sp3El = document.getElementById('active-tax-clause-SP3-04');
+    if (sp3El) sp3El.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
+  }}
+}}
+
+function jumpToTaxContextClause(cid) {{
+  const sel = document.getElementById('taxClauseJumpSelect');
+  if (sel) sel.value = cid;
+  if (cid === 'SP3-04') {{
+    const sp3El = document.getElementById('active-tax-clause-SP3-04');
+    if (sp3El) sp3El.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
+    return;
+  }}
+  const det = document.getElementById('ctx-clause-' + cid);
+  if (det) {{
+    det.open = true;
+    det.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
+  }}
 }}
 
 function computeWordDiff(oldText, newText) {{
