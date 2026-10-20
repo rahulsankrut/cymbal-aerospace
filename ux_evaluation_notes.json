@@ -1,0 +1,113 @@
+{
+  "overall_synthesis": "",
+  "variations": {
+    "V1": {
+      "id": "V1",
+      "title": "Variation 1: Emerald Stage & Floating Action Menu (Screenshot Match)",
+      "rating": 3,
+      "verdict": "CHERRY_PICK",
+      "keep_components": [],
+      "tags": [],
+      "notes": "I like the Use language feature. But, the counter language is not fully visible. hard for the user to see what counter language is. Moreover, I do not have a way to revert to original version. "
+    },
+    "V2": {
+      "id": "V2",
+      "title": "Variation 2: Continuous 12-Clause Contract Reader + Sticky Playbook Sidebar",
+      "rating": 4,
+      "verdict": "CHERRY_PICK",
+      "keep_components": [],
+      "tags": [],
+      "notes": "I like this, able to see all the clauses, instead of specific sections only. While highlighting what needs my attention.  I like the recommendations tab with options, pretty good. Bigquery precedent should be better. Let me see if other version have a better view. Can you confirm i the recommended counter poistion also considers the historical info. If yes, add explainer to show why its the recommended position. "
+    },
+    "V3": {
+      "id": "V3",
+      "title": "Variation 3: 12-Clause Traffic-Light Risk Heatmap & Deviation Radar",
+      "rating": 1,
+      "verdict": "SKIP",
+      "keep_components": [],
+      "tags": [],
+      "notes": ""
+    },
+    "V4": {
+      "id": "V4",
+      "title": "Variation 4: 3-Column Synchronized Redline Matrix (Proforma | Vendor | Counter)",
+      "rating": 4,
+      "verdict": "CHERRY_PICK",
+      "keep_components": [],
+      "tags": [],
+      "notes": "I like the 3 column view, easy to go through differences. but historical information is missing. "
+    },
+    "V5": {
+      "id": "V5",
+      "title": "Variation 5: Institutional Dark Analytics Terminal + BigQuery SQL Drawer",
+      "rating": 1,
+      "verdict": "SKIP",
+      "keep_components": [],
+      "tags": [],
+      "notes": ""
+    },
+    "V6": {
+      "id": "V6",
+      "title": "Variation 6: Guided 4-Step Exception Wizard with Keyboard Shortcuts (J/K/A/R/C)",
+      "rating": 2,
+      "verdict": "CHERRY_PICK",
+      "keep_components": [],
+      "tags": [],
+      "notes": "I like the step workflow, shows progress. "
+    },
+    "V7": {
+      "id": "V7",
+      "title": "Variation 7: Multi-SME Kanban Board & Live Outlook Email Thread Drawer",
+      "rating": 1,
+      "verdict": "SKIP",
+      "keep_components": [],
+      "tags": [],
+      "notes": ""
+    },
+    "V8": {
+      "id": "V8",
+      "title": "Variation 8: Interactive Cross-Clause Dependency & Regulatory Lockout Graph",
+      "rating": 4,
+      "verdict": "CHERRY_PICK",
+      "keep_components": [],
+      "tags": [],
+      "notes": "I like the graph view"
+    },
+    "V9": {
+      "id": "V9",
+      "title": "Variation 9: MS Word 365 Review Ribbon + 8.5\"\u00d711\" Sheet + Right-Margin Balloons",
+      "rating": 5,
+      "verdict": "PRIMARY_CANDIDATE",
+      "keep_components": [],
+      "tags": [],
+      "notes": "I like the word doc view, it doesnt make the user feel its a new surface. I like the markup options also."
+    },
+    "V10": {
+      "id": "V10",
+      "title": "Variation 10: PR #8921 Line-Numbered Diff + Automated Regulatory CI Checks",
+      "rating": 5,
+      "verdict": "PERSONA_SPECIFIC",
+      "keep_components": [],
+      "tags": [],
+      "notes": "This PR view is also pretty good. Showing the future version, needs some learning from the previous word version from UI perspective. But the language and everything though needs learning for non coders, it follows industry standards for such use cases. I like the foles changes view with M  etc. "
+    },
+    "V11": {
+      "id": "V11",
+      "title": "Variation 11: Executive Bento Deal Room & Dollarized Exposure Waterfall",
+      "rating": 3,
+      "verdict": "PERSONA_SPECIFIC",
+      "keep_components": [],
+      "tags": [],
+      "notes": "This could be the view before final consolidation or check status page. before owner finalizes everything. "
+    },
+    "V12": {
+      "id": "V12",
+      "title": "Variation 12: Conversational AI Co-Pilot + Live Contract Artifact Canvas",
+      "rating": 2,
+      "verdict": "SKIP",
+      "keep_components": [],
+      "tags": [],
+      "notes": ""
+    }
+  }
+}

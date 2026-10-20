@@ -1104,6 +1104,13 @@ RECOMMENDED_COUNTER_DEFAULTS: Dict[str, Dict[str, str]] = {
     "GP1-12": {
         "option": "hold_firm",
         "reviewer": "Megan Bowen",
+        "default_reviewer": "Megan Bowen",
+        "playbook_rule_name": "PLAYBOOK RULE GP1-12: Zero-Waiver Airworthiness Warranty (36 Mo) & Unannounced FAA Surveillance",
+        "playbook_verdict": "❌ VENDOR REDLINE VIOLATES PLAYBOOK LOCKOUT (LOCKOUT-GP1-12-FAA)",
+        "playbook_guardrail_summary": (
+            "Playbook Preferred: 36-month warranty from aircraft delivery + unannounced FAA/Cymbal source inspections at any time. "
+            "Playbook Fallback: None permitted on DAL-A flight-critical hardware (14 CFR Part 21.140 / PC-700 lockout)."
+        ),
         "counter_text": (
             "12.2 (a) Airworthiness & Hardware/Firmware Warranty: Seller warrants all Goods, including FCC-900 "
             "flight control hardware, triplex voting channels, and embedded DO-178C DAL-A avionics firmware, to be "
@@ -1119,10 +1126,29 @@ RECOMMENDED_COUNTER_DEFAULTS: Dict[str, Dict[str, str]] = {
             "Hold firm on 36-month warranty from aircraft delivery and unannounced FAA/Cymbal source inspections "
             "at any time per mandatory 14 CFR Part 21.140 / PC-700 airworthiness requirements (88% Held Firm precedent)."
         ),
+        "default_user_comment": (
+            "Hold firm on 36-month warranty from aircraft delivery and unannounced FAA/Cymbal source inspections "
+            "at any time per mandatory 14 CFR Part 21.140 / PC-700 airworthiness requirements (88% Held Firm precedent)."
+        ),
+        "historical_explainer": (
+            "Yes — this recommendation combines the Cymbal Tier-1 Playbook (LOCKOUT-GP1-12-FAA) with BigQuery historical "
+            "precedent analysis (n=16 Tier-1 flight-critical avionics deals in boeing_clm.historical_clause_exceptions): "
+            "88% (14 of 16 deals, led by Honeywell Aerospace at 97.4% similarity, Thales Avionics at 95.8%, and Garmin "
+            "Aviation at 95.3%) Held Firm on the Playbook Preferred 36-month warranty and unannounced FAA/Buyer source "
+            "inspections. 0% accepted the vendor's 12-month / 30-day notice redline due to mandatory FAA 14 CFR Part 21.140 "
+            "& Production Certificate PC-700 flow-down."
+        ),
     },
     "GP1-19": {
         "option": "compromise_tier_1",
         "reviewer": "Rahul Kasanagottu",
+        "default_reviewer": "Rahul Kasanagottu",
+        "playbook_rule_name": "PLAYBOOK RULE GP1-19: Tier-1 Liability Super-Cap (2.0x PO / $90M) + Uncapped IP & Safety Carveouts",
+        "playbook_verdict": "⚠️ VENDOR 0.5x CAP ($22.5M) OUTSIDE PLAYBOOK — APPLY PRE-APPROVED 2.0x PLAYBOOK FALLBACK",
+        "playbook_guardrail_summary": (
+            "Playbook Preferred: Uncapped direct damages + uncapped IP/safety indemnity. "
+            "Playbook Pre-Approved Tier-1 Fallback: 2.0x PO ($90,000,000) Super-Cap for general direct damages, provided IP (§24.1), AD recalls, and cyber/confidentiality remain uncapped."
+        ),
         "counter_text": (
             "19.1 Seller's aggregate liability for general direct commercial damages arising out of or related to "
             "this Contract shall not exceed two hundred percent (200% / 2.0x) of the total Purchase Order value "
@@ -1135,10 +1161,29 @@ RECOMMENDED_COUNTER_DEFAULTS: Dict[str, Dict[str, str]] = {
             "Counter with Tier-1 Playbook 2.0x PO ($90,000,000) Super-Cap while preserving uncapped carveouts for "
             "confidentiality/cyber breaches, flight-safety AD recalls, and system-level IP combination indemnity (69% precedent match)."
         ),
+        "default_user_comment": (
+            "Counter with Tier-1 Playbook 2.0x PO ($90,000,000) Super-Cap while preserving uncapped carveouts for "
+            "confidentiality/cyber breaches, flight-safety AD recalls, and system-level IP combination indemnity (69% precedent match)."
+        ),
+        "historical_explainer": (
+            "Yes — this recommendation combines the Cymbal Tier-1 Playbook Fallback Rule with BigQuery historical precedent "
+            "analysis (n=16 Tier-1 avionics deals in boeing_clm.historical_clause_exceptions): while only 25% (4/16) Held "
+            "Firm on uncapped general damages, 69% (11 of 16 deals, led by Collins Aerospace at 98.1% cosine similarity and "
+            "Safran Electronics at 94.2% similarity) converged on the Playbook Tier-1 Fallback 2.0x PO ($90,000,000) "
+            "Super-Cap while preserving uncapped liability for IP indemnification (§24.1), flight-safety AD recalls, and "
+            "DFARS cybersecurity/confidentiality breaches."
+        ),
     },
     "SP3-04": {
         "option": "compromise_tier_1",
         "reviewer": "Pradeep Gupta",
+        "default_reviewer": "Pradeep Gupta",
+        "playbook_rule_name": "PLAYBOOK RULE SP3-04: DDP Tariff Allocation & GP1 §3.1 Firm-Fixed-Price SOW Ceiling Protection",
+        "playbook_verdict": "⚡ VENDOR UNCAPPED TARIFF PASS-THROUGH VIOLATES PLAYBOOK FFP RULE (CONFLICT-SP3-04-GP1-03)",
+        "playbook_guardrail_summary": (
+            "Playbook Preferred: 100% Seller DDP obligation. "
+            "Playbook Pre-Approved Tier-1 Fallback: 50/50 shared split on verified new Section 232/301 tariffs >5.0%, strictly capped at +2.0% ($900,000) of GP1 §3.1 FFP SOW value."
+        ),
         "counter_text": (
             "4.1 (a) Importer of Record & Customs Clearance: Seller shall act as Importer of Record for all imported "
             "sub-tier components, raw aerospace titanium forgings, and radiation-hardened semiconductor wafers. "
@@ -1152,10 +1197,28 @@ RECOMMENDED_COUNTER_DEFAULTS: Dict[str, Dict[str, str]] = {
             "Harmonized with GP1 §3.1 ($45M Firm-Fixed-Price SOW): 50/50 shared tariff split above 5.0% statutory "
             "threshold, strictly capped at +2.0% ($900,000) of the FFP unit price (63% Tier-1 precedent match)."
         ),
+        "default_user_comment": (
+            "Harmonized with GP1 §3.1 ($45M Firm-Fixed-Price SOW): 50/50 shared tariff split above 5.0% statutory "
+            "threshold, strictly capped at +2.0% ($900,000) of the FFP unit price (63% Tier-1 precedent match)."
+        ),
+        "historical_explainer": (
+            "Yes — this recommendation synthesizes the Cymbal Tax Playbook rule (CONFLICT-SP3-04-GP1-03) with BigQuery "
+            "historical precedent outcomes (n=16 Tier-1 avionics deals in boeing_clm.historical_clause_exceptions): 63% "
+            "(10 of 16 deals, led by Spirit AeroSystems at 96.8% similarity, Moog Aircraft Group at 94.9%, and "
+            "Curtiss-Wright Defense at 92.4%) resolved tariff volatility via the Playbook Tier-1 Fallback: a 50/50 shared "
+            "split above a 5.0% statutory threshold, strictly capped at +2.0% ($900,000) of the GP1 §3.1 Firm-Fixed-Price SOW ceiling."
+        ),
     },
     "SP5-03": {
         "option": "hold_firm",
         "reviewer": "Alex Wilber",
+        "default_reviewer": "Alex Wilber",
+        "playbook_rule_name": "PLAYBOOK RULE SP5-03: Mandatory DoD DFARS 252.204-7012 72-Hour Cyber Reporting & 90-Day Forensics",
+        "playbook_verdict": "❌ VENDOR 10-DAY DELAY VIOLATES PLAYBOOK DFARS LOCKOUT (LOCKOUT-SP5-03-DFARS)",
+        "playbook_guardrail_summary": (
+            "Playbook Preferred: 72-hour cyber incident reporting to CSOC/DIBNet + 90-day raw forensic image preservation. "
+            "Playbook Fallback: None permitted where Covered Defense Information (CDI) is processed (statutory DoD flow-down)."
+        ),
         "counter_text": (
             "3.2 Cyber Incident Reporting & Forensic Preservation (DFARS 252.204-7012): Seller shall report any "
             "suspected or confirmed cybersecurity incident affecting Covered Defense Information (CDI), flight-critical "
@@ -1167,6 +1230,17 @@ RECOMMENDED_COUNTER_DEFAULTS: Dict[str, Dict[str, str]] = {
         "user_comment": (
             "Hold firm on mandatory 72-hour cyber incident reporting and 90-day raw forensic image preservation "
             "under DoD DFARS 252.204-7012 statutory flow-down (94% Held Firm precedent)."
+        ),
+        "default_user_comment": (
+            "Hold firm on mandatory 72-hour cyber incident reporting and 90-day raw forensic image preservation "
+            "under DoD DFARS 252.204-7012 statutory flow-down (94% Held Firm precedent)."
+        ),
+        "historical_explainer": (
+            "Yes — this recommendation is backed by the Cymbal Cyber Playbook (LOCKOUT-SP5-03-DFARS) and BigQuery "
+            "historical precedent analysis (n=16 Tier-1 defense/avionics deals in boeing_clm.historical_clause_exceptions): "
+            "94% (15 of 16 deals, led by BAE Systems Controls at 99.1% similarity, L3Harris Avionics at 97.9%, and Northrop "
+            "Grumman Navigation at 96.2%) Held Firm on mandatory 72-hour DIBNet/CSOC cyber incident reporting and 90-day "
+            "raw forensic image preservation under DFARS 252.204-7012 (0% accepted a 10-business-day delay)."
         ),
     },
 }
@@ -1180,11 +1254,27 @@ def generate_canvas_workbench_html(
     sharepoint_uploads: List[Dict[str, Any]] | None = None,
 ) -> Path:
     """
-    Generate self-contained interactive Document-Style Redline & Counter-Position Review Workbench HTML
-    in Path.cwd() so Spark Canvas opens and renders it.
-    Matches the visual design of modern inline contract review apps (white document card on emerald stage,
-    orange-red strikethrough + coral highlight on the counter-position change to accept, and floating action
-    popover with Rewrite with Input, Accept changes, Reject changes, and User Comment).
+    Generate the Unified Pastel Master Production CLM Workbench HTML (`cymbal_clm_redline_workbench.html`)
+    in Path.cwd() incorporating all user UX evaluation feedback:
+      - Pastel Color System (Pastel Periwinkle/Lavender Word 365 Ribbon, Pastel Alabaster/Cream canvas,
+        Pastel Rose deletions, Pastel Mint insertions/accepts, Pastel Sky BigQuery Historical Explainer,
+        Pastel Buttercream Word margin comments).
+      - V9 (★5 Primary): MS Word 365 Review Ribbon + 8.5"x11" Continuous 12-Clause Sheet + Right-Margin
+        <w:comment w:author="..."> Balloons + Markup Switcher (All Markup | Simple Markup | Clean Future
+        Version | PR Stacked Diff).
+      - V2 (★4): Continuous 12-Clause Contract Reader highlighting the 4 redlined exceptions + Playbook
+        Recommendation Cards + explicit "Why This Counter-Position Is Recommended (BigQuery Historical
+        Intelligence + Guardrail Explainer)" box.
+      - V1 (★3): Full untruncated Counter-Position display + full untruncated BigQuery Historical Precedent
+        table with "Use Language" button + "Revert to Recommended Counter" and "Revert to Original Proforma"
+        buttons.
+      - V10 (★5): Left 12-Clause File/Section Navigator Tree with [M] Modified, [✓] Accepted, and [0]
+        Untouched badges + PR-style future version diff option.
+      - V6 (★2): 4-Step Exception Progress Stepper in the top bar.
+      - V4 (★4): 3-Column Synchronized Compare (Proforma | Vendor | Counter) with embedded BigQuery
+        Historical Precedents & Use Language right below the 3 columns.
+      - V8 (★4): Interactive Pastel Cross-Clause Dependency & Regulatory Lockout Graph tab.
+      - V11 (★3): Pre-Consolidation Status & Dollarized Exposure Waterfall Check tab before finalization.
     """
     seed = load_seed()
     precedents_map = seed.get("precedents", {})
@@ -1199,6 +1289,21 @@ def generate_canvas_workbench_html(
             or rec.get("counter_text")
             or c.get("boeing_baseline_text", "")
         )
+        c_copy["recommended_counter_text"] = rec.get("counter_text") or c.get("boeing_baseline_text", "")
+        c_copy["recommended_option_key"] = rec.get("option") or "compromise_tier_1"
+        c_copy["playbook_rule_name"] = (
+            rec.get("playbook_rule_name")
+            or f"Cymbal Tier-1 Avionics Playbook — {c.get('clause_ref', '')} Standard Rule"
+        )
+        c_copy["playbook_verdict"] = (
+            rec.get("playbook_verdict")
+            or ("PLAYBOOK_COMPLIANT" if not c.get("has_redline") else "PLAYBOOK_EXCEPTION")
+        )
+        c_copy["playbook_guardrail_summary"] = (
+            rec.get("playbook_guardrail_summary")
+            or "Matches Cymbal Tier-1 Avionics Playbook Preferred Standard. Zero vendor deviations."
+        )
+        c_copy["historical_explainer"] = rec.get("historical_explainer") or ""
         c_copy["proposed_counter_text"] = proposed_counter
         c_copy["proposed_option_key"] = c.get("selected_option_key") or rec.get("option") or "compromise_tier_1"
         raw_rev = c.get("sme_reviewer") or rec.get("reviewer") or "Rahul Kasanagottu"
@@ -1221,6 +1326,7 @@ def generate_canvas_workbench_html(
         "clauses": clauses_enriched,
         "active_clause_id": active_clause_id or "GP1-19",
         "sharepoint_uploads": sharepoint_uploads or [],
+        "sharepoint_folder_url": SHAREPOINT_FOLDER_WEB_URL,
         "cwd": str(Path.cwd()),
         "working_docx_name": f"{state['deal_id']}_Working_Review.docx",
         "generated_at": utc_now_iso(),
@@ -1232,294 +1338,497 @@ def generate_canvas_workbench_html(
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cymbal Aerospace CLM — Interactive Contract Redline & Counter-Position Reviewer ({state['deal_id']})</title>
+  <title>Cymbal Aerospace CLM — Pastel Word 365 &amp; Playbook Review Workbench ({state['deal_id']})</title>
   <style>
     :root {{
-      --navy: #0a2540;
-      --emerald-stage: #237a5b;
-      --emerald-dark: #195e45;
-      --slate: #0f172a;
-      --muted: #64748b;
-      --border: #e2e8f0;
-      --bg: #f1f5f9;
-      --card: #ffffff;
-      --strike-orange: #e04f33;
-      --coral-highlight: #f9d8d0;
-      --coral-text: #1e293b;
+      /* Pastel Design System Tokens (User Preference: Calm, High-Legibility Pastels) */
+      --pastel-canvas: #faf8f5;
+      --pastel-stage: #f1f5f9;
+      --pastel-paper: #ffffff;
+      --pastel-indigo-bg: #eef2ff;
+      --pastel-indigo-border: #c7d2fe;
+      --pastel-indigo-text: #312e81;
+      --pastel-indigo-accent: #6366f1;
+      --pastel-lilac-bg: #f3e8ff;
+      --pastel-lilac-border: #d8b4fe;
+      --pastel-lilac-text: #581c87;
+      --pastel-sky-bg: #e0f2fe;
+      --pastel-sky-border: #bae6fd;
+      --pastel-sky-text: #0c4a6e;
+      --pastel-mint-bg: #dcfce7;
+      --pastel-mint-soft: #ecfdf5;
+      --pastel-mint-border: #86efac;
+      --pastel-mint-text: #065f46;
+      --pastel-rose-bg: #ffe4e6;
+      --pastel-rose-soft: #fff1f2;
+      --pastel-rose-border: #fda4af;
+      --pastel-rose-text: #9f1239;
+      --pastel-strike: #e11d48;
+      --pastel-peach-bg: #ffedd5;
+      --pastel-peach-soft: #fff7ed;
+      --pastel-peach-border: #fdba74;
+      --pastel-peach-text: #9a3412;
+      --pastel-butter-bg: #fef9c3;
+      --pastel-butter-border: #fde047;
+      --pastel-butter-text: #713f12;
+      --ink-primary: #1e293b;
+      --ink-secondary: #475569;
+      --ink-muted: #64748b;
+      --border-soft: #e2e8f0;
     }}
-    * {{ box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif; }}
-    body {{ background: var(--bg); color: var(--slate); font-size: 13.5px; line-height: 1.5; }}
-    .topbar {{
-      background: linear-gradient(135deg, #0a2540 0%, #164e63 100%);
-      color: #fff;
-      padding: 14px 24px;
+    * {{ box-sizing: border-box; margin: 0; padding: 0; font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }}
+    body {{ background: var(--pastel-canvas); color: var(--ink-primary); font-size: 13.5px; line-height: 1.55; }}
+
+    /* Top Pastel Word 365 Title & Review Ribbon (V9 ★5) */
+    .word-ribbon-header {{
+      background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 52%, #f3e8ff 100%);
+      color: var(--pastel-indigo-text);
+      padding: 12px 22px;
+      border-bottom: 1px solid var(--pastel-indigo-border);
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
       gap: 12px;
-      border-bottom: 3px solid #10b981;
     }}
-    .brand-eyebrow {{ font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #6ee7b7; font-weight: 700; }}
-    .brand-title {{ font-size: 18px; font-weight: 800; margin-top: 2px; }}
-    .brand-sub {{ font-size: 12px; color: #cbd5e1; margin-top: 2px; }}
+    .brand-eyebrow {{ font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; color: #4f46e5; font-weight: 800; }}
+    .brand-title {{ font-size: 17px; font-weight: 800; color: #1e1b4b; margin-top: 2px; }}
+    .brand-sub {{ font-size: 12px; color: #4338ca; margin-top: 2px; }}
     .badge-row {{ display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }}
-    .pill {{ padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px; }}
-    .pill-blue {{ background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.25); }}
-    .pill-green {{ background: #dcfce7; color: #166534; border: 1px solid #86efac; }}
-    .pill-red {{ background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }}
-    .pill-amber {{ background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }}
+    .pill {{ padding: 4px 11px; border-radius: 999px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px; }}
+    .pill-indigo {{ background: rgba(255,255,255,0.78); color: #312e81; border: 1px solid #c7d2fe; }}
+    .pill-green {{ background: var(--pastel-mint-bg); color: var(--pastel-mint-text); border: 1px solid var(--pastel-mint-border); }}
+    .pill-red {{ background: var(--pastel-rose-bg); color: var(--pastel-rose-text); border: 1px solid var(--pastel-rose-border); }}
+    .pill-amber {{ background: var(--pastel-peach-bg); color: var(--pastel-peach-text); border: 1px solid var(--pastel-peach-border); }}
+    .pill-sky {{ background: var(--pastel-sky-bg); color: var(--pastel-sky-text); border: 1px solid var(--pastel-sky-border); }}
 
-    .container {{ max-width: 1520px; margin: 0 auto; padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; }}
-    .kpi-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }}
-    @media (max-width: 1100px) {{ .kpi-grid {{ grid-template-columns: repeat(2, 1fr); }} }}
-    .kpi-card {{ background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }}
-    .kpi-label {{ font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 700; }}
-    .kpi-val {{ font-size: 19px; font-weight: 800; color: var(--slate); margin: 3px 0; }}
-    .kpi-sub {{ font-size: 11.5px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }}
-
-    .workbench {{ display: grid; grid-template-columns: 310px 1fr; gap: 14px; align-items: start; }}
-    @media (max-width: 1024px) {{ .workbench {{ grid-template-columns: 1fr; }} }}
-
-    .sidebar {{ background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }}
-    .sidebar-header {{ padding: 12px 14px; background: #f8fafc; border-bottom: 1px solid var(--border); }}
-    .filter-tabs {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 8px; }}
-    .filter-btn {{ padding: 6px 6px; font-size: 11px; font-weight: 700; border-radius: 6px; border: 1px solid var(--border); background: #fff; cursor: pointer; color: var(--slate); }}
-    .filter-btn.active {{ background: var(--navy); color: #fff; border-color: var(--navy); }}
-    .clause-list {{ max-height: 700px; overflow-y: auto; }}
-    .clause-item {{ padding: 11px 14px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: background 0.12s; }}
-    .clause-item:hover {{ background: #f8fafc; }}
-    .clause-item.active {{ background: #ecfdf5; border-left: 4px solid var(--emerald-stage); }}
-    .clause-item-top {{ display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 3px; }}
-    .clause-ref {{ font-weight: 800; font-size: 12.5px; color: var(--navy); }}
-    .clause-title {{ font-weight: 600; font-size: 12px; color: var(--slate); margin-bottom: 5px; }}
-    .clause-meta {{ display: flex; gap: 5px; flex-wrap: wrap; align-items: center; font-size: 10.5px; }}
-
-    .inspector {{ background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }}
-    .inspector-header {{ padding: 14px 20px; border-bottom: 1px solid var(--border); background: #f8fafc; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }}
-    .mode-tabs {{ display: flex; gap: 5px; background: #e2e8f0; padding: 4px; border-radius: 8px; flex-wrap: wrap; }}
-    .mode-tab {{ padding: 6px 12px; border-radius: 6px; border: none; background: transparent; font-size: 12px; font-weight: 700; color: #334155; cursor: pointer; }}
-    .mode-tab.active {{ background: #ffffff; color: var(--navy); box-shadow: 0 1px 2px rgba(0,0,0,0.1); }}
-
-    /* Document Stage & Floating Popover Menu (Matches Screenshot!) */
-    .emerald-stage {{
-      background: linear-gradient(145deg, #237a5b 0%, #1b654a 100%);
-      padding: 28px 32px;
-      position: relative;
-      display: grid;
-      grid-template-columns: 1fr 270px;
-      gap: 22px;
-      align-items: center;
-    }}
-    @media (max-width: 1150px) {{ .emerald-stage {{ grid-template-columns: 1fr; }} }}
-    .doc-sheet {{
+    /* Word 365 Review Toolbar + Markup Switcher */
+    .word-toolbar {{
       background: #ffffff;
-      border-radius: 16px;
-      padding: 32px 38px;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.18);
-      color: #0f172a;
-      position: relative;
-    }}
-    .doc-h1 {{ font-size: 22px; font-weight: 800; color: #0f172a; margin-bottom: 14px; letter-spacing: -0.01em; }}
-    .doc-context {{ font-size: 14px; line-height: 1.7; color: #94a3b8; margin-bottom: 18px; }}
-    .doc-clause-heading {{ font-size: 15.5px; font-weight: 800; color: #0f172a; margin-bottom: 8px; }}
-    .doc-clause-body {{
-      font-size: 15px;
-      line-height: 1.85;
-      color: #1e293b;
-    }}
-    /* Inline Strikethrough + Coral Highlight matching screenshot */
-    del.diff-del {{
-      color: #334155;
-      background: transparent;
-      text-decoration: line-through;
-      text-decoration-color: var(--strike-orange);
-      text-decoration-thickness: 2.5px;
-      padding: 0 2px;
-    }}
-    ins.diff-ins {{
-      background: var(--coral-highlight);
-      color: var(--coral-text);
-      text-decoration: none;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-weight: 500;
-      box-decoration-break: clone;
-      -webkit-box-decoration-break: clone;
-    }}
-
-    /* Floating Popover Action Menu matching screenshot */
-    .floating-menu {{
-      background: #ffffff;
-      border-radius: 14px;
-      box-shadow: 0 20px 45px rgba(0,0,0,0.22), 0 0 0 1px rgba(15,23,42,0.06);
-      overflow: hidden;
+      border-bottom: 1px solid var(--border-soft);
+      padding: 8px 22px;
       display: flex;
-      flex-direction: column;
-    }}
-    .menu-item {{
-      display: flex;
+      justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
       gap: 12px;
-      padding: 15px 20px;
-      font-size: 15px;
-      font-weight: 600;
-      color: #0f172a;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+    }}
+    .toolbar-group {{ display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }}
+    .toolbar-label {{ font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); margin-right: 4px; }}
+    .toolbar-divider {{ width: 1px; height: 24px; background: var(--border-soft); margin: 0 6px; }}
+
+    .mode-tab {{
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: #f8fafc;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--ink-secondary);
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }}
+    .mode-tab:hover {{ background: var(--pastel-indigo-bg); color: var(--pastel-indigo-text); }}
+    .mode-tab.active {{
+      background: var(--pastel-indigo-bg);
+      color: var(--pastel-indigo-text);
+      border-color: var(--pastel-indigo-border);
+      box-shadow: 0 1px 2px rgba(99, 102, 241, 0.12);
+    }}
+
+    .markup-pill {{
+      padding: 5px 10px;
+      border-radius: 7px;
+      border: 1px solid var(--border-soft);
       background: #ffffff;
-      border: none;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--ink-secondary);
+      cursor: pointer;
+    }}
+    .markup-pill.active {{
+      background: var(--pastel-lilac-bg);
+      color: var(--pastel-lilac-text);
+      border-color: var(--pastel-lilac-border);
+    }}
+
+    /* V6 (★2) 4-Step Exception Progress Stepper Bar */
+    .stepper-bar {{
+      background: #fdfcfb;
+      border-bottom: 1px solid var(--border-soft);
+      padding: 8px 22px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }}
+    .step-pills {{ display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }}
+    .step-chip {{
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 700;
+      border: 1px solid var(--border-soft);
+      background: #ffffff;
+      color: var(--ink-secondary);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.12s;
+    }}
+    .step-chip.active-step {{
+      background: var(--pastel-indigo-bg);
+      border-color: #818cf8;
+      color: var(--pastel-indigo-text);
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+    }}
+    .step-chip.done-step {{
+      background: var(--pastel-mint-soft);
+      border-color: var(--pastel-mint-border);
+      color: var(--pastel-mint-text);
+    }}
+
+    /* Main 3-Pane Workspace: Left PR/Clause Navigator (V10) + Center Word Sheet & Margin Comments (V9/V2) + Right Playbook & Precedent Copilot (V2/V1) */
+    .workspace-container {{
+      max-width: 1640px;
+      margin: 0 auto;
+      padding: 14px 18px 28px;
+    }}
+    .workbench-grid {{
+      display: grid;
+      grid-template-columns: 280px 1fr 410px;
+      gap: 14px;
+      align-items: start;
+    }}
+    @media (max-width: 1320px) {{
+      .workbench-grid {{ grid-template-columns: 260px 1fr; }}
+    }}
+    @media (max-width: 960px) {{
+      .workbench-grid {{ grid-template-columns: 1fr; }}
+    }}
+
+    /* Left Navigator Sidebar with V10 [M] / [✓] / [0] badges */
+    .sidebar {{
+      background: #ffffff;
+      border: 1px solid var(--border-soft);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+      position: sticky;
+      top: 12px;
+    }}
+    .sidebar-header {{
+      padding: 12px 14px;
+      background: var(--pastel-indigo-bg);
+      border-bottom: 1px solid var(--pastel-indigo-border);
+    }}
+    .filter-tabs {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 8px; }}
+    .filter-btn {{
+      padding: 5px 6px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 6px;
+      border: 1px solid var(--pastel-indigo-border);
+      background: rgba(255,255,255,0.8);
+      cursor: pointer;
+      color: var(--pastel-indigo-text);
+    }}
+    .filter-btn.active {{
+      background: #4f46e5;
+      color: #ffffff;
+      border-color: #4f46e5;
+    }}
+    .clause-list {{ max-height: 760px; overflow-y: auto; }}
+    .clause-item {{
+      padding: 10px 12px;
       border-bottom: 1px solid #f1f5f9;
       cursor: pointer;
-      text-align: left;
       transition: background 0.12s;
-      width: 100%;
     }}
-    .menu-item:last-child {{ border-bottom: none; }}
-    .menu-item:hover {{ background: #f1f5f9; }}
-    .menu-item.active-row {{ background: #f1f5f9; }}
-    .menu-icon {{
-      width: 24px;
-      height: 24px;
+    .clause-item:hover {{ background: #f8fafc; }}
+    .clause-item.active {{
+      background: var(--pastel-indigo-bg);
+      border-left: 4px solid #6366f1;
+    }}
+    .git-badge {{
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 15px;
-      flex-shrink: 0;
+      width: 22px;
+      height: 20px;
+      border-radius: 5px;
+      font-family: "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
+      font-size: 11px;
+      font-weight: 800;
     }}
-    .menu-icon-circle {{
-      background: #0f172a;
-      color: #ffffff;
-      border-radius: 50%;
-      font-size: 12px;
-    }}
+    .git-m {{ background: var(--pastel-rose-bg); color: var(--pastel-rose-text); border: 1px solid var(--pastel-rose-border); }}
+    .git-ok {{ background: var(--pastel-mint-bg); color: var(--pastel-mint-text); border: 1px solid var(--pastel-mint-border); }}
+    .git-0 {{ background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; }}
 
-    /* Interactive Drawers (Rewrite with Input & User Comment) */
-    .drawer {{
-      background: #ffffff;
-      border-top: 1px solid var(--border);
-      padding: 18px 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
+    /* Center Word 365 Document Stage + Right Margin Comment Balloons (V9 ★5 + V2 ★4) */
+    .word-stage-card {{
+      background: var(--pastel-stage);
+      border: 1px solid var(--border-soft);
+      border-radius: 14px;
+      padding: 18px 20px;
+      box-shadow: inset 0 2px 6px rgba(15, 23, 42, 0.03);
     }}
-    .drawer-card {{
-      background: #f8fafc;
+    .word-page-grid {{
+      display: grid;
+      grid-template-columns: 1fr 250px;
+      gap: 16px;
+      align-items: start;
+    }}
+    @media (max-width: 1120px) {{
+      .word-page-grid {{ grid-template-columns: 1fr; }}
+    }}
+    .word-sheet {{
+      background: var(--pastel-paper);
       border: 1px solid #cbd5e1;
       border-radius: 10px;
-      padding: 14px 16px;
+      padding: 30px 34px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+      color: var(--ink-primary);
     }}
-    .btn-primary {{
-      background: #0f172a;
-      color: #ffffff;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-size: 12.5px;
-      font-weight: 700;
-      cursor: pointer;
-    }}
-    .btn-emerald {{
-      background: #10b981;
-      color: #ffffff;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-size: 12.5px;
-      font-weight: 700;
-      cursor: pointer;
-    }}
-    .btn-outline {{
+    .doc-h1 {{ font-size: 19px; font-weight: 800; color: #1e1b4b; margin-bottom: 8px; letter-spacing: -0.01em; }}
+    .doc-context {{ font-size: 13px; line-height: 1.65; color: var(--ink-secondary); margin-bottom: 18px; padding-bottom: 12px; border-bottom: 2px solid #f1f5f9; }}
+
+    .doc-clause-block {{
+      padding: 16px 18px;
+      border-radius: 10px;
+      margin-bottom: 14px;
+      border: 1px solid #f1f5f9;
       background: #ffffff;
-      color: #334155;
-      border: 1px solid #cbd5e1;
-      padding: 7px 12px;
+      transition: all 0.15s;
+    }}
+    .doc-clause-block.redlined-block {{
+      background: #fffdf9;
+      border: 1.5px solid var(--pastel-peach-border);
+      border-left: 5px solid #f59e0b;
+    }}
+    .doc-clause-block.accepted-block {{
+      background: var(--pastel-mint-soft);
+      border: 1.5px solid var(--pastel-mint-border);
+      border-left: 5px solid #10b981;
+    }}
+    .doc-clause-block.focused-block {{
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.22);
+    }}
+    .doc-clause-heading {{ font-size: 14.5px; font-weight: 800; color: #1e293b; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }}
+    .doc-clause-body {{ font-size: 14px; line-height: 1.8; color: #1e293b; font-family: Georgia, "Times New Roman", serif; }}
+
+    /* Pastel Inline Diff Tokens (<del> & <ins>) */
+    del.diff-del {{
+      background: var(--pastel-rose-bg);
+      color: var(--pastel-rose-text);
+      text-decoration: line-through;
+      text-decoration-color: var(--pastel-strike);
+      text-decoration-thickness: 2px;
+      padding: 1px 5px;
+      border-radius: 4px;
+    }}
+    ins.diff-ins {{
+      background: var(--pastel-mint-bg);
+      color: var(--pastel-mint-text);
+      text-decoration: none;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      border-bottom: 2px solid #34d399;
+    }}
+
+    /* Right-Margin Word Comment Balloons (V9 ★5) */
+    .margin-balloon {{
+      background: var(--pastel-butter-bg);
+      border: 1px solid var(--pastel-butter-border);
+      border-left: 4px solid #eab308;
+      border-radius: 10px;
+      padding: 11px 13px;
+      margin-bottom: 12px;
+      font-size: 12px;
+      color: var(--pastel-butter-text);
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+    }}
+    .margin-balloon.vendor-balloon {{
+      background: var(--pastel-rose-soft);
+      border-color: var(--pastel-rose-border);
+      border-left: 4px solid #f43f5e;
+      color: var(--pastel-rose-text);
+    }}
+
+    /* Right Playbook, BigQuery Historical Explainer & Full Counter-Position Inspector (V2 ★4 + V1 ★3) */
+    .right-copilot {{
+      background: #ffffff;
+      border: 1px solid var(--border-soft);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+      position: sticky;
+      top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 14px;
+    }}
+    .explainer-box {{
+      background: var(--pastel-sky-bg);
+      border: 1px solid var(--pastel-sky-border);
+      border-left: 4px solid #0284c7;
+      border-radius: 10px;
+      padding: 12px 14px;
+      color: var(--pastel-sky-text);
+      font-size: 12.5px;
+      line-height: 1.55;
+    }}
+    .counter-full-box {{
+      background: var(--pastel-mint-soft);
+      border: 1.5px solid var(--pastel-mint-border);
+      border-radius: 10px;
+      padding: 12px 14px;
+    }}
+
+    /* Floating Action Menu in Pastel Card */
+    .pastel-action-grid {{
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 7px;
+    }}
+    .action-btn {{
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 11px;
       border-radius: 8px;
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid var(--border-soft);
+      background: #ffffff;
+      color: var(--ink-primary);
+      transition: all 0.12s;
+    }}
+    .action-btn:hover {{ background: #f8fafc; }}
+    .action-btn.accept-btn {{ background: var(--pastel-mint-bg); color: var(--pastel-mint-text); border-color: var(--pastel-mint-border); }}
+    .action-btn.reject-btn {{ background: var(--pastel-rose-bg); color: var(--pastel-rose-text); border-color: var(--pastel-rose-border); }}
+    .action-btn.rewrite-btn {{ background: var(--pastel-lilac-bg); color: var(--pastel-lilac-text); border-color: var(--pastel-lilac-border); }}
+    .action-btn.comment-btn {{ background: var(--pastel-butter-bg); color: var(--pastel-butter-text); border-color: var(--pastel-butter-border); }}
+
+    .btn-outline {{
+      background: #ffffff;
+      color: var(--ink-secondary);
+      border: 1px solid #cbd5e1;
+      padding: 6px 11px;
+      border-radius: 7px;
+      font-size: 11.5px;
+      font-weight: 700;
       cursor: pointer;
     }}
-    .btn-outline:hover {{ background: #f1f5f9; }}
+    .btn-outline:hover {{ background: var(--pastel-indigo-bg); color: var(--pastel-indigo-text); border-color: var(--pastel-indigo-border); }}
+
     textarea.editor-box {{
       width: 100%;
-      min-height: 78px;
+      min-height: 92px;
       padding: 10px 12px;
       border-radius: 8px;
       border: 1px solid #94a3b8;
-      font-size: 13.5px;
+      font-size: 13px;
       line-height: 1.55;
-      color: #0f172a;
+      color: var(--ink-primary);
+      background: #ffffff;
       margin-top: 6px;
     }}
     input.author-input {{
       padding: 6px 10px;
       border-radius: 6px;
       border: 1px solid #94a3b8;
-      font-size: 13px;
-      font-weight: 600;
-      color: #0f172a;
-      width: 240px;
-    }}
-    .toast-bar {{
-      background: #ecfdf5;
-      border: 1px solid #6ee7b7;
-      color: #065f46;
-      padding: 10px 14px;
-      border-radius: 8px;
       font-size: 12.5px;
       font-weight: 600;
+      color: var(--ink-primary);
+      width: 100%;
+    }}
+    .toast-bar {{
+      background: var(--pastel-mint-bg);
+      border: 1px solid var(--pastel-mint-border);
+      color: var(--pastel-mint-text);
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 12.5px;
+      font-weight: 700;
+      margin-bottom: 12px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
     }}
-    .split-grid {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; padding: 20px; }}
+
+    /* 3-Column Compare + Embedded Precedents (V4 ★4) */
+    .split-grid {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 16px; }}
     @media (max-width: 1100px) {{ .split-grid {{ grid-template-columns: 1fr; }} }}
-    .split-col {{ border: 1px solid var(--border); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }}
-    .split-col-hdr {{ padding: 10px 14px; font-weight: 800; font-size: 12px; text-transform: uppercase; border-bottom: 1px solid var(--border); }}
-    .split-col-body {{ padding: 14px; font-size: 13.5px; line-height: 1.65; flex: 1; background: #fff; }}
-    .bar-track {{ height: 26px; width: 100%; background: #e2e8f0; border-radius: 6px; overflow: hidden; display: flex; font-size: 11.5px; font-weight: 800; color: #fff; }}
+    .split-col {{ border: 1px solid var(--border-soft); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; background: #fff; }}
+    .split-col-hdr {{ padding: 10px 14px; font-weight: 800; font-size: 12px; text-transform: uppercase; border-bottom: 1px solid var(--border-soft); }}
+    .split-col-body {{ padding: 14px; font-size: 13.5px; line-height: 1.68; flex: 1; background: #fff; }}
+
+    .bar-track {{ height: 24px; width: 100%; background: #f1f5f9; border-radius: 7px; overflow: hidden; display: flex; font-size: 11px; font-weight: 800; border: 1px solid #cbd5e1; }}
     .bar-seg {{ display: flex; align-items: center; justify-content: center; white-space: nowrap; overflow: hidden; }}
-    .prec-table {{ width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 10px; }}
-    .prec-table th {{ background: #f1f5f9; padding: 9px 10px; text-align: left; border-bottom: 2px solid #cbd5e1; color: #334155; font-weight: 700; }}
+    .prec-table {{ width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 10px; background: #fff; border-radius: 8px; overflow: hidden; }}
+    .prec-table th {{ background: var(--pastel-indigo-bg); padding: 9px 10px; text-align: left; border-bottom: 1px solid var(--pastel-indigo-border); color: var(--pastel-indigo-text); font-weight: 800; font-size: 11px; text-transform: uppercase; }}
     .prec-table td {{ padding: 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }}
   </style>
 </head>
 <body>
-  <div class="topbar">
+  <!-- Pastel Word 365 Header -->
+  <div class="word-ribbon-header">
     <div>
-      <div class="brand-eyebrow">Cymbal Aerospace Supply Chain Contracting • Interactive Document Redline &amp; Review Workbench</div>
-      <div class="brand-title">Deal {state['deal_id']} — Apex AeroSystems Inc. ($45,000,000 FFP | FCC-900 Flight Control Subsystem)</div>
-      <div class="brand-sub">Working Review Doc: <code>{state['deal_id']}_Working_Review.docx</code> (All accepted/rejected changes &amp; user comments saved live until Final Consolidation)</div>
+      <div class="brand-eyebrow">Cymbal Aerospace Supply Chain CLM • Pastel Word 365 &amp; Historical Playbook Workbench</div>
+      <div class="brand-title">Deal {state['deal_id']} — Apex AeroSystems Inc. ($45,000,000 FFP | FCC-900 Flight Control Computer Subsystem)</div>
+      <div class="brand-sub">Live Working Review Doc: <code>{state['deal_id']}_Working_Review.docx</code> (Accepted changes &amp; human user Word comments saved live until Final Consolidation)</div>
     </div>
     <div class="badge-row">
-      <span class="pill pill-blue">📄 Proforma: Cymbal_GP1_Standard.docx</span>
-      <span class="pill pill-blue">🗄️ BigQuery Precedents: 64 Deals (16/Position)</span>
-      <a href="{SHAREPOINT_FOLDER_WEB_URL}" target="_blank" class="pill pill-blue" style="text-decoration:none;">📂 SharePoint Deal Room ↗</a>
+      <span class="pill pill-indigo">📘 Compared Against: Cymbal Tier-1 Avionics Playbook (GP1 / SP3 / SP5)</span>
+      <span class="pill pill-sky">🗄️ BigQuery Precedents: 64 Deals (16/Position)</span>
+      <a href="http://127.0.0.1:58921/api/download/working-docx" target="_blank" class="pill pill-green" style="text-decoration:none;">⬇️ Download Working .docx</a>
+      <a href="{SHAREPOINT_FOLDER_WEB_URL}" target="_blank" class="pill pill-indigo" style="text-decoration:none;">📂 SharePoint Deal Room ↗</a>
     </div>
   </div>
 
-  <div class="container">
-    <div class="kpi-grid" id="kpi-strip"></div>
-
-    <div class="workbench">
-      <div class="sidebar">
-        <div class="sidebar-header">
-          <div style="font-weight: 800; font-size: 13px; color: var(--slate);">Contract Clauses (12)</div>
-          <div class="filter-tabs">
-            <button class="filter-btn active" id="flt-redlined" onclick="window.app.setFilter('REDLINED')">🔴 Redlined (4)</button>
-            <button class="filter-btn" id="flt-all" onclick="window.app.setFilter('ALL')">📋 All (12)</button>
-            <button class="filter-btn" id="flt-clear" onclick="window.app.setFilter('CLEAR')">🟢 Cleared (8)</button>
-          </div>
-        </div>
-        <div class="clause-list" id="clause-list"></div>
-      </div>
-
-      <div class="inspector" id="inspector-pane"></div>
+  <!-- Word 365 Mode Tabs & Markup Switcher -->
+  <div class="word-toolbar">
+    <div class="toolbar-group">
+      <span class="toolbar-label">Surface Mode:</span>
+      <button class="mode-tab active" id="tab-WORD_DOC" onclick="window.app.setViewMode('WORD_DOC')">📄 Word Doc &amp; Playbook Review (All 12 Clauses)</button>
+      <button class="mode-tab" id="tab-SPLIT_3COL" onclick="window.app.setViewMode('SPLIT_3COL')">⚖️ 3-Column Playbook Compare + Precedents</button>
+      <button class="mode-tab" id="tab-DEPENDENCY_GRAPH" onclick="window.app.setViewMode('DEPENDENCY_GRAPH')">🕸️ Cross-Clause &amp; Lockout Graph</button>
+      <button class="mode-tab" id="tab-PRE_CONSOLIDATION" onclick="window.app.setViewMode('PRE_CONSOLIDATION')">🏛️ Pre-Consolidation Status Check</button>
     </div>
+
+    <div class="toolbar-group" id="markup-controls">
+      <span class="toolbar-label">Compare Basis:</span>
+      <button class="markup-pill active" id="cmp-PLAYBOOK_COUNTER" onclick="window.app.setCompareBasis('PLAYBOOK_COUNTER')" title="Compare Vendor Redline against Playbook Counter-Position (shows what counter-edits to accept)">vs. Playbook Counter-Position</button>
+      <button class="markup-pill" id="cmp-PLAYBOOK_STANDARD" onclick="window.app.setCompareBasis('PLAYBOOK_STANDARD')" title="Compare Vendor Redline against Playbook Preferred Standard (shows vendor deviations)">vs. Playbook Preferred Standard</button>
+      <span class="toolbar-label" style="margin-left:6px;">Markup:</span>
+      <button class="markup-pill active" id="mk-ALL_MARKUP" onclick="window.app.setMarkupMode('ALL_MARKUP')">All Markup (&lt;del&gt;/&lt;ins&gt;)</button>
+      <button class="markup-pill" id="mk-SIMPLE_MARKUP" onclick="window.app.setMarkupMode('SIMPLE_MARKUP')">Simple Markup</button>
+      <button class="markup-pill" id="mk-CLEAN_FUTURE" onclick="window.app.setMarkupMode('CLEAN_FUTURE')">No Markup (Clean Future Version)</button>
+      <button class="markup-pill" id="mk-PR_STACKED" onclick="window.app.setMarkupMode('PR_STACKED')">PR Stacked Diff (-/+)</button>
+    </div>
+  </div>
+
+  <!-- V6 (★2) 4-Step Exception Progress Stepper Bar -->
+  <div class="stepper-bar" id="stepper-bar"></div>
+
+  <div class="workspace-container">
+    <div id="toast-container"></div>
+    <div id="main-stage"></div>
   </div>
 
   <script>
     const DATA = {payload_json};
 
-    // Word-level inline diff in JS so Rewrite with Input updates the orange strikethrough + coral highlight live!
     function escapeHtml(s) {{
       return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }}
@@ -1527,7 +1836,6 @@ def generate_canvas_workbench_html(
     function computeWordDiffHtml(oldText, newText) {{
       const a = String(oldText || '').trim().split(/\\s+/).filter(Boolean);
       const b = String(newText || '').trim().split(/\\s+/).filter(Boolean);
-      // LCS dynamic programming on words
       const n = a.length, m = b.length;
       const dp = Array.from({{ length: n + 1 }}, () => new Int16Array(m + 1));
       for (let i = n - 1; i >= 0; i--) {{
@@ -1553,7 +1861,6 @@ def generate_canvas_workbench_html(
       while (i < n) {{ ops.push({{ type: 'del', word: a[i++] }}); }}
       while (j < m) {{ ops.push({{ type: 'ins', word: b[j++] }}); }}
 
-      // Group consecutive ops of the same type
       const groups = [];
       for (const op of ops) {{
         if (groups.length && groups[groups.length - 1].type === op.type) {{
@@ -1573,23 +1880,29 @@ def generate_canvas_workbench_html(
     class CLMWorkbench {{
       constructor(data) {{
         this.data = data;
-        this.filter = 'REDLINED';
+        this.filter = 'ALL'; // Default to ALL 12 clauses per V2 feedback!
         this.activeClauseId = data.active_clause_id || 'GP1-19';
-        this.viewMode = 'COUNTER_DOC'; // COUNTER_DOC | VENDOR_DIFF | SPLIT | PRECEDENTS
+        this.viewMode = 'WORD_DOC'; // WORD_DOC | SPLIT_3COL | DEPENDENCY_GRAPH | PRE_CONSOLIDATION
+        this.compareBasis = 'PLAYBOOK_COUNTER'; // PLAYBOOK_COUNTER | PLAYBOOK_STANDARD
+        this.markupMode = 'ALL_MARKUP'; // ALL_MARKUP | SIMPLE_MARKUP | CLEAN_FUTURE | PR_STACKED
+        this.docScope = 'ALL_12'; // ALL_12 | FOCUSED_1
         this.activeDrawer = 'COMMENT'; // REWRITE | COMMENT
+        this.selectedGraphNode = 'SP3-04';
         this.toastMessage = '';
+        this.renderAll();
+      }}
+
+      setCompareBasis(b) {{
+        this.compareBasis = b;
+        ['PLAYBOOK_COUNTER', 'PLAYBOOK_STANDARD'].forEach(id => {{
+          const btn = document.getElementById('cmp-' + id);
+          if (btn) btn.classList.toggle('active', id === b);
+        }});
         this.renderAll();
       }}
 
       setFilter(f) {{
         this.filter = f;
-        ['redlined', 'all', 'clear'].forEach(id => {{
-          const el = document.getElementById('flt-' + id);
-          if (el) el.classList.remove('active');
-        }});
-        const map = {{ REDLINED: 'redlined', ALL: 'all', CLEAR: 'clear' }};
-        const btn = document.getElementById('flt-' + map[f]);
-        if (btn) btn.classList.add('active');
         const filtered = this.getFilteredClauses();
         if (filtered.length && !filtered.some(c => c.clause_id === this.activeClauseId)) {{
           this.activeClauseId = filtered[0].clause_id;
@@ -1601,22 +1914,40 @@ def generate_canvas_workbench_html(
         this.activeClauseId = cid;
         this.toastMessage = '';
         this.renderAll();
+        setTimeout(() => {{
+          const blk = document.getElementById('doc-clause-card-' + cid);
+          if (blk) blk.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
+        }}, 40);
       }}
 
       setViewMode(m) {{
         this.viewMode = m;
-        this.renderInspector();
+        ['WORD_DOC', 'SPLIT_3COL', 'DEPENDENCY_GRAPH', 'PRE_CONSOLIDATION'].forEach(id => {{
+          const btn = document.getElementById('tab-' + id);
+          if (btn) btn.classList.toggle('active', id === m);
+        }});
+        const mkCtrl = document.getElementById('markup-controls');
+        if (mkCtrl) mkCtrl.style.display = (m === 'WORD_DOC') ? 'flex' : 'none';
+        this.renderAll();
       }}
 
-      toggleAcceptedPreview() {{
-        const clause = this.getActiveClause();
-        clause.show_clean_accepted = !clause.show_clean_accepted;
-        this.renderInspector();
+      setMarkupMode(mk) {{
+        this.markupMode = mk;
+        ['ALL_MARKUP', 'SIMPLE_MARKUP', 'CLEAN_FUTURE', 'PR_STACKED'].forEach(id => {{
+          const btn = document.getElementById('mk-' + id);
+          if (btn) btn.classList.toggle('active', id === mk);
+        }});
+        this.renderAll();
+      }}
+
+      setDocScope(sc) {{
+        this.docScope = sc;
+        this.renderAll();
       }}
 
       openDrawer(d) {{
         this.activeDrawer = d;
-        this.renderInspector();
+        this.renderAll();
         setTimeout(() => {{
           const el = document.getElementById(d === 'REWRITE' ? 'rewrite-textarea' : 'comment-textarea');
           if (el) el.focus();
@@ -1645,11 +1976,41 @@ def generate_canvas_workbench_html(
           clause.proposed_counter_text = clause.boeing_baseline_text;
         }} else if (optionKey === 'accept_vendor') {{
           clause.proposed_counter_text = clause.vendor_redline_text;
+        }} else if (optionKey === 'compromise_tier_1') {{
+          clause.proposed_counter_text = clause.recommended_counter_text || clause.boeing_baseline_text;
         }}
         clause.proposed_option_key = optionKey;
-        clause.show_clean_accepted = false;
         clause.counter_diff_html = computeWordDiffHtml(clause.vendor_redline_text, clause.proposed_counter_text);
-        this.renderInspector();
+        this.toastMessage = `✦ Loaded Playbook Option ("${{optionKey}}") into Counter-Position for ${{clause.clause_ref}}`;
+        this.renderAll();
+      }}
+
+      useHistoricalPrecedentLanguage(contractId, encodedText) {{
+        const clause = this.getActiveClause();
+        const decoded = decodeURIComponent(encodedText);
+        clause.proposed_counter_text = decoded;
+        clause.proposed_option_key = 'compromise_tier_1';
+        clause.counter_diff_html = computeWordDiffHtml(clause.vendor_redline_text, clause.proposed_counter_text);
+        this.toastMessage = `📋 Loaded Historical Precedent (${{contractId}}) into Counter-Position for ${{clause.clause_ref}}`;
+        this.renderAll();
+      }}
+
+      revertToRecommendedCounter() {{
+        const clause = this.getActiveClause();
+        clause.proposed_counter_text = clause.recommended_counter_text || clause.boeing_baseline_text;
+        clause.proposed_option_key = clause.recommended_option_key || 'compromise_tier_1';
+        clause.counter_diff_html = computeWordDiffHtml(clause.vendor_redline_text, clause.proposed_counter_text);
+        this.toastMessage = `↺ Reverted ${{clause.clause_ref}} to BigQuery Recommended Counter-Position`;
+        this.renderAll();
+      }}
+
+      revertToOriginalProforma() {{
+        const clause = this.getActiveClause();
+        clause.proposed_counter_text = clause.boeing_baseline_text;
+        clause.proposed_option_key = 'hold_firm';
+        clause.counter_diff_html = computeWordDiffHtml(clause.vendor_redline_text, clause.proposed_counter_text);
+        this.toastMessage = `↺ Reverted ${{clause.clause_ref}} to Original Cymbal Standard Proforma Baseline`;
+        this.renderAll();
       }}
 
       updateRewriteLive() {{
@@ -1658,12 +2019,20 @@ def generate_canvas_workbench_html(
         if (!el) return;
         clause.proposed_counter_text = el.value;
         clause.proposed_option_key = 'custom_counter';
-        clause.show_clean_accepted = false;
         clause.counter_diff_html = computeWordDiffHtml(clause.vendor_redline_text, clause.proposed_counter_text);
-        const docBody = document.getElementById('live-doc-clause-body');
-        if (docBody && this.viewMode === 'COUNTER_DOC') {{
+        const previewEl = document.getElementById('full-counter-preview-text');
+        if (previewEl) previewEl.textContent = clause.proposed_counter_text;
+        const docBody = document.getElementById('doc-clause-body-' + clause.clause_id);
+        if (docBody && this.markupMode === 'ALL_MARKUP') {{
           docBody.innerHTML = clause.counter_diff_html;
         }}
+      }}
+
+      stepNextException() {{
+        const redlined = (this.data.clauses || []).filter(c => c.has_redline);
+        const idx = redlined.findIndex(c => c.clause_id === this.activeClauseId);
+        const nextClause = redlined[(idx + 1) % redlined.length];
+        if (nextClause) this.selectClause(nextClause.clause_id);
       }}
 
       async submitReviewAction(actionType) {{
@@ -1686,20 +2055,16 @@ def generate_canvas_workbench_html(
           clause.sme_status = 'APPROVED';
           clause.selected_option_key = clause.proposed_option_key || 'compromise_tier_1';
           clause.selected_counter_text = clause.proposed_counter_text;
-          clause.show_clean_accepted = true;
         }} else if (actionType === 'REJECT') {{
-          // Reject vendor changes -> Hold Firm on Cymbal Baseline
           clause.proposed_option_key = 'hold_firm';
           clause.proposed_counter_text = clause.boeing_baseline_text;
           clause.selected_option_key = 'hold_firm';
           clause.selected_counter_text = clause.boeing_baseline_text;
           clause.sme_status = 'APPROVED';
-          clause.show_clean_accepted = true;
         }} else if (actionType === 'COMMENT_SAVE') {{
           clause.selected_option_key = clause.proposed_option_key || 'compromise_tier_1';
           clause.selected_counter_text = clause.proposed_counter_text;
           clause.sme_status = 'APPROVED';
-          clause.show_clean_accepted = true;
         }}
 
         clause.sme_reviewer = clause.human_reviewer;
@@ -1710,7 +2075,6 @@ def generate_canvas_workbench_html(
           this.data.deal.active_conflicts = [];
         }}
 
-        // Persist live to Working Review Document (BA-2026-AV-8921_Working_Review.docx) & SharePoint via Host Loopback Bridge
         try {{
           const resp = await fetch('http://127.0.0.1:58921/api/review', {{
             method: 'POST',
@@ -1727,361 +2091,651 @@ def generate_canvas_workbench_html(
             }})
           }});
           if (resp.ok) {{
-            this.toastMessage = `✓ Change Accepted & Applied to ${{this.data.working_docx_name}} (Local + SharePoint) • User Comment by ${{clause.human_reviewer}}`;
+            this.toastMessage = `✓ Accepted & Saved to ${{this.data.working_docx_name}} (Local + SharePoint) • Word Comment Attributed to User: ${{clause.human_reviewer}}`;
           }} else {{
-            this.toastMessage = `✓ Change Accepted & Applied in Review Document (${{this.data.working_docx_name}}) • User Comment by ${{clause.human_reviewer}}`;
+            this.toastMessage = `✓ Accepted & Saved in ${{this.data.working_docx_name}} • Word Comment Attributed to User: ${{clause.human_reviewer}}`;
           }}
         }} catch (e) {{
-          this.toastMessage = `✓ Change Accepted & Applied in Review Document (${{this.data.working_docx_name}}) • User Comment by ${{clause.human_reviewer}}`;
+          this.toastMessage = `✓ Accepted & Saved in ${{this.data.working_docx_name}} • Word Comment Attributed to User: ${{clause.human_reviewer}}`;
         }}
         this.renderAll();
       }}
 
       renderAll() {{
-        this.renderKPIs();
-        this.renderSidebar();
-        this.renderInspector();
+        this.renderStepperBar();
+        this.renderToast();
+        const stage = document.getElementById('main-stage');
+        if (this.viewMode === 'WORD_DOC') {{
+          stage.innerHTML = this.renderWordDocWorkbench();
+        }} else if (this.viewMode === 'SPLIT_3COL') {{
+          stage.innerHTML = this.renderThreeColWithPrecedents();
+        }} else if (this.viewMode === 'DEPENDENCY_GRAPH') {{
+          stage.innerHTML = this.renderPastelDependencyGraph();
+        }} else if (this.viewMode === 'PRE_CONSOLIDATION') {{
+          stage.innerHTML = this.renderPreConsolidationStatusPage();
+        }}
       }}
 
-      renderKPIs() {{
+      renderStepperBar() {{
         const redlined = (this.data.clauses || []).filter(c => c.has_redline);
         const approvedCount = redlined.filter(c => c.sme_status === 'APPROVED').length;
-        const conflicts = this.data.deal.active_conflicts || [];
-        const kpiEl = document.getElementById('kpi-strip');
-        kpiEl.innerHTML = `
-          <div class="kpi-card">
-            <div class="kpi-label">Proforma vs. Vendor Redline</div>
-            <div class="kpi-val">12 Clauses Parsed</div>
-            <div class="kpi-sub">
-              <span class="pill pill-green">8 Untouched</span>
-              <span class="pill pill-red">4 Redlined</span>
-            </div>
+        const bar = document.getElementById('stepper-bar');
+        bar.innerHTML = `
+          <div class="step-pills">
+            <span style="font-size:11.5px;font-weight:800;color:var(--pastel-indigo-text);text-transform:uppercase;letter-spacing:0.05em;">
+              Exception Workflow Progress (${{approvedCount}} of 4 Accepted):
+            </span>
+            ${{redlined.map((c, idx) => {{
+              const isAct = c.clause_id === this.activeClauseId;
+              const isDone = c.sme_status === 'APPROVED';
+              return `
+                <button class="step-chip ${{isAct ? 'active-step' : ''}} ${{isDone ? 'done-step' : ''}}" onclick="window.app.selectClause('${{c.clause_id}}')">
+                  <span>${{isDone ? '✓' : (idx + 1) + '.'}}</span>
+                  <span>${{c.clause_ref}} (${{c.sme_team}})</span>
+                </button>
+              `;
+            }}).join('')}}
           </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Working Review Progress</div>
-            <div class="kpi-val">${{approvedCount}} / 4 Accepted</div>
-            <div class="kpi-sub">
-              ${{redlined.map(c => `<span class="pill ${{c.sme_status === 'APPROVED' ? 'pill-green' : 'pill-amber'}}">${{c.clause_ref}}: ${{c.sme_status === 'APPROVED' ? '✓ ACCEPTED' : c.sme_status}}</span>`).join('')}}
-            </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button class="btn-outline" onclick="window.app.stepNextException()">Next Exception Clause →</button>
+            <button class="btn-outline" style="background:var(--pastel-mint-soft);color:var(--pastel-mint-text);border-color:var(--pastel-mint-border);" onclick="window.app.setViewMode('PRE_CONSOLIDATION')">
+              🏛️ Check Pre-Consolidation Status (${{approvedCount}}/4)
+            </button>
           </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Cross-Clause &amp; Regulatory Status</div>
-            <div class="kpi-val">${{conflicts.length === 0 ? '0 Conflicts' : conflicts.length + ' Conflict'}}</div>
-            <div class="kpi-sub">
-              <span class="pill ${{conflicts.length === 0 ? 'pill-green' : 'pill-red'}}">${{conflicts.length === 0 ? '✓ SOW §3.1 FFP Harmonized' : '⚠️ SP3 §4.1 ↔ GP1 §3.1 FFP'}}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Live Working Review Doc (.docx)</div>
-            <div class="kpi-val" style="font-size:15px;">
-              <a href="http://127.0.0.1:58921/api/download/working-docx" target="_blank" style="color:var(--blue);text-decoration:none;font-weight:800;">⬇️ Open Working .docx</a>
-            </div>
-            <div class="kpi-sub">
-              <button class="btn-outline" style="padding:2px 8px;font-size:11px;" onclick="window.app.setViewMode('FULL_DOC')">📑 View All 12 Clauses in Doc</button>
+        `;
+      }}
+
+      renderToast() {{
+        const c = document.getElementById('toast-container');
+        if (!this.toastMessage) {{
+          c.innerHTML = '';
+          return;
+        }}
+        c.innerHTML = `
+          <div class="toast-bar">
+            <span>${{escapeHtml(this.toastMessage)}}</span>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <a href="http://127.0.0.1:58921/api/download/working-docx" target="_blank" style="color:var(--pastel-mint-text);font-weight:800;text-decoration:underline;">⬇️ Download Updated Working .docx</a>
+              <button class="btn-outline" style="padding:3px 8px;font-size:11px;" onclick="window.app.toastMessage='';window.app.renderToast();">Dismiss</button>
             </div>
           </div>
         `;
       }}
 
-      renderSidebar() {{
-        const listEl = document.getElementById('clause-list');
-        const clauses = this.getFilteredClauses();
-        listEl.innerHTML = clauses.map(c => {{
-          const isAct = c.clause_id === this.activeClauseId;
-          const stClass = c.sme_status === 'APPROVED' ? 'pill-green' : (c.has_redline ? 'pill-amber' : 'pill-green');
+      renderClauseBodyForMarkup(c) {{
+        const finalCounter = c.selected_counter_text || c.proposed_counter_text || c.boeing_baseline_text;
+        if (!c.has_redline) {{
+          return `<div>${{escapeHtml(c.boeing_baseline_text)}}</div>`;
+        }}
+        if (this.markupMode === 'CLEAN_FUTURE' || (c.sme_status === 'APPROVED' && this.markupMode === 'SIMPLE_MARKUP')) {{
           return `
-            <div class="clause-item ${{isAct ? 'active' : ''}}" onclick="window.app.selectClause('${{c.clause_id}}')">
-              <div class="clause-item-top">
-                <span class="clause-ref">${{c.clause_ref}}</span>
-                <span class="pill ${{stClass}}">${{c.has_redline ? (c.sme_status === 'APPROVED' ? '✓ ACCEPTED' : c.sme_status) : 'UNTOUCHED'}}</span>
+            <div style="background:var(--pastel-mint-soft);border-left:4px solid #10b981;padding:10px 14px;border-radius:6px;">
+              <div style="font-size:11px;font-weight:800;color:var(--pastel-mint-text);text-transform:uppercase;margin-bottom:4px;font-family:Inter,sans-serif;">
+                ✓ Future Contract Version (Playbook Counter-Position Applied • Reviewer: ${{escapeHtml(c.human_reviewer)}})
               </div>
-              <div class="clause-title">${{c.clause_title}}</div>
-              <div class="clause-meta">
-                <span style="color:var(--muted); font-weight:600;">Reviewer: ${{c.human_reviewer}} (${{c.sme_team}})</span>
-              </div>
+              <div>${{escapeHtml(finalCounter)}}</div>
             </div>
           `;
-        }}).join('');
-      }}
-
-      renderInspector() {{
-        const pane = document.getElementById('inspector-pane');
-        const clause = this.getActiveClause();
-        const pa = clause.precedent_analysis || null;
-        const dist = pa ? pa.distribution : null;
-
-        let stageHtml = '';
-        if (this.viewMode === 'COUNTER_DOC' || this.viewMode === 'VENDOR_DIFF') {{
-          const isCounterView = this.viewMode === 'COUNTER_DOC';
-          const isAcceptedClean = isCounterView && clause.sme_status === 'APPROVED' && (clause.show_clean_accepted !== false);
-          const acceptedText = clause.selected_counter_text || clause.proposed_counter_text || clause.boeing_baseline_text;
-          const activeDocBodyHtml = isAcceptedClean
-            ? `<div style="background:#f0fdf4;border:1px solid #86efac;border-left:5px solid #10b981;padding:14px 16px;border-radius:8px;">
-                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
-                   <span style="font-size:11.5px;font-weight:800;color:#065f46;text-transform:uppercase;letter-spacing:0.04em;">
-                     ✓ Change Accepted &amp; Applied to Contract Document (by ${{escapeHtml(clause.human_reviewer)}})
-                   </span>
-                   <button class="btn-outline" style="padding:3px 10px;font-size:11px;" onclick="window.app.toggleAcceptedPreview()">🔍 Inspect Redline Strikethrough</button>
-                 </div>
-                 <div style="font-size:15px;line-height:1.78;color:#0f172a;font-weight:500;">${{escapeHtml(acceptedText)}}</div>
-               </div>`
-            : (isCounterView ? clause.counter_diff_html : clause.inline_diff_html);
-
-          const subtitleLabel = isAcceptedClean
-            ? `✓ Accepted Counter-Position Applied to Document (${{this.data.working_docx_name}}) — Click "Inspect Redline Strikethrough" to view markup`
-            : (isCounterView
-                ? 'Showing Counter-Position Changes to Accept (Orange Strikethrough = Replaced Vendor Markup • Coral Highlight = Proposed Counter-Position)'
-                : 'Showing Vendor Redline vs. Cymbal Standard Proforma (Orange Strikethrough = Deleted from Cymbal Proforma • Coral Highlight = Inserted by Apex AeroSystems)');
-
-          stageHtml = `
-            <div style="padding: 10px 20px; background: #ecfdf5; border-bottom: 1px solid #a7f3d0; font-size: 12px; color: #065f46; font-weight: 600; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-              <span>🎯 ${{subtitleLabel}}</span>
-              <div style="display:flex;align-items:center;gap:8px;">
-                ${{clause.sme_status === 'APPROVED' && !isAcceptedClean && isCounterView ? `<button class="btn-outline" style="padding:3px 10px;font-size:11px;background:#fff;" onclick="window.app.toggleAcceptedPreview()">📄 Show Accepted Clean Document</button>` : ''}}
-                ${{dist ? `<span class="pill pill-green">BigQuery Precedent (n=${{dist.total_matches}}): ${{dist.held_firm_pct}}% Held Firm • ${{dist.compromise_tier_1_pct}}% Tier-1 Compromise</span>` : ''}}
-              </div>
-            </div>
-            <div class="emerald-stage">
-              <div class="doc-sheet">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
-                  <div class="doc-h1" style="margin-bottom:0;">Master Subcontract Agreement (${{this.data.deal.proforma_stack}})</div>
-                  <div style="display:flex;gap:8px;align-items:center;">
-                    <a href="http://127.0.0.1:58921/api/download/working-docx" target="_blank" class="btn-outline" style="text-decoration:none;font-size:11.5px;padding:5px 10px;">⬇️ Download Working .docx</a>
-                    <button class="btn-outline" style="font-size:11.5px;padding:5px 10px;" onclick="window.app.setViewMode('FULL_DOC')">📑 View Full 12-Clause Doc</button>
-                  </div>
-                </div>
-                <div class="doc-context">
-                  This Master Subcontract Agreement (Deal <strong>${{this.data.deal.deal_id}}</strong>) is entered into by and between <strong>Cymbal Aerospace Corporation</strong> ("Buyer"), with principal assembly facilities in Everett &amp; Renton, WA, and <strong>${{this.data.deal.vendor_name}}</strong> ("Seller"), covering the <strong>$45,000,000 Firm-Fixed-Price (GP1 §3.1)</strong> procurement of the FCC-900 Flight Control Computer Subsystem.
-                </div>
-                <div class="doc-clause-heading">${{clause.clause_ref}} — ${{clause.clause_title}}:</div>
-                <div class="doc-clause-body" id="live-doc-clause-body">${{activeDocBodyHtml}}</div>
-
-                ${{clause.user_comment ? `
-                  <div style="margin-top: 18px; padding: 12px 14px; background: #f8fafc; border-left: 4px solid #0a2540; border-radius: 6px; font-size: 13px; color: #1e293b;">
-                    <div style="font-size: 11px; font-weight: 800; color: #0a2540; text-transform: uppercase; letter-spacing: 0.04em;">
-                      💬 Reviewer Comment in Word Margin (Added as User: ${{escapeHtml(clause.human_reviewer)}})
-                    </div>
-                    <div style="margin-top: 4px;">"${{escapeHtml(clause.user_comment)}}"</div>
-                  </div>
-                ` : ''}}
-              </div>
-
-              <!-- Floating Popover Action Menu (Matches Screenshot!) -->
-              <div class="floating-menu">
-                <button class="menu-item ${{this.activeDrawer === 'REWRITE' ? 'active-row' : ''}}" onclick="window.app.openDrawer('REWRITE')">
-                  <span class="menu-icon menu-icon-circle">✦</span>
-                  <span>Rewrite with Input</span>
-                </button>
-                <button class="menu-item" onclick="window.app.submitReviewAction('ACCEPT')">
-                  <span class="menu-icon" style="color:#059669;font-weight:900;">✓</span>
-                  <span>Accept changes</span>
-                </button>
-                <button class="menu-item" onclick="window.app.submitReviewAction('REJECT')">
-                  <span class="menu-icon" style="color:#dc2626;font-weight:800;">✕</span>
-                  <span>Reject changes</span>
-                </button>
-                <button class="menu-item ${{this.activeDrawer === 'COMMENT' ? 'active-row' : ''}}" onclick="window.app.openDrawer('COMMENT')">
-                  <span class="menu-icon">💬</span>
-                  <span>Comment</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Interactive Rewrite / Comment Drawer -->
-            <div class="drawer">
-              ${{this.toastMessage ? `
-                <div class="toast-bar">
-                  <span>${{escapeHtml(this.toastMessage)}}</span>
-                  <div style="display:flex;gap:8px;align-items:center;">
-                    <a href="http://127.0.0.1:58921/api/download/working-docx" target="_blank" style="color:#065f46;font-weight:800;text-decoration:underline;">⬇️ Open Updated .docx</a>
-                    <button class="btn-outline" style="padding:3px 8px;font-size:11px;background:#fff;" onclick="window.app.setViewMode('FULL_DOC')">📑 View in Full Contract Doc</button>
-                  </div>
-                </div>` : ''}}
-
-              ${{this.activeDrawer === 'REWRITE' ? `
-                <div class="drawer-card">
-                  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                    <div style="font-weight:800; font-size:13px; color:#0f172a;">✦ Rewrite Counter-Position (Updates Inline Strikethrough &amp; Highlight Diff Live)</div>
-                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                      <button class="btn-outline" onclick="window.app.applyPreset('compromise_tier_1')">Tier-1 Playbook Counter</button>
-                      <button class="btn-outline" onclick="window.app.applyPreset('hold_firm')">Hold Firm (Cymbal Baseline)</button>
-                      <button class="btn-outline" onclick="window.app.applyPreset('accept_vendor')">Accept Vendor Markup</button>
-                    </div>
-                  </div>
-                  <textarea id="rewrite-textarea" class="editor-box" oninput="window.app.updateRewriteLive()">${{escapeHtml(clause.proposed_counter_text)}}</textarea>
-                  <div style="margin-top:10px; display:flex; justify-content:flex-end; gap:8px;">
-                    <button class="btn-emerald" onclick="window.app.submitReviewAction('ACCEPT')">✓ Accept Rewritten Counter-Position &amp; Apply to Working Doc</button>
-                  </div>
-                </div>
-              ` : `
-                <div class="drawer-card">
-                  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:6px;">
-                    <div style="font-weight:800; font-size:13px; color:#0f172a;">
-                      💬 Add / Edit Reviewer Comment (Saved as User's Comment in <code>${{this.data.working_docx_name}}</code>)
-                    </div>
-                    <div style="display:flex; align-items:center; gap:6px;">
-                      <label style="font-size:12px; font-weight:700; color:#475569;">Comment Author (User):</label>
-                      <input id="reviewer-author-input" class="author-input" value="${{escapeHtml(clause.human_reviewer)}}" />
-                    </div>
-                  </div>
-                  <textarea id="comment-textarea" class="editor-box" placeholder="Enter your review comment (attributed directly to you in Word comments.xml)...">${{escapeHtml(clause.user_comment)}}</textarea>
-                  <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                    <span style="font-size:12px; color:#64748b;">
-                      Vendor Margin Note: <em>"${{escapeHtml(clause.vendor_comment || 'None')}}"</em>
-                    </span>
-                    <button class="btn-primary" onclick="window.app.submitReviewAction('COMMENT_SAVE')">💾 Save User Comment &amp; Position to Working Review Doc</button>
-                  </div>
-                </div>
-              `}}
+        }}
+        if (this.markupMode === 'SIMPLE_MARKUP') {{
+          return `
+            <div style="border-left:4px solid #f43f5e;padding-left:14px;">
+              ${{escapeHtml(finalCounter)}}
             </div>
           `;
-        }} else if (this.viewMode === 'FULL_DOC') {{
-          const allClausesHtml = (this.data.clauses || []).map(c => {{
-            const isApproved = c.sme_status === 'APPROVED';
-            const finalTxt = c.selected_counter_text || c.proposed_counter_text || c.boeing_baseline_text;
-            let bodyBlock = '';
-            if (!c.has_redline) {{
-              bodyBlock = `<div style="font-size:14px;line-height:1.7;color:#334155;">${{escapeHtml(c.boeing_baseline_text)}}</div>`;
-            }} else if (isApproved) {{
-              bodyBlock = `
-                <div style="background:#f0fdf4;border:1px solid #86efac;border-left:4px solid #10b981;padding:12px 14px;border-radius:8px;margin-top:6px;">
-                  <div style="font-size:11px;font-weight:800;color:#065f46;text-transform:uppercase;margin-bottom:4px;">
-                    ✓ Accepted Change Applied to Document • Approved by ${{escapeHtml(c.human_reviewer)}} (${{c.sme_team}})
-                  </div>
-                  <div style="font-size:14.5px;line-height:1.72;color:#0f172a;font-weight:500;">${{escapeHtml(finalTxt)}}</div>
-                  ${{c.user_comment ? `<div style="margin-top:8px;padding-top:8px;border-top:1px dashed #86efac;font-size:12.5px;color:#064e3b;"><strong>💬 Word Comment (${{escapeHtml(c.human_reviewer)}}):</strong> "${{escapeHtml(c.user_comment)}}"</div>` : ''}}
-                </div>
-              `;
-            }} else {{
-              bodyBlock = `
-                <div style="background:#fffbeb;border:1px solid #fde68a;border-left:4px solid #f59e0b;padding:12px 14px;border-radius:8px;margin-top:6px;">
-                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-                    <span style="font-size:11px;font-weight:800;color:#92400e;text-transform:uppercase;">⏳ Pending Review (${{c.sme_team}} — ${{escapeHtml(c.human_reviewer)}}) • Showing Proposed Counter-Position Diff</span>
-                    <button class="btn-outline" style="padding:2px 8px;font-size:11px;background:#fff;" onclick="window.app.selectClause('${{c.clause_id}}');window.app.setViewMode('COUNTER_DOC');">Review &amp; Accept →</button>
-                  </div>
-                  <div style="font-size:14.5px;line-height:1.72;color:#1e293b;">${{c.counter_diff_html}}</div>
-                </div>
-              `;
-            }}
+        }}
+        if (this.markupMode === 'PR_STACKED') {{
+          if (this.compareBasis === 'PLAYBOOK_STANDARD') {{
             return `
-              <div style="padding:14px 0;border-bottom:1px solid #e2e8f0;">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                  <div style="font-size:15px;font-weight:800;color:#0f172a;">${{c.clause_ref}} — ${{c.clause_title}}</div>
-                  <span class="pill ${{!c.has_redline ? 'pill-green' : (isApproved ? 'pill-green' : 'pill-amber')}}">${{!c.has_redline ? 'UNTOUCHED' : (isApproved ? '✓ ACCEPTED IN DOC' : 'PENDING REVIEW')}}</span>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.65;display:flex;flex-direction:column;gap:6px;">
+                <div style="background:var(--pastel-indigo-bg);color:var(--pastel-indigo-text);padding:8px 12px;border-radius:6px;border:1px solid var(--pastel-indigo-border);">
+                  <strong>[Playbook Preferred Standard]:</strong> ${{escapeHtml(c.boeing_baseline_text)}}
                 </div>
-                ${{bodyBlock}}
-              </div>
-            `;
-          }}).join('');
-
-          stageHtml = `
-            <div style="padding: 12px 20px; background: #ecfdf5; border-bottom: 1px solid #a7f3d0; font-size: 12.5px; color: #065f46; font-weight: 600; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-              <span>📑 Live Preview of <code>${{this.data.working_docx_name}}</code> (All 12 Clauses — Accepted Changes Applied Inline + User Word Comments)</span>
-              <div style="display:flex;gap:8px;">
-                <a href="http://127.0.0.1:58921/api/download/working-docx" target="_blank" class="btn-emerald" style="text-decoration:none;padding:5px 12px;font-size:12px;">⬇️ Download Live Working Review .docx</a>
-                <a href="${{this.data.sharepoint_folder_url}}" target="_blank" class="btn-outline" style="text-decoration:none;padding:5px 12px;font-size:12px;background:#fff;">📂 Open SharePoint Deal Folder</a>
-              </div>
-            </div>
-            <div class="emerald-stage" style="grid-template-columns: 1fr;">
-              <div class="doc-sheet" style="max-width: 980px;">
-                <div class="doc-h1">CYMBAL AEROSPACE CORPORATION — WORKING REVIEW CONTRACT (${{this.data.working_docx_name}})</div>
-                <div class="doc-context">
-                  Deal <strong>${{this.data.deal.deal_id}}</strong> • Supplier: <strong>${{this.data.deal.vendor_name}}</strong> • Value: <strong>$45,000,000 Firm-Fixed-Price (GP1 §3.1)</strong> • Every accepted change and user comment below is written live to <code>${{this.data.working_docx_name}}</code>.
+                <div style="background:var(--pastel-rose-bg);color:var(--pastel-rose-text);padding:8px 12px;border-radius:6px;border:1px solid var(--pastel-rose-border);">
+                  <strong>[Vendor Redline Deviation]:</strong> ${{escapeHtml(c.vendor_redline_text)}}
                 </div>
-                ${{allClausesHtml}}
-              </div>
-            </div>
-          `;
-        }} else if (this.viewMode === 'SPLIT') {{
-          stageHtml = `
-            <div class="split-grid">
-              <div class="split-col">
-                <div class="split-col-hdr" style="background:#f1f5f9; color:#0f172a;">1. Cymbal Standard Proforma</div>
-                <div class="split-col-body">${{escapeHtml(clause.boeing_baseline_text)}}</div>
-              </div>
-              <div class="split-col">
-                <div class="split-col-hdr" style="background:#fef2f2; color:#991b1b;">2. Apex AeroSystems Redline vs. Proforma</div>
-                <div class="split-col-body">${{clause.inline_diff_html}}</div>
-              </div>
-              <div class="split-col">
-                <div class="split-col-hdr" style="background:#ecfdf5; color:#065f46;">3. Proposed Counter-Position Diff (To Accept)</div>
-                <div class="split-col-body">${{clause.counter_diff_html}}</div>
-              </div>
-            </div>
-          `;
-        }} else if (this.viewMode === 'PRECEDENTS') {{
-          if (!pa || !dist) {{
-            stageHtml = `<div style="padding:24px;">This clause (${{clause.clause_ref}}) was untouched by the vendor and auto-cleared.</div>`;
-          }} else {{
-            const precs = pa.precedents || [];
-            stageHtml = `
-              <div style="padding:20px; display:flex; flex-direction:column; gap:16px;">
-                <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:16px;">
-                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                    <div>
-                      <div style="font-weight:800; font-size:14px;">BigQuery Historical Precedent Distribution for ${{clause.clause_ref}} (n=${{dist.total_matches}} Tier-1 Avionics Deals)</div>
-                      <div style="font-size:12px; color:var(--muted);">Table: <code>vertex-ai-demos-468803.boeing_clm.historical_clause_exceptions</code> • Every position backed by 16 prior negotiations</div>
-                    </div>
-                    <span class="pill ${{pa.regulatory_lockout ? 'pill-red' : 'pill-green'}}">
-                      ${{pa.regulatory_lockout ? '🔒 REGULATORY LOCKOUT: ' + pa.regulatory_citation : '✓ ELIGIBLE FOR TIER-1 PLAYBOOK COUNTER'}}
-                    </span>
-                  </div>
-                  <div class="bar-track">
-                    <div class="bar-seg" style="width:${{dist.held_firm_pct}}%; background:#0a2540;">Held Firm ${{dist.held_firm_pct}}% (${{dist.held_firm_count}})</div>
-                    <div class="bar-seg" style="width:${{dist.compromise_tier_1_pct}}%; background:#10b981;">Tier-1 Compromise ${{dist.compromise_tier_1_pct}}% (${{dist.compromise_tier_1_count}})</div>
-                    <div class="bar-seg" style="width:${{dist.accepted_vendor_pct}}%; background:#e11d48;">${{dist.accepted_vendor_pct > 0 ? 'Accepted ' + dist.accepted_vendor_pct + '%' : ''}}</div>
-                  </div>
-                </div>
-                <table class="prec-table">
-                  <thead>
-                    <tr>
-                      <th>Contract ID</th>
-                      <th>Tier-1 Supplier &amp; Program</th>
-                      <th>Outcome</th>
-                      <th>Similarity</th>
-                      <th>Approved Historical Counter-Language &amp; Notes</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${{precs.map(p => `
-                      <tr>
-                        <td style="font-weight:700; color:var(--navy);">${{p.contract_id}}<br/><span style="font-size:11px; color:var(--muted);">${{p.signed_date}}</span></td>
-                        <td><strong>${{p.supplier_name}}</strong><br/><span style="font-size:11.5px; color:var(--muted);">${{p.boeing_program}}</span></td>
-                        <td><span class="pill ${{p.outcome_category === 'HELD_FIRM' ? 'pill-blue' : 'pill-green'}}" style="color:${{p.outcome_category === 'HELD_FIRM' ? '#1e3a8a' : '#166534'}}; background:${{p.outcome_category === 'HELD_FIRM' ? '#dbeafe' : '#dcfce7'}};">${{p.outcome_category}}</span></td>
-                        <td style="font-weight:800; color:#0f172a;">${{(p.similarity_score * 100).toFixed(1)}}%</td>
-                        <td>
-                          <div style="font-size:13px; color:#0f172a; margin-bottom:4px;">"${{escapeHtml(p.final_agreed_language)}}"</div>
-                          <div style="font-size:11.5px; color:var(--muted);">Approved by ${{escapeHtml(p.approval_authority)}} — ${{escapeHtml(p.negotiation_notes)}}</div>
-                        </td>
-                      </tr>
-                    `).join('')}}
-                  </tbody>
-                </table>
               </div>
             `;
           }}
-        }}
-
-        pane.innerHTML = `
-          <div class="inspector-header">
-            <div>
-              <div style="display:flex; align-items:center; gap:8px;">
-                <span style="font-size:16px; font-weight:800; color:var(--navy);">${{clause.clause_ref}} — ${{clause.clause_title}}</span>
-                <span class="pill ${{clause.sme_status === 'APPROVED' ? 'pill-green' : 'pill-amber'}}">${{clause.sme_status === 'APPROVED' ? '✓ ACCEPTED IN DOC' : clause.sme_status}}</span>
+          return `
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.65;display:flex;flex-direction:column;gap:6px;">
+              <div style="background:var(--pastel-rose-bg);color:var(--pastel-rose-text);padding:8px 12px;border-radius:6px;border:1px solid var(--pastel-rose-border);">
+                <strong>- [Vendor Redline Rejected]:</strong> ${{escapeHtml(c.vendor_redline_text)}}
               </div>
-              <div style="font-size:12px; color:var(--muted); margin-top:3px;">
-                Reviewer (User): <strong>${{escapeHtml(clause.human_reviewer)}} (${{clause.sme_team}})</strong> • Guardrail: <strong>${{clause.regulatory_flag}}</strong>
+              <div style="background:var(--pastel-mint-bg);color:var(--pastel-mint-text);padding:8px 12px;border-radius:6px;border:1px solid var(--pastel-mint-border);">
+                <strong>+ [Cymbal Playbook Counter-Position]:</strong> ${{escapeHtml(finalCounter)}}
               </div>
             </div>
-            <div class="mode-tabs">
-              <button class="mode-tab ${{this.viewMode === 'COUNTER_DOC' ? 'active' : ''}}" onclick="window.app.setViewMode('COUNTER_DOC')">🎯 Counter-Position Doc</button>
-              <button class="mode-tab ${{this.viewMode === 'FULL_DOC' ? 'active' : ''}}" onclick="window.app.setViewMode('FULL_DOC')">📑 Full Working Doc (12 Clauses)</button>
-              <button class="mode-tab ${{this.viewMode === 'VENDOR_DIFF' ? 'active' : ''}}" onclick="window.app.setViewMode('VENDOR_DIFF')">📄 Vendor Redline</button>
-              <button class="mode-tab ${{this.viewMode === 'SPLIT' ? 'active' : ''}}" onclick="window.app.setViewMode('SPLIT')">⚖️ 3-Column Split</button>
-              <button class="mode-tab ${{this.viewMode === 'PRECEDENTS' ? 'active' : ''}}" onclick="window.app.setViewMode('PRECEDENTS')">📊 Precedents (16)</button>
+          `;
+        }}
+        if (this.compareBasis === 'PLAYBOOK_STANDARD') {{
+          return `
+            <div style="font-size:11px;font-weight:800;color:var(--pastel-indigo-text);text-transform:uppercase;margin-bottom:4px;font-family:Inter,sans-serif;">
+              📘 Vendor Redline Compared Against Playbook Preferred Standard:
+            </div>
+            <div>${{c.inline_diff_html}}</div>
+          `;
+        }}
+        return `
+          <div style="font-size:11px;font-weight:800;color:var(--pastel-mint-text);text-transform:uppercase;margin-bottom:4px;font-family:Inter,sans-serif;">
+            📘 Vendor Redline Compared Against Playbook Recommended Counter-Position:
+          </div>
+          <div>${{c.counter_diff_html}}</div>
+        `;
+      }}
+
+      renderPrecedentTableHtml(clause) {{
+        const pa = clause.precedent_analysis || null;
+        const dist = pa ? pa.distribution : null;
+        if (!pa || !dist) {{
+          return `<div style="padding:12px;font-size:12.5px;color:var(--ink-muted);">Untouched proforma clause — no exception precedents required.</div>`;
+        }}
+        const precs = pa.precedents || [];
+        return `
+          <div style="margin-top:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px;">
+              <span style="font-size:11.5px;font-weight:800;color:var(--pastel-indigo-text);text-transform:uppercase;">
+                📊 BigQuery Historical Precedent Distribution (n=${{dist.total_matches}} Tier-1 Deals)
+              </span>
+              <span class="pill ${{pa.regulatory_lockout ? 'pill-red' : 'pill-green'}}">
+                ${{pa.regulatory_lockout ? '🔒 ' + pa.regulatory_citation : '✓ Playbook Compromise Eligible'}}
+              </span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-seg" style="width:${{dist.held_firm_pct}}%;background:#c7d2fe;color:#1e1b4b;">Held Firm ${{dist.held_firm_pct}}% (${{dist.held_firm_count}})</div>
+              <div class="bar-seg" style="width:${{dist.compromise_tier_1_pct}}%;background:#a7f3d0;color:#064e3b;">Tier-1 Compromise ${{dist.compromise_tier_1_pct}}% (${{dist.compromise_tier_1_count}})</div>
+              <div class="bar-seg" style="width:${{dist.accepted_vendor_pct}}%;background:#fecdd3;color:#881337;">${{dist.accepted_vendor_pct > 0 ? 'Accepted ' + dist.accepted_vendor_pct + '%' : ''}}</div>
+            </div>
+
+            <table class="prec-table">
+              <thead>
+                <tr>
+                  <th>Deal &amp; Supplier</th>
+                  <th>Outcome &amp; Match</th>
+                  <th>Full Approved Historical Counter-Language (Untruncated)</th>
+                  <th style="width:120px;">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${{precs.map(p => {{
+                  const encodedLang = encodeURIComponent(p.final_agreed_language || '');
+                  return `
+                    <tr>
+                      <td>
+                        <div style="font-weight:800;color:var(--pastel-indigo-text);">${{escapeHtml(p.supplier_name)}}</div>
+                        <div style="font-size:11px;color:var(--ink-muted);">${{escapeHtml(p.contract_id)}} • ${{escapeHtml(p.boeing_program)}} (${{escapeHtml(p.signed_date)}})</div>
+                      </td>
+                      <td>
+                        <span class="pill ${{p.outcome_category === 'HELD_FIRM' ? 'pill-indigo' : 'pill-green'}}">${{escapeHtml(p.outcome_category)}}</span>
+                        <div style="font-size:11.5px;font-weight:800;color:var(--ink-primary);margin-top:4px;">${{(p.similarity_score * 100).toFixed(1)}}% Match</div>
+                      </td>
+                      <td>
+                        <div style="font-size:12.5px;line-height:1.55;color:var(--ink-primary);margin-bottom:4px;">"${{escapeHtml(p.final_agreed_language)}}"</div>
+                        <div style="font-size:11px;color:var(--ink-muted);">Approved by ${{escapeHtml(p.approval_authority)}} — ${{escapeHtml(p.negotiation_notes)}}</div>
+                      </td>
+                      <td>
+                        <button class="btn-outline" style="width:100%;background:var(--pastel-mint-soft);color:var(--pastel-mint-text);border-color:var(--pastel-mint-border);" onclick="window.app.useHistoricalPrecedentLanguage('${{escapeHtml(p.contract_id)}}', '${{encodedLang}}')">
+                          📋 Use Language
+                        </button>
+                      </td>
+                    </tr>
+                  `;
+                }}).join('')}}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }}
+
+      renderWordDocWorkbench() {{
+        const clause = this.getActiveClause();
+        const filteredLeft = this.getFilteredClauses();
+        const docClauses = this.docScope === 'FOCUSED_1' ? [clause] : (this.data.clauses || []);
+        const pa = clause.precedent_analysis || null;
+        const opts = pa ? (pa.playbook_options || []) : [];
+
+        return `
+          <div class="workbench-grid">
+            <!-- Left Pane: 12-Clause Navigator with V10 [M] / [✓] / [0] Badges -->
+            <div class="sidebar">
+              <div class="sidebar-header">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-weight:800;font-size:12.5px;color:var(--pastel-indigo-text);">Contract Clauses (12)</span>
+                  <span style="font-size:11px;font-weight:700;color:#4f46e5;">PR #8921 Tree</span>
+                </div>
+                <div class="filter-tabs">
+                  <button class="filter-btn ${{this.filter === 'ALL' ? 'active' : ''}}" onclick="window.app.setFilter('ALL')">All (12)</button>
+                  <button class="filter-btn ${{this.filter === 'REDLINED' ? 'active' : ''}}" onclick="window.app.setFilter('REDLINED')">[M] Redlined (4)</button>
+                  <button class="filter-btn ${{this.filter === 'CLEAR' ? 'active' : ''}}" onclick="window.app.setFilter('CLEAR')">[0] Cleared (8)</button>
+                </div>
+              </div>
+              <div class="clause-list">
+                ${{filteredLeft.map(c => {{
+                  const isAct = c.clause_id === this.activeClauseId;
+                  const badgeCls = !c.has_redline ? 'git-0' : (c.sme_status === 'APPROVED' ? 'git-ok' : 'git-m');
+                  const badgeTxt = !c.has_redline ? '0' : (c.sme_status === 'APPROVED' ? '✓' : 'M');
+                  return `
+                    <div class="clause-item ${{isAct ? 'active' : ''}}" onclick="window.app.selectClause('${{c.clause_id}}')">
+                      <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:3px;">
+                        <div style="display:flex;align-items:center;gap:6px;">
+                          <span class="git-badge ${{badgeCls}}">${{badgeTxt}}</span>
+                          <span style="font-weight:800;font-size:12.5px;color:#1e1b4b;">${{c.clause_ref}}</span>
+                        </div>
+                        <span class="pill ${{!c.has_redline ? 'pill-indigo' : (c.sme_status === 'APPROVED' ? 'pill-green' : 'pill-amber')}}" style="padding:2px 7px;font-size:10px;">
+                          ${{!c.has_redline ? 'CLEAR' : (c.sme_status === 'APPROVED' ? 'ACCEPTED' : 'ATTENTION')}}
+                        </span>
+                      </div>
+                      <div style="font-size:12px;font-weight:600;color:var(--ink-primary);">${{escapeHtml(c.clause_title)}}</div>
+                      <div style="font-size:10.5px;color:var(--ink-muted);margin-top:2px;">Owner: ${{escapeHtml(c.human_reviewer)}} (${{c.sme_team}})</div>
+                    </div>
+                  `;
+                }}).join('')}}
+              </div>
+            </div>
+
+            <!-- Center Pane: Word 365 8.5x11 Continuous 12-Clause Sheet + Right Margin Comments (V9 + V2) -->
+            <div class="word-stage-card">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+                <div style="font-size:12px;font-weight:700;color:var(--ink-secondary);">
+                  📄 Word Document Surface — Showing <strong>${{this.docScope === 'ALL_12' ? 'All 12 Clauses (4 Redlined Highlighted for Attention)' : 'Focused Active Clause (' + clause.clause_ref + ')'}}</strong>
+                </div>
+                <div style="display:flex;gap:6px;">
+                  <button class="btn-outline ${{this.docScope === 'ALL_12' ? 'active' : ''}}" style="${{this.docScope === 'ALL_12' ? 'background:var(--pastel-indigo-bg);color:var(--pastel-indigo-text);' : ''}}" onclick="window.app.setDocScope('ALL_12')">📑 Continuous 12-Clause View</button>
+                  <button class="btn-outline ${{this.docScope === 'FOCUSED_1' ? 'active' : ''}}" style="${{this.docScope === 'FOCUSED_1' ? 'background:var(--pastel-indigo-bg);color:var(--pastel-indigo-text);' : ''}}" onclick="window.app.setDocScope('FOCUSED_1')">🔍 Single Clause Focus</button>
+                </div>
+              </div>
+
+              <div class="word-page-grid">
+                <div class="word-sheet">
+                  <div class="doc-h1">MASTER SUBCONTRACT AGREEMENT — CYMBAL AEROSPACE (COMPARED AGAINST CYMBAL TIER-1 AVIONICS PLAYBOOK: ${{this.data.deal.proforma_stack}})</div>
+                  <div class="doc-context">
+                    Deal <strong>${{this.data.deal.deal_id}}</strong> • Buyer: <strong>Cymbal Aerospace Corporation</strong> • Supplier: <strong>${{this.data.deal.vendor_name}}</strong> • Value: <strong>$45,000,000 Firm-Fixed-Price (GP1 §3.1)</strong> • Playbook Evaluation &amp; Working Doc: <code>${{this.data.working_docx_name}}</code>
+                  </div>
+
+                  ${{docClauses.map(c => {{
+                    const isFocused = c.clause_id === this.activeClauseId;
+                    const blkClass = !c.has_redline ? '' : (c.sme_status === 'APPROVED' ? 'accepted-block' : 'redlined-block');
+                    return `
+                      <div id="doc-clause-card-${{c.clause_id}}" class="doc-clause-block ${{blkClass}} ${{isFocused ? 'focused-block' : ''}}" onclick="window.app.selectClause('${{c.clause_id}}')" style="cursor:pointer;">
+                        <div class="doc-clause-heading">
+                          <span>${{c.clause_ref}} — ${{escapeHtml(c.clause_title)}}</span>
+                          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                            ${{c.has_redline ? `<span class="pill pill-indigo" style="font-size:10px;padding:2px 7px;">📘 ${{escapeHtml(c.playbook_verdict)}}</span>` : ''}}
+                            ${{c.has_redline ? `<span class="pill ${{c.sme_status === 'APPROVED' ? 'pill-green' : 'pill-amber'}}">${{c.sme_status === 'APPROVED' ? '✓ ACCEPTED BY ' + escapeHtml(c.human_reviewer) : '⚠️ NEEDS ATTENTION (' + c.sme_team + ')'}}</span>` : `<span class="pill pill-indigo">✓ PLAYBOOK COMPLIANT</span>`}}
+                          </div>
+                        </div>
+                        ${{c.has_redline ? `
+                          <div style="background:var(--pastel-indigo-bg);border:1px solid var(--pastel-indigo-border);border-radius:8px;padding:8px 11px;margin-bottom:8px;font-family:Inter,sans-serif;font-size:11.5px;line-height:1.45;color:var(--pastel-indigo-text);">
+                            <strong>📘 Playbook Comparison (${{escapeHtml(c.playbook_rule_name)}}):</strong> ${{escapeHtml(c.playbook_guardrail_summary)}}
+                          </div>
+                        ` : ''}}
+                        <div class="doc-clause-body" id="doc-clause-body-${{c.clause_id}}">
+                          ${{this.renderClauseBodyForMarkup(c)}}
+                        </div>
+                      </div>
+                    `;
+                  }}).join('')}}
+                </div>
+
+                <!-- Right Word Margin Balloons (<w:comment w:author="...">) -->
+                <div>
+                  <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-muted);margin-bottom:8px;">
+                    💬 Word Margin Comments (<code>comments.xml</code>)
+                  </div>
+                  ${{clause.vendor_comment ? `
+                    <div class="margin-balloon vendor-balloon">
+                      <div style="font-weight:800;font-size:11px;text-transform:uppercase;margin-bottom:4px;">
+                        Apex AeroSystems (Vendor Note • ${{clause.clause_ref}})
+                      </div>
+                      <div>"${{escapeHtml(clause.vendor_comment)}}"</div>
+                    </div>
+                  ` : ''}}
+
+                  <div class="margin-balloon">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                      <span style="font-weight:800;font-size:11px;text-transform:uppercase;">
+                        👤 ${{escapeHtml(clause.human_reviewer)}} (${{clause.sme_team}})
+                      </span>
+                      <span style="font-size:10px;font-weight:700;background:#fef08a;padding:1px 6px;border-radius:999px;">w:author="${{escapeHtml(clause.human_reviewer)}}"</span>
+                    </div>
+                    <div>"${{escapeHtml(clause.user_comment || 'No reviewer comment recorded yet.')}}"</div>
+                  </div>
+
+                  <div style="background:#ffffff;border:1px solid var(--border-soft);border-radius:10px;padding:12px;margin-top:12px;">
+                    <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--pastel-indigo-text);margin-bottom:8px;">
+                      ⚡ Quick Review Actions (${{clause.clause_ref}})
+                    </div>
+                    <div class="pastel-action-grid">
+                      <button class="action-btn rewrite-btn" onclick="window.app.openDrawer('REWRITE')">✦ Rewrite with Input</button>
+                      <button class="action-btn accept-btn" onclick="window.app.submitReviewAction('ACCEPT')">✓ Accept changes</button>
+                      <button class="action-btn reject-btn" onclick="window.app.submitReviewAction('REJECT')">✕ Reject changes</button>
+                      <button class="action-btn comment-btn" onclick="window.app.openDrawer('COMMENT')">💬 Comment</button>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid #f1f5f9;">
+                      <button class="btn-outline" style="width:100%;text-align:left;" onclick="window.app.revertToRecommendedCounter()">
+                        ↺ Revert to Recommended Counter
+                      </button>
+                      <button class="btn-outline" style="width:100%;text-align:left;" onclick="window.app.revertToOriginalProforma()">
+                        ↺ Revert to Original Proforma Baseline
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Embedded BigQuery Precedent Table for Active Clause with Use Language -->
+              <div style="margin-top:16px;background:#ffffff;border:1px solid var(--border-soft);border-radius:12px;padding:14px 16px;">
+                ${{this.renderPrecedentTableHtml(clause)}}
+              </div>
+            </div>
+
+            <!-- Right Pane: Playbook Recommendations + BigQuery Historical Explainer + Full Counter Language & Revert (V2 + V1) -->
+            <div class="right-copilot">
+              <div style="border-bottom:1px solid var(--border-soft);padding-bottom:10px;">
+                <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:#4f46e5;letter-spacing:0.06em;">
+                  Active Clause Playbook Comparison &amp; Historical Copilot
+                </div>
+                <div style="font-size:15px;font-weight:800;color:#1e1b4b;margin-top:2px;">
+                  ${{clause.clause_ref}} — ${{escapeHtml(clause.clause_title)}}
+                </div>
+                <div style="font-size:11.5px;color:var(--ink-muted);margin-top:2px;">
+                  Playbook Rule: <strong>${{escapeHtml(clause.playbook_rule_name)}}</strong> • Guardrail: <strong>${{escapeHtml(clause.regulatory_flag)}}</strong>
+                </div>
+              </div>
+
+              <!-- Playbook Rule & Guardrail Evaluation Box -->
+              <div style="background:var(--pastel-indigo-bg);border:1px solid var(--pastel-indigo-border);border-left:5px solid #6366f1;padding:11px 13px;border-radius:10px;font-size:12px;line-height:1.5;color:var(--pastel-indigo-text);">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:6px;flex-wrap:wrap;">
+                  <span style="font-weight:800;font-size:11px;text-transform:uppercase;">📘 Cymbal Playbook Evaluation vs. Vendor Redline</span>
+                  <span class="pill pill-indigo" style="font-size:10px;padding:1px 7px;">${{escapeHtml(clause.playbook_verdict)}}</span>
+                </div>
+                <div>${{escapeHtml(clause.playbook_guardrail_summary)}}</div>
+              </div>
+
+              <!-- V2 Feedback: Explicit Explainer Confirming How Historical Info Drives the Recommended Position -->
+              ${{clause.historical_explainer ? `
+                <div class="explainer-box">
+                  <div style="font-weight:800;font-size:11.5px;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;color:#0369a1;">
+                    💡 Why This Counter-Position Is Recommended (BigQuery Historical Precedent + Guardrail)
+                  </div>
+                  <div>${{escapeHtml(clause.historical_explainer)}}</div>
+                </div>
+              ` : ''}}
+
+              <!-- V1 Feedback Fix: Full Counter-Position Text (100% Visible, Never Truncated) + Revert Buttons -->
+              <div class="counter-full-box">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px;">
+                  <span style="font-size:11.5px;font-weight:800;color:var(--pastel-mint-text);text-transform:uppercase;">
+                    📋 Full Proposed Counter-Position Language
+                  </span>
+                  <div style="display:flex;gap:4px;">
+                    <button class="btn-outline" style="padding:3px 7px;font-size:10.5px;" onclick="window.app.revertToRecommendedCounter()" title="Restore BigQuery Playbook Recommendation">↺ Recommended</button>
+                    <button class="btn-outline" style="padding:3px 7px;font-size:10.5px;" onclick="window.app.revertToOriginalProforma()" title="Restore Original Cymbal Proforma Baseline">↺ Original Baseline</button>
+                  </div>
+                </div>
+                <div id="full-counter-preview-text" style="font-size:13px;line-height:1.6;color:#064e3b;background:#ffffff;padding:10px 12px;border-radius:8px;border:1px solid var(--pastel-mint-border);">
+                  ${{escapeHtml(clause.proposed_counter_text)}}
+                </div>
+              </div>
+
+              <!-- Playbook Option Cards (V2 Recommendations Tab) -->
+              ${{opts.length ? `
+                <div>
+                  <div style="font-size:11.5px;font-weight:800;text-transform:uppercase;color:var(--ink-secondary);margin-bottom:6px;">
+                    🎯 Playbook Options (Click to Load into Counter-Position)
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:8px;">
+                    ${{opts.map(o => {{
+                      const isSel = clause.proposed_option_key === o.option_key;
+                      return `
+                        <div onclick="window.app.applyPreset('${{o.option_key}}')" style="cursor:pointer;padding:10px 12px;border-radius:9px;border:1.5px solid ${{isSel ? '#6366f1' : '#e2e8f0'}};background:${{isSel ? 'var(--pastel-indigo-bg)' : '#ffffff'}};">
+                          <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+                            <span style="font-weight:800;font-size:12px;color:#1e1b4b;">${{escapeHtml(o.label)}}</span>
+                            ${{o.recommended ? '<span class="pill pill-green" style="font-size:10px;padding:2px 7px;">★ RECOMMENDED</span>' : ''}}
+                          </div>
+                          <div style="font-size:12px;color:var(--ink-secondary);margin-top:4px;line-height:1.45;">
+                            ${{escapeHtml(o.counter_text)}}
+                          </div>
+                        </div>
+                      `;
+                    }}).join('')}}
+                  </div>
+                </div>
+              ` : ''}}
+
+              <!-- Rewrite / User Comment Drawer -->
+              <div style="background:#f8fafc;border:1px solid var(--border-soft);border-radius:10px;padding:12px;">
+                <div style="display:flex;gap:6px;margin-bottom:8px;">
+                  <button class="btn-outline" style="${{this.activeDrawer === 'REWRITE' ? 'background:var(--pastel-lilac-bg);color:var(--pastel-lilac-text);border-color:var(--pastel-lilac-border);' : ''}}" onclick="window.app.openDrawer('REWRITE')">✦ Rewrite with Input</button>
+                  <button class="btn-outline" style="${{this.activeDrawer === 'COMMENT' ? 'background:var(--pastel-butter-bg);color:var(--pastel-butter-text);border-color:var(--pastel-butter-border);' : ''}}" onclick="window.app.openDrawer('COMMENT')">💬 User Comment (${{escapeHtml(clause.human_reviewer)}})</button>
+                </div>
+
+                ${{this.activeDrawer === 'REWRITE' ? `
+                  <div>
+                    <div style="font-size:11.5px;font-weight:700;color:var(--ink-secondary);">Edit Counter-Position Text (Updates Word Diff Live):</div>
+                    <textarea id="rewrite-textarea" class="editor-box" oninput="window.app.updateRewriteLive()">${{escapeHtml(clause.proposed_counter_text)}}</textarea>
+                    <button class="action-btn accept-btn" style="width:100%;margin-top:8px;" onclick="window.app.submitReviewAction('ACCEPT')">
+                      ✓ Accept Counter-Position &amp; Save to Working .docx
+                    </button>
+                  </div>
+                ` : `
+                  <div>
+                    <label style="font-size:11px;font-weight:700;color:var(--ink-secondary);display:block;margin-bottom:4px;">Comment Author (Human User in Word <code>comments.xml</code>):</label>
+                    <input id="reviewer-author-input" class="author-input" value="${{escapeHtml(clause.human_reviewer)}}" />
+                    <label style="font-size:11px;font-weight:700;color:var(--ink-secondary);display:block;margin-top:8px;margin-bottom:2px;">Reviewer Comment:</label>
+                    <textarea id="comment-textarea" class="editor-box">${{escapeHtml(clause.user_comment)}}</textarea>
+                    <button class="action-btn accept-btn" style="width:100%;margin-top:8px;" onclick="window.app.submitReviewAction('COMMENT_SAVE')">
+                      💾 Save User Comment &amp; Accept in Working .docx
+                    </button>
+                  </div>
+                `}}
+              </div>
             </div>
           </div>
-          <div>${{stageHtml}}</div>
+        `;
+      }}
+
+      renderThreeColWithPrecedents() {{
+        const clause = this.getActiveClause();
+        const redlined = (this.data.clauses || []).filter(c => c.has_redline);
+        return `
+          <div style="background:#ffffff;border:1px solid var(--border-soft);border-radius:14px;padding:18px 20px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+              <div>
+                <div style="font-size:11px;font-weight:800;color:#4f46e5;text-transform:uppercase;">⚖️ 3-Column Synchronized Redline Matrix + Historical Precedents (V4 + V2 Synthesis)</div>
+                <div style="font-size:16px;font-weight:800;color:#1e1b4b;margin-top:2px;">${{clause.clause_ref}} — ${{escapeHtml(clause.clause_title)}}</div>
+              </div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                ${{redlined.map(c => `
+                  <button class="btn-outline" style="${{c.clause_id === clause.clause_id ? 'background:var(--pastel-indigo-bg);color:var(--pastel-indigo-text);border-color:#6366f1;' : ''}}" onclick="window.app.selectClause('${{c.clause_id}}')">
+                    ${{c.clause_ref}} (${{c.sme_team}})
+                  </button>
+                `).join('')}}
+              </div>
+            </div>
+
+            ${{clause.historical_explainer ? `
+              <div class="explainer-box" style="margin-bottom:14px;">
+                <strong>💡 Historical Precedent &amp; Guardrail Basis for Column 3 Recommended Counter-Position:</strong>
+                ${{escapeHtml(clause.historical_explainer)}}
+              </div>
+            ` : ''}}
+
+            <div class="split-grid">
+              <div class="split-col">
+                <div class="split-col-hdr" style="background:var(--pastel-indigo-bg);color:var(--pastel-indigo-text);">
+                  1. Cymbal Playbook Preferred Standard &amp; Guardrail
+                </div>
+                <div class="split-col-body">
+                  <div style="margin-bottom:10px;padding:9px 11px;background:var(--pastel-indigo-bg);border:1px solid var(--pastel-indigo-border);border-radius:8px;font-family:Inter,sans-serif;font-size:11.5px;color:var(--pastel-indigo-text);">
+                    <strong>📘 ${{escapeHtml(clause.playbook_rule_name)}} (${{escapeHtml(clause.playbook_verdict)}}):</strong><br/>
+                    ${{escapeHtml(clause.playbook_guardrail_summary)}}
+                  </div>
+                  <div>${{escapeHtml(clause.boeing_baseline_text)}}</div>
+                </div>
+              </div>
+              <div class="split-col">
+                <div class="split-col-hdr" style="background:var(--pastel-rose-bg);color:var(--pastel-rose-text);">
+                  2. Apex AeroSystems Redline vs. Playbook Standard
+                </div>
+                <div class="split-col-body">${{clause.inline_diff_html}}</div>
+              </div>
+              <div class="split-col">
+                <div class="split-col-hdr" style="background:var(--pastel-mint-bg);color:var(--pastel-mint-text);display:flex;justify-content:space-between;align-items:center;">
+                  <span>3. Playbook Counter-Position (Full Text + Diff)</span>
+                  <div style="display:flex;gap:4px;">
+                    <button class="btn-outline" style="padding:2px 6px;font-size:10px;" onclick="window.app.revertToRecommendedCounter()">↺ Rec</button>
+                    <button class="btn-outline" style="padding:2px 6px;font-size:10px;" onclick="window.app.revertToOriginalProforma()">↺ Orig</button>
+                  </div>
+                </div>
+                <div class="split-col-body">
+                  <div style="margin-bottom:10px;">${{clause.counter_diff_html}}</div>
+                  <div style="padding:10px;background:var(--pastel-mint-soft);border:1px solid var(--pastel-mint-border);border-radius:8px;font-size:12.5px;color:var(--pastel-mint-text);">
+                    <strong>Clean Full Counter Language:</strong><br/>
+                    ${{escapeHtml(clause.proposed_counter_text)}}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Embedded Historical Information Directly Beneath 3 Columns (Addresses V4 Feedback!) -->
+            ${{this.renderPrecedentTableHtml(clause)}}
+          </div>
+        `;
+      }}
+
+      renderPastelDependencyGraph() {{
+        const nodes = [
+          {{ id: 'SP3-04', label: 'SP3 §4.1 Tariffs & Duties', sub: 'Tax SME: Pradeep Gupta • 63% Compromise', x: 180, y: 120, bg: '#ffedd5', stroke: '#f97316', text: '#9a3412', detail: 'Cross-Clause Conflict CONFLICT-SP3-04-GP1-03: Uncapped 100% tariff pass-through >5% violates GP1 §3.1 $45M Firm-Fixed-Price SOW ceiling. Resolved via 50/50 split capped at +2.0% ($900K) FFP.' }},
+          {{ id: 'GP1-03', label: 'GP1 §3.1 $45M FFP SOW Lock', sub: 'Procurement Anchor • Untouched Baseline', x: 560, y: 120, bg: '#dcfce7', stroke: '#10b981', text: '#065f46', detail: 'Locks total contract value at $45,000,000 Firm-Fixed-Price across 150 shipsets ($300,000/unit). Blocks uncapped pass-through surcharges in SP3 §4.1.' }},
+          {{ id: 'GP1-19', label: 'GP1 §19.1 Liability Super-Cap', sub: 'Legal SME: Rahul Kasanagottu • 69% Compromise', x: 180, y: 290, bg: '#eef2ff', stroke: '#6366f1', text: '#312e81', detail: '2.0x PO ($90,000,000) Tier-1 Super-Cap coupled to GP1 §24.1 uncapped IP indemnification carveout and flight-safety AD recall carveout.' }},
+          {{ id: 'GP1-12', label: 'GP1 §12.2 Warranty & FAA QA', sub: 'Eng SME: Megan Bowen • 88% Held Firm', x: 560, y: 290, bg: '#ffe4e6', stroke: '#f43f5e', text: '#9f1239', detail: 'Regulatory Lockout LOCKOUT-GP1-12-FAA: FAA 14 CFR Part 21.140 & Production Certificate PC-700 mandate unannounced FAA/Buyer source surveillance and 36-month airworthiness warranty.' }},
+          {{ id: 'SP5-03', label: 'SP5 §3.2 Cyber 72h DFARS', sub: 'Cyber SME: Alex Wilber • 94% Held Firm', x: 370, y: 430, bg: '#f3e8ff', stroke: '#a855f7', text: '#581c87', detail: 'Regulatory Lockout LOCKOUT-SP5-03-DFARS: DoD DFARS 252.204-7012 requires 72-hour DIBNet incident reporting and 90-day raw forensic image preservation.' }}
+        ];
+        const sel = nodes.find(n => n.id === this.selectedGraphNode) || nodes[0];
+        return `
+          <div style="background:#ffffff;border:1px solid var(--border-soft);border-radius:14px;padding:20px;display:grid;grid-template-columns:1fr 380px;gap:18px;align-items:start;">
+            <div style="background:var(--pastel-canvas);border:1px solid var(--pastel-indigo-border);border-radius:12px;padding:16px;">
+              <div style="font-size:12px;font-weight:800;color:var(--pastel-indigo-text);text-transform:uppercase;margin-bottom:8px;">
+                🕸️ Interactive Cross-Clause Dependency &amp; Regulatory Lockout Graph (Pastel Blueprint • Click Any Node)
+              </div>
+              <svg viewBox="0 0 760 520" style="width:100%;height:auto;background:#ffffff;border-radius:10px;border:1px solid #e2e8f0;">
+                <!-- Edges -->
+                <line x1="290" y1="120" x2="450" y2="120" stroke="#f97316" stroke-width="3" stroke-dasharray="6,4" />
+                <text x="370" y="106" text-anchor="middle" fill="#9a3412" font-size="11" font-weight="700">CONFLICT-SP3-04-GP1-03 (+2% Cap)</text>
+
+                <line x1="290" y1="290" x2="450" y2="290" stroke="#6366f1" stroke-width="2.5" />
+                <text x="370" y="278" text-anchor="middle" fill="#312e81" font-size="11" font-weight="700">AD Recall &amp; Airworthiness Carveout</text>
+
+                <line x1="240" y1="330" x2="330" y2="400" stroke="#a855f7" stroke-width="2.5" />
+                <text x="245" y="380" text-anchor="middle" fill="#581c87" font-size="11" font-weight="700">Uncapped Cyber Breach Carveout</text>
+
+                ${{nodes.map(n => `
+                  <g onclick="window.app.selectedGraphNode='${{n.id}}';window.app.renderAll();" style="cursor:pointer;">
+                    <rect x="${{n.x - 125}}" y="${{n.y - 36}}" width="250" height="72" rx="12" fill="${{n.bg}}" stroke="${{n.stroke}}" stroke-width="${{this.selectedGraphNode === n.id ? '3.5' : '2'}}" />
+                    <text x="${{n.x}}" y="${{n.y - 6}}" text-anchor="middle" fill="${{n.text}}" font-size="13" font-weight="800">${{n.label}}</text>
+                    <text x="${{n.x}}" y="${{n.y + 16}}" text-anchor="middle" fill="${{n.text}}" font-size="10.5" font-weight="600">${{n.sub}}</text>
+                  </g>
+                `).join('')}}
+              </svg>
+            </div>
+
+            <div style="background:var(--pastel-indigo-bg);border:1px solid var(--pastel-indigo-border);border-radius:12px;padding:16px;">
+              <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:#4f46e5;">Selected Graph Node Inspector</div>
+              <div style="font-size:16px;font-weight:800;color:#1e1b4b;margin-top:4px;">${{sel.label}}</div>
+              <div style="font-size:12px;color:#4338ca;margin-top:2px;">${{sel.sub}}</div>
+              <div style="margin-top:12px;padding:12px;background:#ffffff;border-radius:8px;border:1px solid var(--pastel-indigo-border);font-size:13px;line-height:1.6;color:var(--ink-primary);">
+                ${{sel.detail}}
+              </div>
+              ${{sel.id !== 'GP1-03' ? `
+                <button class="action-btn accept-btn" style="width:100%;margin-top:12px;" onclick="window.app.selectClause('${{sel.id}}');window.app.setViewMode('WORD_DOC');">
+                  📄 Open ${{sel.id}} in Word Document Reviewer →
+                </button>
+              ` : ''}}
+            </div>
+          </div>
+        `;
+      }}
+
+      renderPreConsolidationStatusPage() {{
+        const redlined = (this.data.clauses || []).filter(c => c.has_redline);
+        const approvedCount = redlined.filter(c => c.sme_status === 'APPROVED').length;
+        const conflicts = this.data.deal.active_conflicts || [];
+        return `
+          <div style="background:#ffffff;border:1px solid var(--border-soft);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--border-soft);">
+              <div>
+                <div style="font-size:11px;font-weight:800;color:#4f46e5;text-transform:uppercase;">🏛️ Pre-Consolidation Status &amp; Dollarized Exposure Check (V11 Synthesis)</div>
+                <div style="font-size:18px;font-weight:800;color:#1e1b4b;margin-top:2px;">Final Readiness Gate Before Generating Consolidated Package (.docx + .xlsx)</div>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <a href="http://127.0.0.1:58921/api/download/working-docx" target="_blank" class="action-btn accept-btn" style="text-decoration:none;">⬇️ Download Working Review .docx</a>
+                <a href="http://127.0.0.1:58921/api/download/counter-docx" target="_blank" class="btn-outline" style="text-decoration:none;display:inline-flex;align-items:center;">📦 Download Official Counter-Proposal .docx</a>
+              </div>
+            </div>
+
+            <!-- Pastel Bento KPI Row -->
+            <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:12px;">
+              <div style="background:var(--pastel-indigo-bg);border:1px solid var(--pastel-indigo-border);border-radius:12px;padding:14px;">
+                <div style="font-size:11px;font-weight:800;color:#4338ca;text-transform:uppercase;">Base PO Value (GP1 §3.1)</div>
+                <div style="font-size:22px;font-weight:800;color:#1e1b4b;margin-top:4px;">$45,000,000</div>
+                <div style="font-size:11.5px;color:#4338ca;margin-top:2px;">Firm-Fixed-Price • 150 Shipsets</div>
+              </div>
+              <div style="background:var(--pastel-rose-soft);border:1px solid var(--pastel-rose-border);border-radius:12px;padding:14px;">
+                <div style="font-size:11px;font-weight:800;color:var(--pastel-rose-text);text-transform:uppercase;">Unmitigated Vendor Redline Risk</div>
+                <div style="font-size:22px;font-weight:800;color:var(--pastel-rose-text);margin-top:4px;">$109,500,000+</div>
+                <div style="font-size:11.5px;color:var(--pastel-rose-text);margin-top:2px;">0.5x Cap ($22.5M) + Uncapped Tariffs</div>
+              </div>
+              <div style="background:var(--pastel-mint-soft);border:1px solid var(--pastel-mint-border);border-radius:12px;padding:14px;">
+                <div style="font-size:11px;font-weight:800;color:var(--pastel-mint-text);text-transform:uppercase;">Protected Cymbal Counter Position</div>
+                <div style="font-size:22px;font-weight:800;color:var(--pastel-mint-text);margin-top:4px;">$90.0M Cap + $900K Tariff Cap</div>
+                <div style="font-size:11.5px;color:var(--pastel-mint-text);margin-top:2px;">2.0x PO Super-Cap + +2% FFP Tariff Ceiling</div>
+              </div>
+              <div style="background:var(--pastel-butter-bg);border:1px solid var(--pastel-butter-border);border-radius:12px;padding:14px;">
+                <div style="font-size:11px;font-weight:800;color:var(--pastel-butter-text);text-transform:uppercase;">SME Sign-Off &amp; Conflict Gate</div>
+                <div style="font-size:22px;font-weight:800;color:var(--pastel-butter-text);margin-top:4px;">${{approvedCount}} / 4 Accepted • ${{conflicts.length}} Conflicts</div>
+                <div style="font-size:11.5px;color:var(--pastel-butter-text);margin-top:2px;">${{approvedCount === 4 ? '✓ Ready for Final Consolidation' : '⏳ Pending SME Sign-Offs'}}</div>
+              </div>
+            </div>
+
+            <!-- 4 SME Sign-Off Status Table -->
+            <table class="prec-table">
+              <thead>
+                <tr>
+                  <th>Clause</th>
+                  <th>SME Owner &amp; Domain</th>
+                  <th>Status</th>
+                  <th>BigQuery Historical Precedent Match</th>
+                  <th>Selected Counter-Position &amp; User Word Comment</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${{redlined.map(c => {{
+                  const dist = (c.precedent_analysis || {{}}).distribution || {{}};
+                  return `
+                    <tr>
+                      <td style="font-weight:800;color:#1e1b4b;">${{c.clause_ref}}<br/><span style="font-size:11px;color:var(--ink-muted);">${{escapeHtml(c.clause_title)}}</span></td>
+                      <td><strong>${{escapeHtml(c.human_reviewer)}}</strong><br/><span style="font-size:11px;color:var(--ink-muted);">${{c.sme_team}}</span></td>
+                      <td><span class="pill ${{c.sme_status === 'APPROVED' ? 'pill-green' : 'pill-amber'}}">${{c.sme_status === 'APPROVED' ? '✓ ACCEPTED' : c.sme_status}}</span></td>
+                      <td>
+                        <span class="pill pill-sky">n=${{dist.total_matches || 16}}: ${{dist.held_firm_pct || 0}}% Held Firm / ${{dist.compromise_tier_1_pct || 0}}% Compromise</span>
+                      </td>
+                      <td>
+                        <div style="font-size:12.5px;color:var(--ink-primary);margin-bottom:4px;">${{escapeHtml(c.selected_counter_text || c.proposed_counter_text)}}</div>
+                        <div style="font-size:11.5px;color:#713f12;background:var(--pastel-butter-bg);padding:4px 8px;border-radius:6px;display:inline-block;">
+                          💬 <strong>${{escapeHtml(c.human_reviewer)}}:</strong> "${{escapeHtml(c.user_comment)}}"
+                        </div>
+                      </td>
+                      <td>
+                        <button class="btn-outline" onclick="window.app.selectClause('${{c.clause_id}}');window.app.setViewMode('WORD_DOC');">Edit in Word View</button>
+                      </td>
+                    </tr>
+                  `;
+                }}).join('')}}
+              </tbody>
+            </table>
+          </div>
         `;
       }}
     }}
@@ -2096,6 +2750,7 @@ def generate_canvas_workbench_html(
     canvas_path = Path.cwd() / "cymbal_clm_redline_workbench.html"
     canvas_path.write_text(html_doc, encoding="utf-8")
     return canvas_path
+
 
 
 def apply_local_position(
@@ -2326,31 +2981,41 @@ def deliver_sme_update_emails_to_inbox() -> List[Dict[str, Any]]:
 
 def generate_tax_reviewer_workbench_html(state: Dict[str, Any], tax_prec: Dict[str, Any]) -> Path:
     """
-    Writes an interactive Tax SME Document-Style Reviewer Workbench (`cymbal_clm_tax_reviewer_workbench.html`)
+    Writes the Pastel Word 365 & Playbook Tax SME Reviewer Workbench (`cymbal_clm_tax_reviewer_workbench.html`)
     into Path.cwd() so the Tax Reviewer in Workflow 2 has:
-      - Interactive Document-Style Counter-Position Reviewer (matching screenshot) with orange-red strikethrough
-        and coral highlight on the counter-position change to accept, plus floating action menu:
-        Rewrite with Input, Accept changes, Reject changes, and Comment (as Pradeep Gupta)
-      - Cross-Clause Conflict Detector (SP3 §4.1 vs. GP1 §3.1 $45M Firm-Fixed-Price SOW)
-      - 16 Historical Tax/Tariff Precedents from BigQuery (63% 50/50 split capped at +2% FFP)
+      - Pastel Word 365 Ribbon + Markup Switcher + Right-Margin Word Comments (attributed to Pradeep Gupta)
+      - Explicit "Why This Counter-Position Is Recommended (BigQuery Historical Precedent + GP1 §3.1 FFP Guardrail)" Explainer
+      - Full Untruncated Counter-Position Box + Revert to Recommended / Revert to Original Baseline buttons
+      - 16 Historical Tax/Tariff Precedents from BigQuery (63% 50/50 split capped at +2% FFP) with "Use Language" button
     """
     sp3_clause = next((c for c in state["clauses"] if c["clause_id"] == "SP3-04"), state["clauses"][10])
-    gp1_sow = next((c for c in state["clauses"] if c["clause_id"] == "GP1-03"), state["clauses"][1])
     rec_default = RECOMMENDED_COUNTER_DEFAULTS["SP3-04"]
     counter_text = sp3_clause.get("selected_counter_text") or rec_default["counter_text"]
     user_comment = sp3_clause.get("sme_rationale") or rec_default["default_user_comment"]
     reviewer_name = sp3_clause.get("sme_reviewer") or rec_default["default_reviewer"]
+    historical_explainer = rec_default.get("historical_explainer", "")
+    playbook_rule_name = rec_default.get("playbook_rule_name", "")
+    playbook_verdict = rec_default.get("playbook_verdict", "")
+    playbook_guardrail_summary = rec_default.get("playbook_guardrail_summary", "")
 
     rows_html = ""
     for m in tax_prec.get("precedents", tax_prec.get("top_matches", [])):
         sim = f"{float(m.get('similarity_score', 0.94)) * 100:.1f}%"
+        deal_code = m.get("contract_id") or m.get("historical_deal_code", "")
+        deal_date = m.get("signed_date") or str(m.get("deal_year", ""))
+        outcome_lbl = m.get("outcome_category") or m.get("outcome_label", "")
+        agreed_lang = m.get("final_agreed_language") or m.get("accepted_counter_language", "")
+        encoded_lang = urllib.parse.quote(agreed_lang)
         rows_html += f"""
         <tr>
-          <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#0f172a;">{html.escape(m.get('supplier_name',''))}</td>
-          <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;color:#475569;">{html.escape(m.get('historical_deal_code',''))} ({m.get('deal_year','')})</td>
-          <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;"><span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;">{html.escape(m.get('outcome_label',''))}</span></td>
-          <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;font-weight:700;color:#2563eb;">{sim}</td>
-          <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;font-size:12px;color:#334155;">{html.escape(m.get('accepted_counter_language',''))}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;font-weight:700;color:#312e81;">{html.escape(m.get('supplier_name',''))}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;color:#475569;">{html.escape(deal_code)} ({html.escape(deal_date)})</td>
+          <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;"><span style="background:#dcfce7;color:#065f46;border:1px solid #86efac;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;">{html.escape(outcome_lbl)}</span></td>
+          <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;font-weight:800;color:#4f46e5;">{sim}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;font-size:12.5px;line-height:1.55;color:#1e293b;">"{html.escape(agreed_lang)}"</td>
+          <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">
+            <button onclick="usePrecedentLang('{html.escape(deal_code)}', '{encoded_lang}')" style="padding:5px 10px;border-radius:7px;border:1px solid #86efac;background:#ecfdf5;color:#065f46;font-size:11.5px;font-weight:700;cursor:pointer;">📋 Use Language</button>
+          </td>
         </tr>
         """
 
@@ -2360,6 +3025,7 @@ def generate_tax_reviewer_workbench_html(state: Dict[str, Any], tax_prec: Dict[s
             "sme_team": "TAX",
             "baseline_text": sp3_clause["boeing_baseline_text"],
             "vendor_redline_text": sp3_clause["vendor_redline_text"],
+            "recommended_counter_text": rec_default["counter_text"],
             "counter_text": counter_text,
             "reviewer_name": reviewer_name,
             "user_comment": user_comment,
@@ -2371,75 +3037,81 @@ def generate_tax_reviewer_workbench_html(state: Dict[str, Any], tax_prec: Dict[s
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Cymbal Aerospace CLM — Global Tax &amp; Tariff SME Reviewer Workbench (SP3 §4.1)</title>
+<title>Cymbal Aerospace CLM — Pastel Word 365 Global Tax &amp; Tariff SME Reviewer (SP3 §4.1)</title>
 <style>
-  * {{ box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif; }}
-  body {{ background: #f1f5f9; color: #0f172a; padding: 20px; }}
-  .wrap {{ max-width: 1320px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }}
-  .banner {{ background: linear-gradient(135deg, #0a2540 0%, #1e3a8a 100%); color: #fff; padding: 18px 24px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }}
-  .badge {{ background: #10b981; color: #fff; padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; }}
-  /* Emerald Document Stage matching screenshot */
-  .doc-stage {{
-    background: #237a5b;
-    background-image: radial-gradient(circle at 20% 20%, #2a8b68 0%, #1d694d 100%);
+  * {{ box-sizing: border-box; margin: 0; padding: 0; font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }}
+  body {{ background: #faf8f5; color: #1e293b; padding: 18px; }}
+  .wrap {{ max-width: 1420px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }}
+  .banner {{
+    background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 52%, #f3e8ff 100%);
+    color: #312e81;
+    border: 1px solid #c7d2fe;
+    padding: 16px 22px;
     border-radius: 14px;
-    padding: 26px 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }}
+  .badge {{ background: #dcfce7; color: #065f46; border: 1px solid #86efac; padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 800; }}
+  .doc-stage {{
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 14px;
+    padding: 22px 24px;
     display: grid;
-    grid-template-columns: 1fr 310px;
-    gap: 20px;
+    grid-template-columns: 1fr 340px;
+    gap: 18px;
     align-items: start;
-    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.14);
   }}
   .doc-paper {{
     background: #ffffff;
+    border: 1px solid #cbd5e1;
     border-radius: 12px;
-    padding: 28px 32px;
-    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.22);
+    padding: 26px 30px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
     color: #1e293b;
   }}
-  .doc-section-heading {{
-    font-size: 15px;
-    font-weight: 800;
-    color: #0f172a;
-    margin-bottom: 12px;
-  }}
+  .doc-section-heading {{ font-size: 15px; font-weight: 800; color: #1e1b4b; margin-bottom: 10px; }}
   .doc-clause-body {{
     font-size: 14.5px;
-    line-height: 1.78;
+    line-height: 1.8;
     color: #1e293b;
-    padding: 12px 14px;
-    border-radius: 8px;
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
+    padding: 14px 16px;
+    border-radius: 10px;
+    background: #fffdf9;
+    border: 1.5px solid #fdba74;
+    border-left: 5px solid #f59e0b;
+    font-family: Georgia, "Times New Roman", serif;
   }}
   del.counter-del {{
-    color: #e04f33;
+    background: #ffe4e6;
+    color: #9f1239;
     text-decoration: line-through;
     text-decoration-thickness: 2px;
-    text-decoration-color: #e04f33;
-    background: rgba(224, 79, 51, 0.08);
-    padding: 1px 4px;
-    border-radius: 3px;
-    font-weight: 500;
+    text-decoration-color: #e11d48;
+    padding: 1px 5px;
+    border-radius: 4px;
   }}
   ins.counter-ins {{
-    background: #f9d8d0;
-    color: #1e293b;
+    background: #dcfce7;
+    color: #065f46;
     text-decoration: none;
-    padding: 2px 5px;
+    padding: 1px 6px;
     border-radius: 4px;
     font-weight: 600;
-    border-bottom: 2px solid #e04f33;
+    border-bottom: 2px solid #34d399;
   }}
   .floating-action-card {{
     background: #ffffff;
     border-radius: 12px;
-    padding: 8px;
-    box-shadow: 0 18px 38px rgba(0, 0, 0, 0.26);
-    border: 1px solid rgba(255, 255, 255, 0.6);
+    padding: 12px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+    border: 1px solid #e2e8f0;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 6px;
   }}
   .action-menu-item {{
     display: flex;
@@ -2447,19 +3119,16 @@ def generate_tax_reviewer_workbench_html(state: Dict[str, Any], tax_prec: Dict[s
     gap: 10px;
     width: 100%;
     padding: 10px 12px;
-    border: none;
-    background: transparent;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
     text-align: left;
-    font-size: 13.5px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 700;
     color: #1e293b;
     border-radius: 8px;
     cursor: pointer;
-    transition: all 0.14s ease;
   }}
-  .action-menu-item:hover {{ background: #f1f5f9; }}
-  .action-menu-item.active-item {{ background: #eff6ff; color: #1d4ed8; }}
-  .action-divider {{ height: 1px; background: #e2e8f0; margin: 4px 6px; }}
+  .action-menu-item:hover {{ background: #eef2ff; color: #312e81; border-color: #c7d2fe; }}
   .drawer-panel {{
     margin-top: 14px;
     background: #f8fafc;
@@ -2467,91 +3136,113 @@ def generate_tax_reviewer_workbench_html(state: Dict[str, Any], tax_prec: Dict[s
     border-radius: 10px;
     padding: 14px 16px;
   }}
-  .card {{ background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }}
-  .card h3 {{ font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; margin-bottom: 12px; }}
-  .conflict-box {{ background: #fff1f2; border: 1px solid #fecdd3; border-left: 5px solid #e11d48; padding: 14px 16px; border-radius: 8px; }}
-  .bar-wrap {{ display: flex; height: 26px; border-radius: 8px; overflow: hidden; margin: 10px 0; font-size: 12px; font-weight: 700; color: #fff; }}
-  table {{ width: 100%; border-collapse: collapse; font-size: 13px; }}
-  th {{ text-align: left; padding: 10px 12px; background: #f8fafc; border-bottom: 2px solid #e2e8f0; font-size: 11px; text-transform: uppercase; color: #64748b; }}
+  .card {{ background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px 20px; }}
+  .card h3 {{ font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #312e81; margin-bottom: 10px; font-weight: 800; }}
+  .conflict-box {{ background: #fff1f2; border: 1px solid #fda4af; border-left: 5px solid #f43f5e; padding: 12px 14px; border-radius: 10px; }}
+  .explainer-box {{ background: #e0f2fe; border: 1px solid #bae6fd; border-left: 5px solid #0284c7; padding: 12px 14px; border-radius: 10px; color: #0c4a6e; font-size: 12.5px; line-height: 1.55; margin-bottom: 14px; }}
+  .bar-wrap {{ display: flex; height: 26px; border-radius: 8px; overflow: hidden; margin: 10px 0; font-size: 11.5px; font-weight: 800; border: 1px solid #cbd5e1; }}
+  table {{ width: 100%; border-collapse: collapse; font-size: 12.5px; }}
+  th {{ text-align: left; padding: 10px 12px; background: #eef2ff; border-bottom: 1px solid #c7d2fe; font-size: 11px; text-transform: uppercase; color: #312e81; font-weight: 800; }}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="banner">
     <div>
-      <div style="font-size:12px;color:#93c5fd;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">Workflow 2 • Global Tax &amp; Trade SME Document Reviewer (Pradeep Gupta)</div>
-      <h1 style="font-size:20px;margin-top:4px;">Deal BA-2026-AV-8921 — Clause SP3 §4.1 (Customs, Duties &amp; Section 232/301 Tariffs)</h1>
+      <div style="font-size:11px;color:#4f46e5;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;">Workflow 2 • Pastel Word 365 Global Tax &amp; Trade SME Reviewer (Pradeep Gupta)</div>
+      <h1 style="font-size:19px;margin-top:3px;color:#1e1b4b;">Deal BA-2026-AV-8921 — Clause SP3 §4.1 (Customs, Duties &amp; Section 232/301 Tariffs)</h1>
     </div>
     <div class="badge" id="statusBadge">✓ COUNTER-POSITION SAVED TO WORKING REVIEW DOC</div>
   </div>
 
   <div class="doc-stage">
     <div class="doc-paper">
-      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #f1f5f9;padding-bottom:12px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #f1f5f9;padding-bottom:12px;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
         <div>
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#64748b;">Cymbal Aerospace Working Review Document • SP3 Special Provisions</div>
-          <div style="font-size:16px;font-weight:800;color:#0f172a;margin-top:2px;">SP3 §4.1 — Customs, Duties &amp; Section 232/301 Tariffs</div>
+          <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:#4f46e5;">Cymbal Aerospace Working Review Document • SP3 Special Provisions</div>
+          <div style="font-size:16px;font-weight:800;color:#1e1b4b;margin-top:2px;">SP3 §4.1 — Customs, Duties &amp; Section 232/301 Tariffs</div>
         </div>
-        <span style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;background:#fef3c7;color:#92400e;">Cross-Clause Conflict Resolved vs GP1 §3.1</span>
+        <span style="font-size:11px;font-weight:800;padding:4px 10px;border-radius:999px;background:#ffedd5;color:#9a3412;border:1px solid #fdba74;">Cross-Clause Conflict Resolved vs GP1 §3.1</span>
       </div>
 
-      <div style="font-size:12px;color:#475569;margin-bottom:8px;">
-        <strong>Counter-Position Change to Accept:</strong> <span style="color:#e04f33;text-decoration:line-through;font-weight:700;">Orange-red strikethrough</span> shows rejected vendor redline; <span style="background:#f9d8d0;padding:1px 6px;border-radius:4px;font-weight:700;color:#1e293b;">coral highlight</span> shows the proposed Tax Counter-Position change.
+      <div style="background:#eef2ff;border:1px solid #c7d2fe;border-left:5px solid #6366f1;padding:12px 14px;border-radius:10px;color:#312e81;font-size:12.5px;line-height:1.55;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-wrap:wrap;gap:6px;">
+          <span style="font-weight:800;font-size:11.5px;text-transform:uppercase;">📘 Cymbal Playbook Comparison ({html.escape(playbook_rule_name)})</span>
+          <span style="background:#ffffff;border:1px solid #c7d2fe;padding:2px 8px;border-radius:999px;font-size:10.5px;font-weight:800;">{html.escape(playbook_verdict)}</span>
+        </div>
+        <div>{html.escape(playbook_guardrail_summary)}</div>
       </div>
 
-      <div class="doc-section-heading">4.1 Customs, Duties &amp; Tariffs</div>
+      <div class="explainer-box">
+        <div style="font-weight:800;font-size:11.5px;text-transform:uppercase;margin-bottom:4px;color:#0369a1;">
+          💡 Why This Counter-Position Is Recommended (BigQuery Historical Precedent + GP1 §3.1 FFP Guardrail)
+        </div>
+        <div>{html.escape(historical_explainer)}</div>
+      </div>
+
+      <div class="doc-section-heading">4.1 Customs, Duties &amp; Tariffs (Inline Word Markup)</div>
       <div class="doc-clause-body" id="docInlineDiff"></div>
 
-      <div class="drawer-panel" id="rewriteDrawer" style="display:none;">
-        <div style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:6px;">✦ Rewrite Counter-Position Language</div>
-        <textarea id="counterTextarea" style="width:100%;min-height:90px;padding:10px;border-radius:8px;border:1px solid #94a3b8;font-size:13px;line-height:1.5;" oninput="renderLiveDiff()"></textarea>
+      <div style="margin-top:14px;background:#ecfdf5;border:1.5px solid #86efac;border-radius:10px;padding:12px 14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px;">
+          <span style="font-size:11.5px;font-weight:800;color:#065f46;text-transform:uppercase;">📋 Full Proposed Counter-Position Language (Untruncated)</span>
+          <div style="display:flex;gap:6px;">
+            <button onclick="revertToRecommended()" style="padding:4px 9px;border-radius:6px;border:1px solid #86efac;background:#ffffff;color:#065f46;font-size:11px;font-weight:700;cursor:pointer;">↺ Revert to Recommended Counter</button>
+            <button onclick="revertToOriginal()" style="padding:4px 9px;border-radius:6px;border:1px solid #cbd5e1;background:#ffffff;color:#334155;font-size:11px;font-weight:700;cursor:pointer;">↺ Revert to Original Proforma</button>
+          </div>
+        </div>
+        <div id="fullCounterPreview" style="font-size:13px;line-height:1.6;color:#064e3b;background:#ffffff;padding:10px 12px;border-radius:8px;border:1px solid #a7f3d0;"></div>
       </div>
 
-      <div class="drawer-panel" id="commentDrawer" style="margin-top:14px;">
+      <div class="drawer-panel" id="rewriteDrawer" style="display:none;">
+        <div style="font-size:12px;font-weight:800;color:#1e293b;margin-bottom:6px;">✦ Rewrite Counter-Position Language</div>
+        <textarea id="counterTextarea" style="width:100%;min-height:92px;padding:10px;border-radius:8px;border:1px solid #94a3b8;font-size:13px;line-height:1.5;" oninput="renderLiveDiff()"></textarea>
+      </div>
+
+      <div class="drawer-panel" id="commentDrawer" style="margin-top:14px;background:#fef9c3;border-color:#fde047;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <div style="font-size:12px;font-weight:700;color:#1e293b;">💬 Reviewer Comment (Added as User's Word Comment in Working Review Doc)</div>
-          <span style="font-size:11px;background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:999px;font-weight:700;">Attributed to User (Not System)</span>
+          <div style="font-size:12px;font-weight:800;color:#713f12;">💬 Reviewer Word Comment (Added as User's Comment in Working Review Doc)</div>
+          <span style="font-size:11px;background:#ffffff;color:#713f12;border:1px solid #fde047;padding:2px 8px;border-radius:999px;font-weight:800;">Attributed to User (Not System)</span>
         </div>
         <div style="display:grid;grid-template-columns:240px 1fr;gap:10px;align-items:start;">
           <div>
-            <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:4px;">Comment Author (User):</label>
-            <input id="reviewerInput" type="text" style="width:100%;padding:8px 10px;border-radius:7px;border:1px solid #cbd5e1;font-size:12.5px;font-weight:600;" />
+            <label style="font-size:11px;font-weight:700;color:#713f12;display:block;margin-bottom:4px;">Comment Author (User):</label>
+            <input id="reviewerInput" type="text" style="width:100%;padding:8px 10px;border-radius:7px;border:1px solid #cbd5e1;font-size:12.5px;font-weight:600;background:#fff;" />
           </div>
           <div>
-            <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:4px;">User Comment Text:</label>
-            <textarea id="commentInput" style="width:100%;min-height:60px;padding:8px 10px;border-radius:7px;border:1px solid #cbd5e1;font-size:12.5px;line-height:1.45;"></textarea>
+            <label style="font-size:11px;font-weight:700;color:#713f12;display:block;margin-bottom:4px;">User Comment Text:</label>
+            <textarea id="commentInput" style="width:100%;min-height:60px;padding:8px 10px;border-radius:7px;border:1px solid #cbd5e1;font-size:12.5px;line-height:1.45;background:#fff;"></textarea>
           </div>
         </div>
       </div>
 
-      <div id="saveBanner" style="display:none;margin-top:12px;padding:10px 14px;border-radius:8px;background:#ecfdf5;border:1px solid #6ee7b7;color:#065f46;font-size:12.5px;font-weight:600;"></div>
+      <div id="saveBanner" style="display:none;margin-top:12px;padding:10px 14px;border-radius:8px;background:#dcfce7;border:1px solid #86efac;color:#065f46;font-size:12.5px;font-weight:700;"></div>
     </div>
 
     <div>
       <div class="floating-action-card">
-        <button class="action-menu-item" onclick="toggleRewrite()">
-          <span style="color:#7c3aed;font-weight:800;">✦</span>
+        <button class="action-menu-item" style="background:#f3e8ff;color:#581c87;border-color:#d8b4fe;" onclick="toggleRewrite()">
+          <span>✦</span>
           <span>Rewrite with Input</span>
         </button>
-        <div class="action-divider"></div>
-        <button class="action-menu-item" onclick="submitTaxReview('compromise_tier_1')">
-          <span style="color:#059669;font-weight:800;">✓</span>
+        <button class="action-menu-item" style="background:#dcfce7;color:#065f46;border-color:#86efac;" onclick="submitTaxReview('compromise_tier_1')">
+          <span>✓</span>
           <span>Accept changes</span>
         </button>
-        <button class="action-menu-item" onclick="submitTaxReview('hold_firm')">
-          <span style="color:#dc2626;font-weight:800;">✕</span>
+        <button class="action-menu-item" style="background:#ffe4e6;color:#9f1239;border-color:#fda4af;" onclick="submitTaxReview('hold_firm')">
+          <span>✕</span>
           <span>Reject changes</span>
         </button>
-        <button class="action-menu-item" onclick="submitTaxReview('compromise_tier_1', true)">
-          <span style="color:#2563eb;font-weight:800;">💬</span>
+        <button class="action-menu-item" style="background:#fef9c3;color:#713f12;border-color:#fde047;" onclick="submitTaxReview('compromise_tier_1', true)">
+          <span>💬</span>
           <span>Comment</span>
         </button>
       </div>
 
       <div class="conflict-box" style="margin-top:14px;">
-        <div style="font-weight:700;color:#be123c;font-size:12.5px;">⚡ Cross-Clause Conflict Harmonized (`GP1 §3.1` FFP SOW)</div>
-        <p style="font-size:12px;color:#881337;margin-top:6px;line-height:1.45;">
-          Apex's uncapped 100% pass-through of Section 232/301 tariffs &gt;5% violates Cymbal's <strong>$45,000,000 Firm-Fixed-Price SOW ceiling in GP1 §3.1</strong>. Capped at +2.0% ($900K) FFP.
+        <div style="font-weight:800;color:#9f1239;font-size:12.5px;">⚡ Cross-Clause Conflict Harmonized (`GP1 §3.1` FFP SOW)</div>
+        <p style="font-size:12px;color:#881337;margin-top:6px;line-height:1.5;">
+          Apex's uncapped 100% pass-through of Section 232/301 tariffs &gt;5% violates Cymbal's <strong>$45,000,000 Firm-Fixed-Price SOW ceiling in GP1 §3.1</strong>. Harmonized at +2.0% ($900K) FFP.
         </p>
       </div>
     </div>
@@ -2560,9 +3251,9 @@ def generate_tax_reviewer_workbench_html(state: Dict[str, Any], tax_prec: Dict[s
   <div class="card">
     <h3>BigQuery Historical Precedent Intelligence for `SP3-04` (`vertex-ai-demos-468803.boeing_clm.historical_clause_exceptions`, n=16 Tier-1 Avionics Deals)</h3>
     <div class="bar-wrap">
-      <div style="width:63%;background:#2563eb;display:flex;align-items:center;justify-content:center;">63% Tier-1 Compromise: 50/50 Split Capped at +2% FFP (10/16 Deals)</div>
-      <div style="width:31%;background:#059669;display:flex;align-items:center;justify-content:center;">31% Held Firm DDP (5/16)</div>
-      <div style="width:6%;background:#dc2626;display:flex;align-items:center;justify-content:center;">6% (1/16)</div>
+      <div style="width:63%;background:#a7f3d0;color:#064e3b;display:flex;align-items:center;justify-content:center;">63% Tier-1 Compromise: 50/50 Split Capped at +2% FFP (10/16 Deals)</div>
+      <div style="width:31%;background:#c7d2fe;color:#1e1b4b;display:flex;align-items:center;justify-content:center;">31% Held Firm DDP (5/16)</div>
+      <div style="width:6%;background:#fecdd3;color:#881337;display:flex;align-items:center;justify-content:center;">6% (1/16)</div>
     </div>
     <table>
       <thead>
@@ -2571,7 +3262,8 @@ def generate_tax_reviewer_workbench_html(state: Dict[str, Any], tax_prec: Dict[s
           <th>Historical Deal</th>
           <th>Resolution Outcome</th>
           <th>Cosine Similarity</th>
-          <th>Approved Counter-Language Precedent in BigQuery</th>
+          <th>Full Approved Counter-Language Precedent in BigQuery (Untruncated)</th>
+          <th style="width:130px;">Action</th>
         </tr>
       </thead>
       <tbody>
@@ -2619,9 +3311,11 @@ let showAcceptedClean = false;
 function renderLiveDiff() {{
   const cText = document.getElementById('counterTextarea').value;
   const reviewer = document.getElementById('reviewerInput').value || 'Pradeep Gupta';
+  const prev = document.getElementById('fullCounterPreview');
+  if (prev) prev.textContent = cText;
   if (showAcceptedClean) {{
     document.getElementById('docInlineDiff').innerHTML = `
-      <div style="background:#f0fdf4;border:1px solid #86efac;border-left:5px solid #10b981;padding:12px 14px;border-radius:8px;">
+      <div style="background:#ecfdf5;border:1px solid #86efac;border-left:5px solid #10b981;padding:12px 14px;border-radius:8px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
           <span style="font-size:11.5px;font-weight:800;color:#065f46;text-transform:uppercase;">✓ Change Accepted &amp; Applied to Contract Document (by ${{escapeHtml(reviewer)}})</span>
           <button onclick="showAcceptedClean=false;renderLiveDiff();" style="padding:3px 10px;font-size:11px;border:1px solid #86efac;border-radius:6px;background:#fff;cursor:pointer;font-weight:700;color:#065f46;">🔍 Inspect Redline Strikethrough</button>
@@ -2632,6 +3326,27 @@ function renderLiveDiff() {{
   }} else {{
     document.getElementById('docInlineDiff').innerHTML = computeWordDiff(STATE.vendor_redline_text, cText);
   }}
+}}
+
+function usePrecedentLang(dealCode, encodedLang) {{
+  document.getElementById('counterTextarea').value = decodeURIComponent(encodedLang);
+  showAcceptedClean = false;
+  renderLiveDiff();
+  const banner = document.getElementById('saveBanner');
+  banner.style.display = 'block';
+  banner.textContent = `📋 Loaded historical precedent language from ${{dealCode}} into Counter-Position`;
+}}
+
+function revertToRecommended() {{
+  document.getElementById('counterTextarea').value = STATE.recommended_counter_text;
+  showAcceptedClean = false;
+  renderLiveDiff();
+}}
+
+function revertToOriginal() {{
+  document.getElementById('counterTextarea').value = STATE.baseline_text;
+  showAcceptedClean = false;
+  renderLiveDiff();
 }}
 
 function toggleRewrite() {{
@@ -2815,6 +3530,48 @@ def serve_loopback_bridge(port: int = HOST_BRIDGE_PORT) -> None:
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
                 self.wfile.write(b'{"status":"ok"}')
+            elif self.path in ("/", "/workbench") or self.path.startswith("/workbench?"):
+                state = load_local_state()
+                wb_path = generate_canvas_workbench_html(state)
+                data = wb_path.read_bytes()
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+            elif self.path.startswith("/tax-workbench"):
+                state = load_local_state()
+                seed = load_seed()
+                tax_path = generate_tax_reviewer_workbench_html(state, seed.get("precedents", {}).get("SP3-04", {}))
+                data = tax_path.read_bytes()
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+            elif self.path.startswith("/ui-lab"):
+                lab_file = SCRIPT_DIR.parent / "cymbal_clm_ui_lab_12_variations.html"
+                if lab_file.exists():
+                    data = lab_file.read_bytes()
+                    self.send_response(200)
+                    self._send_cors_headers()
+                    self.send_header("Content-Type", "text/html; charset=utf-8")
+                    self.send_header("Content-Length", str(len(data)))
+                    self.end_headers()
+                    self.wfile.write(data)
+                else:
+                    self.send_response(404)
+                    self.end_headers()
+            elif self.path.startswith("/api/ux-notes"):
+                notes_file = SCRIPT_DIR.parent / "ux_evaluation_notes.json"
+                data = notes_file.read_bytes() if notes_file.exists() else b"{}"
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(data)
             elif self.path.startswith("/api/download/working-docx") or self.path.startswith("/api/download/counter-docx"):
                 state = load_local_state()
                 build_fresh_docx_and_xlsx(state, Path.cwd())
@@ -2837,6 +3594,16 @@ def serve_loopback_bridge(port: int = HOST_BRIDGE_PORT) -> None:
         def do_POST(self) -> None:
             length = int(self.headers.get("Content-Length", "0"))
             body = json.loads(self.rfile.read(length).decode("utf-8")) if length > 0 else {}
+
+            if self.path == "/api/ux-notes":
+                notes_file = SCRIPT_DIR.parent / "ux_evaluation_notes.json"
+                notes_file.write_text(json.dumps(body, indent=2), encoding="utf-8")
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(b'{"status":"saved"}')
+                return
 
             if self.path == "/api/review":
                 clause_id = body.get("clause_id", "GP1-19")
@@ -3143,6 +3910,7 @@ def main() -> None:
                 "attachments": ["Vendor_Redlined_GP1.docx", "Apex_AeroSystems_Redline_Transmittal_Memo.docx"],
             },
             "sharepoint_vendor_redline_upload": sp_vendor_upload,
+            "playbook_compared_against": "Cymbal Tier-1 Avionics Contract Playbook (GP1 / SP3 / SP5 — Preferred Standards, Pre-Approved Tier-1 Fallbacks & Regulatory Lockouts)",
             "proforma_compared_against": "https://36zrbd.sharepoint.com/sites/CymbalAerospace/Shared%20Documents/BA-2026-AV-8921/Cymbal_GP1_Standard.docx",
             "working_review_docx": str(Path.cwd() / "BA-2026-AV-8921_Working_Review.docx"),
             "total_clauses_parsed": state["total_clauses_parsed"],
@@ -3162,6 +3930,9 @@ def main() -> None:
                     "sme_owner_label": c["sme_owner_label"],
                     "risk_level": c["risk_level"],
                     "regulatory_flag": c["regulatory_flag"],
+                    "playbook_rule_name": RECOMMENDED_COUNTER_DEFAULTS.get(c["clause_id"], {}).get("playbook_rule_name", ""),
+                    "playbook_verdict": RECOMMENDED_COUNTER_DEFAULTS.get(c["clause_id"], {}).get("playbook_verdict", ""),
+                    "playbook_guardrail_summary": RECOMMENDED_COUNTER_DEFAULTS.get(c["clause_id"], {}).get("playbook_guardrail_summary", ""),
                     "boeing_baseline_text": c["boeing_baseline_text"],
                     "vendor_redline_text": c["vendor_redline_text"],
                     "vendor_comment": c.get("vendor_comment", ""),

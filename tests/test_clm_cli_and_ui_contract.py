@@ -118,3 +118,19 @@ def test_document_reviewer_ui_generation(tmp_path: Path, monkeypatch) -> None:
     assert "Comment" in main_text
     assert "/api/review" in main_text
     assert "/api/download/working-docx" in main_text
+    # Verify Pastel Design System & Synthesized User Feedback Features
+    assert "--pastel-canvas: #faf8f5" in main_text
+    assert "Why This Counter-Position Is Recommended" in main_text
+    assert "Revert to Recommended Counter" in main_text
+    assert "Revert to Original Proforma Baseline" in main_text
+    assert "Use Language" in main_text
+    assert "SPLIT_3COL" in main_text
+    assert "DEPENDENCY_GRAPH" in main_text
+    assert "PRE_CONSOLIDATION" in main_text
+    # Verify Contract Playbook Comparison Features
+    assert "Compared Against: Cymbal Tier-1 Avionics Playbook" in main_text
+    assert "PLAYBOOK_COUNTER" in main_text
+    assert "PLAYBOOK_STANDARD" in main_text
+    assert "APPLY PRE-APPROVED 2.0x PLAYBOOK FALLBACK" in main_text
+    assert "VIOLATES PLAYBOOK LOCKOUT (LOCKOUT-GP1-12-FAA)" in main_text
+    assert "Cymbal Playbook Preferred Standard" in main_text

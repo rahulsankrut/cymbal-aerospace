@@ -1,16 +1,16 @@
 ---
 name: clm-contract-intake
-description: Fetches Apex AeroSystems' redlined contract (`Vendor_Redlined_GP1.docx`), stores it in the Deal BA-2026-AV-8921 SharePoint folder alongside the Cymbal Proforma (`Cymbal_GP1_Standard.docx`), compares all 12 clauses with BigQuery historical precedents across all 4 redlined positions, identifies the 4 SME owners, initializes the Working Review Document (`BA-2026-AV-8921_Working_Review.docx`), and renders the interactive Document-Style Redline & Counter-Position Reviewer UI in Spark Canvas. Pair with `clm-comms` to save/send the 4 SME routing emails in Microsoft Outlook.
+description: Fetches Apex AeroSystems' redlined contract (`Vendor_Redlined_GP1.docx`), stores it in the Deal BA-2026-AV-8921 SharePoint folder alongside the Cymbal Standard (`Cymbal_GP1_Standard.docx`), compares all 12 clauses against the Cymbal Tier-1 Avionics Playbook (Preferred Standard, Pre-Approved Tier-1 Fallbacks, Regulatory Lockout Guardrails, and BigQuery historical precedents across all 4 redlined positions), identifies the 4 SME owners, initializes the Working Review Document (`BA-2026-AV-8921_Working_Review.docx`), and renders the interactive Pastel Word 365 & Playbook Reviewer UI in Spark Canvas. Pair with `clm-comms` to save/send the 4 SME routing emails in Microsoft Outlook.
 ---
 
-# Cymbal Aerospace CLM — Contract Intake, Proforma Diff & Document Reviewer UI (`clm-contract-intake`)
+# Cymbal Aerospace CLM — Contract Intake, Playbook Comparison & Document Reviewer UI (`clm-contract-intake`)
 
 ## 1. When to Activate
-Activate this skill in **Workflow 1 (Contract Owner Intake & Routing)** whenever the user asks to:
+Activate this skill in **Workflow 1 (Contract Owner Intake & Playbook Evaluation)** whenever the user asks to:
 - Check Adele Vance's inbound email for **Deal `BA-2026-AV-8921`** (*Apex AeroSystems — $45M FCC-900 Flight Control Computer Subsystem*),
-- Fetch the attached **`Vendor_Redlined_GP1.docx`** and store it in the same SharePoint folder (`sites/CymbalAerospace/Shared Documents/BA-2026-AV-8921`) as the Cymbal Proforma (**`Cymbal_GP1_Standard.docx`**),
-- Compare the vendor markup against the Cymbal Proforma clause-by-clause with BigQuery historical precedents (`64` Tier-1 Avionics deals across all 4 positions),
-- Identify the **4 SME Owners** (`Engineering`, `Legal`, `Tax`, `Cyber`), initialize the working review document (**`BA-2026-AV-8921_Working_Review.docx`**), and open the interactive **Document-Style Redline & Counter-Position Reviewer UI** in Spark Canvas.
+- Fetch the attached **`Vendor_Redlined_GP1.docx`** and store it in the same SharePoint folder (`sites/CymbalAerospace/Shared Documents/BA-2026-AV-8921`) as the Cymbal Standard (**`Cymbal_GP1_Standard.docx`**),
+- Compare the vendor markup against the **Cymbal Tier-1 Avionics Playbook** (which defines the Playbook Preferred Standard, Pre-Approved Tier-1 Fallback rules, Regulatory/Cross-Clause Lockouts, and BigQuery historical precedents across `64` Tier-1 Avionics deals),
+- Identify the **4 SME Owners** (`Engineering`, `Legal`, `Tax`, `Cyber`), initialize the working review document (**`BA-2026-AV-8921_Working_Review.docx`**), and open the interactive **Pastel Word 365 & Playbook Reviewer UI** in Spark Canvas.
 
 ---
 
