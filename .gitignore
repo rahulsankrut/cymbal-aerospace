@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.DS_Store
+.env
+.env.*
+!.env.example
+.cymbal_clm_state.json
+skills/cymbal_clm_state.json
+/cymbal_clm_redline_workbench.html
+/cymbal_clm_tax_reviewer_workbench.html
+/BA-2026-AV-8921_Working_Review.docx
+/BA-2026-AV-8921_Cymbal_Counter_Proposal.docx
+/BA-2026-AV-8921_Redline_Deviation_Matrix.xlsx
+/Vendor_Redlined_GP1.docx

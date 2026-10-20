@@ -1,0 +1,68 @@
+{
+  "project": "boeing-clm-gemini-agent",
+  "frozen_specs": [
+    "specs/01_bq_schema.sql",
+    "specs/02_domain_models.py",
+    "specs/03_mcp_and_rest_contract.md",
+    "specs/04_golden_fixtures/Boeing_GP1_Standard.docx",
+    "specs/04_golden_fixtures/Vendor_Redlined_GP1.docx",
+    "specs/04_golden_fixtures/expected_extracted_diffs.json"
+  ],
+  "phases": [
+    {
+      "phase": 1,
+      "name": "Parallel Orthogonal Implementation",
+      "agents": [
+        {
+          "id": "worker_ingestion",
+          "archetype": "worker",
+          "owned_paths": [
+            "src/boeing_clm/ingestion/",
+            "src/boeing_clm/export/",
+            "tests/test_ingestion_and_export.py"
+          ]
+        },
+        {
+          "id": "worker_bq",
+          "archetype": "worker",
+          "owned_paths": [
+            "sql/02_seed_data.sql",
+            "sql/03_vector_search_queries.sql",
+            "setup_bigquery.py",
+            "src/boeing_clm/storage/",
+            "src/boeing_clm/intelligence/",
+            "tests/test_bigquery_and_conflicts.py"
+          ]
+        },
+        {
+          "id": "worker_ui",
+          "archetype": "worker",
+          "owned_paths": [
+            "src/boeing_clm/server/",
+            "src/boeing_clm/ui/",
+            "skills/",
+            "ARGOLIS_GEMINI_AGENT_SETUP.md",
+            "Dockerfile",
+            "deploy_cloud_run.sh"
+          ]
+        }
+      ]
+    },
+    {
+      "phase": 2,
+      "name": "Independent Spec Review & Adversarial Verification",
+      "agents": [
+        {
+          "id": "reviewer_m1",
+          "archetype": "reviewer",
+          "depends_on": ["worker_ingestion", "worker_bq", "worker_ui"]
+        },
+        {
+          "id": "challenger_m1",
+          "archetype": "challenger",
+          "depends_on": ["reviewer_m1"]
+        }
+      ]
+    }
+  ]
+}

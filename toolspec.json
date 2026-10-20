@@ -1,0 +1,161 @@
+{
+  "tools": [
+    {
+      "name": "ingest_vendor_redline",
+      "description": "Deterministically parse a vendor-redlined contract .docx against the standard baseline .docx using OOXML Track Changes (<w:ins>, <w:del>, <w:comment>), validate with ExtractedClauseDiff, and persist all clause deviations to BigQuery (vertex-ai-demos-468803.boeing_clm).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "deal_id": {
+            "type": "string",
+            "default": "BA-2026-AV-8921",
+            "description": "Active deal identifier (e.g., BA-2026-AV-8921)."
+          },
+          "vendor_docx_path": {
+            "type": "string",
+            "default": "",
+            "description": "Optional local path to the vendor-redlined .docx file."
+          },
+          "baseline_docx_path": {
+            "type": "string",
+            "default": "",
+            "description": "Optional local path to the standard baseline .docx file."
+          }
+        }
+      },
+      "annotations": {
+        "title": "Ingest Vendor Redline (.docx Track Changes)",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "analyze_clause_precedents",
+      "description": "Run live BigQuery Vector Search (VECTOR_SEARCH with text-embedding-005 COSINE distance) and statistical COUNTIF distribution across historical aerospace deals for a redlined clause.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["clause_id"],
+        "properties": {
+          "clause_id": {
+            "type": "string",
+            "description": "Canonical clause identifier (e.g., GP1-12, GP1-19, SP3-04, SP5-03)."
+          },
+          "supplier_tier": {
+            "type": "string",
+            "default": "Tier-1 Avionics",
+            "description": "Supplier tier filter."
+          },
+          "top_k": {
+            "type": "integer",
+            "default": 5,
+            "description": "Number of top semantic precedent matches to return."
+          }
+        }
+      },
+      "annotations": {
+        "title": "Analyze Clause Precedents (BigQuery Vector Search)",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "record_sme_position",
+      "description": "Record an SME team's clause review position (hold_firm, compromise_tier_1, accept_vendor, or harmonized_tariff_cap) in BigQuery, evaluate machine-enforced regulatory lockouts and cross-clause conflicts, and append an immutable audit event.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "deal_id",
+          "clause_id",
+          "sme_team",
+          "selected_option_key",
+          "selected_counter_text",
+          "sme_reviewer",
+          "sme_rationale"
+        ],
+        "properties": {
+          "deal_id": { "type": "string" },
+          "clause_id": { "type": "string" },
+          "sme_team": { "type": "string" },
+          "selected_option_key": { "type": "string" },
+          "selected_counter_text": { "type": "string" },
+          "sme_reviewer": { "type": "string" },
+          "sme_rationale": { "type": "string" }
+        }
+      },
+      "annotations": {
+        "title": "Record SME Clause Position & Check Conflicts",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "harmonize_clause_conflict",
+      "description": "Deterministically resolve a cross-clause conflict (such as CONFLICT-SP3-04-GP1-03 between SP3 §4.1 Tariffs and GP1 §3.1 Firm-Fixed-Price SOW Cap) by applying the harmonized cap in BigQuery.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["deal_id", "rule_id"],
+        "properties": {
+          "deal_id": { "type": "string" },
+          "rule_id": { "type": "string" },
+          "actor": {
+            "type": "string",
+            "default": "Joint Tax & Procurement Board"
+          }
+        }
+      },
+      "annotations": {
+        "title": "Harmonize Cross-Clause Conflict",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "export_counter_proposal_package",
+      "description": "Verify all SME sign-offs and zero active conflicts, generate the 12-clause Counter-Proposal .docx with native Word Track Changes (<w:ins>, <w:del>, <w:comment>) and 4-tab SharePoint Deviation Matrix .xlsx, and return download URLs plus M365 connector drafts.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "deal_id": {
+            "type": "string",
+            "default": "BA-2026-AV-8921"
+          }
+        }
+      },
+      "annotations": {
+        "title": "Export Counter-Proposal Package (.docx & .xlsx)",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "reset_deal_workbench",
+      "description": "Reset the deal workbench in BigQuery to its canonical post-ingestion triage state.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "deal_id": {
+            "type": "string",
+            "default": "BA-2026-AV-8921"
+          }
+        }
+      },
+      "annotations": {
+        "title": "Reset Deal Workbench State",
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    }
+  ]
+}

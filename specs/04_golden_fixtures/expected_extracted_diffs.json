@@ -1,0 +1,234 @@
+[
+  {
+    "clause_id": "GP1-01",
+    "proforma_doc": "GP1",
+    "clause_ref": "GP1 §1.1",
+    "clause_title": "Definitions & Order of Precedence",
+    "sme_team": "PROCUREMENT",
+    "sme_owner_label": "Procurement & Subcontracts",
+    "risk_level": "NONE",
+    "regulatory_flag": "Cymbal Corporate GP1 Standard",
+    "has_redline": false,
+    "boeing_baseline_text": "1.1 (a) Definitions: \"Buyer\" means Cymbal Aerospace Corporation or its wholly-owned aerospace subsidiary identified on the face of the Master Purchase Agreement (`BA-2026-AV-8921`). \"Seller\" means Apex AeroSystems Inc. or the legal entity furnishing Goods and flight-critical software hereunder. \"Goods\" means the Triple-Redundant Fly-By-Wire Flight Control Computers (`FCC-900`), Line Replaceable Units (`LRUs`), embedded DAL-A flight control firmware, and associated technical deliverables specified in Statement of Work (`SOW-AV-8921`) Schedule A. (b) Order of Precedence: In the event of any ambiguity or inconsistency among Contract documents, Special Provisions (`SP3` International & Tariff Provisions and `SP5` Cybersecurity & Defense Provisions) shall take precedence over these General Provisions (`GP1`), expressly excluding the Firm-Fixed-Price (`FFP`) unit price locks and $45,000,000 aggregate ceiling set forth in GP1 §3.1 and SOW Schedule A, which shall govern over any conflicting Special Provision unless modified by a formal bilateral Change Order.",
+    "vendor_redline_text": "1.1 (a) Definitions: \"Buyer\" means Cymbal Aerospace Corporation or its wholly-owned aerospace subsidiary identified on the face of the Master Purchase Agreement (`BA-2026-AV-8921`). \"Seller\" means Apex AeroSystems Inc. or the legal entity furnishing Goods and flight-critical software hereunder. \"Goods\" means the Triple-Redundant Fly-By-Wire Flight Control Computers (`FCC-900`), Line Replaceable Units (`LRUs`), embedded DAL-A flight control firmware, and associated technical deliverables specified in Statement of Work (`SOW-AV-8921`) Schedule A. (b) Order of Precedence: In the event of any ambiguity or inconsistency among Contract documents, Special Provisions (`SP3` International & Tariff Provisions and `SP5` Cybersecurity & Defense Provisions) shall take precedence over these General Provisions (`GP1`), expressly excluding the Firm-Fixed-Price (`FFP`) unit price locks and $45,000,000 aggregate ceiling set forth in GP1 §3.1 and SOW Schedule A, which shall govern over any conflicting Special Provision unless modified by a formal bilateral Change Order.",
+    "insertions": [],
+    "deletions": [],
+    "vendor_comments": [],
+    "diff_html": "1.1 (a) Definitions: \"Buyer\" means Cymbal Aerospace Corporation or its wholly-owned aerospace subsidiary identified on the face of the Master Purchase Agreement (`BA-2026-AV-8921`). \"Seller\" means Apex AeroSystems Inc. or the legal entity furnishing Goods and flight-critical software hereunder. \"Goods\" means the Triple-Redundant Fly-By-Wire Flight Control Computers (`FCC-900`), Line Replaceable Units (`LRUs`), embedded DAL-A flight control firmware, and associated technical deliverables specified in Statement of Work (`SOW-AV-8921`) Schedule A. (b) Order of Precedence: In the event of any ambiguity or inconsistency among Contract documents, Special Provisions (`SP3` International & Tariff Provisions and `SP5` Cybersecurity & Defense Provisions) shall take precedence over these General Provisions (`GP1`), expressly excluding the Firm-Fixed-Price (`FFP`) unit price locks and $45,000,000 aggregate ceiling set forth in GP1 §3.1 and SOW Schedule A, which shall govern over any conflicting Special Provision unless modified by a formal bilateral Change Order."
+  },
+  {
+    "clause_id": "GP1-03",
+    "proforma_doc": "GP1",
+    "clause_ref": "GP1 §3.1",
+    "clause_title": "Firm-Fixed-Price SOW Cap & Pricing Integrity",
+    "sme_team": "PROCUREMENT",
+    "sme_owner_label": "Procurement & Cost Management",
+    "risk_level": "NONE",
+    "regulatory_flag": "Firm-Fixed-Price SOW Lock",
+    "has_redline": false,
+    "boeing_baseline_text": "3.1 (a) Firm-Fixed-Price Lock: Unless expressly modified by a bilateral Change Order executed by Buyer's Vice President of Avionics Procurement referencing this GP1 §3.1 and Statement of Work (`SOW-AV-8921`) Schedule A, all unit prices ($150,000 per shipset across 300 C780/C730-MAX shipsets) and the forty-five million dollar ($45,000,000.00) total Contract ceiling are strictly Firm-Fixed-Price (`FFP`) and shall not be subject to uncapped surcharges, tariff pass-throughs, customs duty adjustments, foreign exchange fluctuations, or raw material commodity indexing. (b) Invoicing & Payment Integrity: Seller shall submit itemized electronic invoices upon DDP acceptance of each production lot at Buyer's Everett or Renton final assembly line, payable Net Sixty (60) days. Any unilateral invoice surcharge not authorized by an executed GP1 §3.1 Change Order shall be automatically rejected.",
+    "vendor_redline_text": "3.1 (a) Firm-Fixed-Price Lock: Unless expressly modified by a bilateral Change Order executed by Buyer's Vice President of Avionics Procurement referencing this GP1 §3.1 and Statement of Work (`SOW-AV-8921`) Schedule A, all unit prices ($150,000 per shipset across 300 C780/C730-MAX shipsets) and the forty-five million dollar ($45,000,000.00) total Contract ceiling are strictly Firm-Fixed-Price (`FFP`) and shall not be subject to uncapped surcharges, tariff pass-throughs, customs duty adjustments, foreign exchange fluctuations, or raw material commodity indexing. (b) Invoicing & Payment Integrity: Seller shall submit itemized electronic invoices upon DDP acceptance of each production lot at Buyer's Everett or Renton final assembly line, payable Net Sixty (60) days. Any unilateral invoice surcharge not authorized by an executed GP1 §3.1 Change Order shall be automatically rejected.",
+    "insertions": [],
+    "deletions": [],
+    "vendor_comments": [],
+    "diff_html": "3.1 (a) Firm-Fixed-Price Lock: Unless expressly modified by a bilateral Change Order executed by Buyer's Vice President of Avionics Procurement referencing this GP1 §3.1 and Statement of Work (`SOW-AV-8921`) Schedule A, all unit prices ($150,000 per shipset across 300 C780/C730-MAX shipsets) and the forty-five million dollar ($45,000,000.00) total Contract ceiling are strictly Firm-Fixed-Price (`FFP`) and shall not be subject to uncapped surcharges, tariff pass-throughs, customs duty adjustments, foreign exchange fluctuations, or raw material commodity indexing. (b) Invoicing & Payment Integrity: Seller shall submit itemized electronic invoices upon DDP acceptance of each production lot at Buyer's Everett or Renton final assembly line, payable Net Sixty (60) days. Any unilateral invoice surcharge not authorized by an executed GP1 §3.1 Change Order shall be automatically rejected."
+  },
+  {
+    "clause_id": "GP1-05",
+    "proforma_doc": "GP1",
+    "clause_ref": "GP1 §5.2",
+    "clause_title": "Packing, Marking & Aerospace Preservation",
+    "sme_team": "ENGINEERING",
+    "sme_owner_label": "Supplier Logistics & Packaging",
+    "risk_level": "NONE",
+    "regulatory_flag": "ATA Spec 300 / D6-81628",
+    "has_redline": false,
+    "boeing_baseline_text": "5.2 (a) Flight-Critical Avionics Preservation: Seller shall clean, preserve, pack, mark, and ship all `FCC-900` Flight Control Computer LRUs in strict accordance with Cymbal Aerospace Supplier Packaging Specification `D6-81628` and Air Transport Association (`ATA`) Spec 300 Category I reusable container and MIL-STD-1686 Class 1 electro-static discharge (`ESD`) protection standards. (b) Traceability & Barcoding: Each individual LRU chassis and exterior shipping container shall bear permanent UID/GS1-128 serialized barcoding, shock-watch and tilt-indicator telemetry seals, desiccant humidity indicators, and an enclosed FAA Form 8130-3 Authorized Release Certificate. Any shipment arriving with tripped shock indicators or breached ESD shielding shall be rejected at Seller's sole expense.",
+    "vendor_redline_text": "5.2 (a) Flight-Critical Avionics Preservation: Seller shall clean, preserve, pack, mark, and ship all `FCC-900` Flight Control Computer LRUs in strict accordance with Cymbal Aerospace Supplier Packaging Specification `D6-81628` and Air Transport Association (`ATA`) Spec 300 Category I reusable container and MIL-STD-1686 Class 1 electro-static discharge (`ESD`) protection standards. (b) Traceability & Barcoding: Each individual LRU chassis and exterior shipping container shall bear permanent UID/GS1-128 serialized barcoding, shock-watch and tilt-indicator telemetry seals, desiccant humidity indicators, and an enclosed FAA Form 8130-3 Authorized Release Certificate. Any shipment arriving with tripped shock indicators or breached ESD shielding shall be rejected at Seller's sole expense.",
+    "insertions": [],
+    "deletions": [],
+    "vendor_comments": [],
+    "diff_html": "5.2 (a) Flight-Critical Avionics Preservation: Seller shall clean, preserve, pack, mark, and ship all `FCC-900` Flight Control Computer LRUs in strict accordance with Cymbal Aerospace Supplier Packaging Specification `D6-81628` and Air Transport Association (`ATA`) Spec 300 Category I reusable container and MIL-STD-1686 Class 1 electro-static discharge (`ESD`) protection standards. (b) Traceability & Barcoding: Each individual LRU chassis and exterior shipping container shall bear permanent UID/GS1-128 serialized barcoding, shock-watch and tilt-indicator telemetry seals, desiccant humidity indicators, and an enclosed FAA Form 8130-3 Authorized Release Certificate. Any shipment arriving with tripped shock indicators or breached ESD shielding shall be rejected at Seller's sole expense."
+  },
+  {
+    "clause_id": "GP1-07",
+    "proforma_doc": "GP1",
+    "clause_ref": "GP1 §7.1",
+    "clause_title": "Quality Management System (AS9100 Rev D)",
+    "sme_team": "ENGINEERING",
+    "sme_owner_label": "Supplier Quality Assurance",
+    "risk_level": "NONE",
+    "regulatory_flag": "AS9100 Rev D / D6-82479",
+    "has_redline": false,
+    "boeing_baseline_text": "7.1 (a) Accredited Aerospace QMS: Seller shall establish and maintain an IAQG-accredited `AS9100 Rev D` Quality Management System, `RTCA DO-178C` Design Assurance Level A (`DAL-A`) software lifecycle compliance, `RTCA DO-254` complex electronic hardware assurance, and Cymbal Aerospace Quality Management System Requirements for Suppliers (`D6-82479`) throughout Contract performance. (b) First Article Inspection & Sub-Tier Flowdown: Prior to initial production lot delivery, Seller shall complete a full `AS9102` First Article Inspection Report (`FAIR`) witnessed by Buyer's Supplier Quality Representative and shall flow down identical AS9100 Rev D and counterfeit electronic part avoidance (`AS5553`) controls to all sub-tier wafer foundries and forging sub-contractors.",
+    "vendor_redline_text": "7.1 (a) Accredited Aerospace QMS: Seller shall establish and maintain an IAQG-accredited `AS9100 Rev D` Quality Management System, `RTCA DO-178C` Design Assurance Level A (`DAL-A`) software lifecycle compliance, `RTCA DO-254` complex electronic hardware assurance, and Cymbal Aerospace Quality Management System Requirements for Suppliers (`D6-82479`) throughout Contract performance. (b) First Article Inspection & Sub-Tier Flowdown: Prior to initial production lot delivery, Seller shall complete a full `AS9102` First Article Inspection Report (`FAIR`) witnessed by Buyer's Supplier Quality Representative and shall flow down identical AS9100 Rev D and counterfeit electronic part avoidance (`AS5553`) controls to all sub-tier wafer foundries and forging sub-contractors.",
+    "insertions": [],
+    "deletions": [],
+    "vendor_comments": [],
+    "diff_html": "7.1 (a) Accredited Aerospace QMS: Seller shall establish and maintain an IAQG-accredited `AS9100 Rev D` Quality Management System, `RTCA DO-178C` Design Assurance Level A (`DAL-A`) software lifecycle compliance, `RTCA DO-254` complex electronic hardware assurance, and Cymbal Aerospace Quality Management System Requirements for Suppliers (`D6-82479`) throughout Contract performance. (b) First Article Inspection & Sub-Tier Flowdown: Prior to initial production lot delivery, Seller shall complete a full `AS9102` First Article Inspection Report (`FAIR`) witnessed by Buyer's Supplier Quality Representative and shall flow down identical AS9100 Rev D and counterfeit electronic part avoidance (`AS5553`) controls to all sub-tier wafer foundries and forging sub-contractors."
+  },
+  {
+    "clause_id": "GP1-09",
+    "proforma_doc": "GP1",
+    "clause_ref": "GP1 §9.1",
+    "clause_title": "Changes & Equitable Adjustment",
+    "sme_team": "PROCUREMENT",
+    "sme_owner_label": "Procurement & Subcontracts",
+    "risk_level": "NONE",
+    "regulatory_flag": "Cymbal Corporate GP1 Standard",
+    "has_redline": false,
+    "boeing_baseline_text": "9.1 (a) Directed Engineering & Schedule Changes: Buyer's Authorized Procurement Representative may at any time, by written Change Order without notice to sureties, direct changes within the general scope of this Contract in (i) drawings, avionics bus interface control documents (`ICDs`), or technical specifications, (ii) method of shipment or aerospace preservation, or (iii) place and schedule of delivery. Seller shall proceed immediately with performance of the Contract as changed. (b) Equitable Adjustment Claims: If any directed change under §9.1(a) causes a verified increase or decrease in the cost of or time required for performance, Seller must assert any claim for equitable adjustment in writing within thirty (30) calendar days from receipt of the written Change Order, supported by certified cost and pricing data.",
+    "vendor_redline_text": "9.1 (a) Directed Engineering & Schedule Changes: Buyer's Authorized Procurement Representative may at any time, by written Change Order without notice to sureties, direct changes within the general scope of this Contract in (i) drawings, avionics bus interface control documents (`ICDs`), or technical specifications, (ii) method of shipment or aerospace preservation, or (iii) place and schedule of delivery. Seller shall proceed immediately with performance of the Contract as changed. (b) Equitable Adjustment Claims: If any directed change under §9.1(a) causes a verified increase or decrease in the cost of or time required for performance, Seller must assert any claim for equitable adjustment in writing within thirty (30) calendar days from receipt of the written Change Order, supported by certified cost and pricing data.",
+    "insertions": [],
+    "deletions": [],
+    "vendor_comments": [],
+    "diff_html": "9.1 (a) Directed Engineering & Schedule Changes: Buyer's Authorized Procurement Representative may at any time, by written Change Order without notice to sureties, direct changes within the general scope of this Contract in (i) drawings, avionics bus interface control documents (`ICDs`), or technical specifications, (ii) method of shipment or aerospace preservation, or (iii) place and schedule of delivery. Seller shall proceed immediately with performance of the Contract as changed. (b) Equitable Adjustment Claims: If any directed change under §9.1(a) causes a verified increase or decrease in the cost of or time required for performance, Seller must assert any claim for equitable adjustment in writing within thirty (30) calendar days from receipt of the written Change Order, supported by certified cost and pricing data."
+  },
+  {
+    "clause_id": "GP1-12",
+    "proforma_doc": "GP1",
+    "clause_ref": "GP1 §12.2",
+    "clause_title": "Warranty & FAA Source Inspection",
+    "sme_team": "ENGINEERING",
+    "sme_owner_label": "Engineering & QA (FAA DER)",
+    "risk_level": "HIGH",
+    "regulatory_flag": "FAA 14 CFR Part 21 Lockout",
+    "has_redline": true,
+    "boeing_baseline_text": "12.2 (a) Airworthiness & Hardware/Firmware Warranty: Seller warrants all Goods, including `FCC-900` flight control hardware, triplex voting channels, and embedded `DO-178C DAL-A` avionics firmware, to be free from defects in design, material, and workmanship for thirty-six (36) months from initial aircraft delivery to Cymbal Aerospace's airline customer, and Seller shall repair or replace defective flight-critical LRUs on an Aircraft-on-Ground (`AOG`) 24-hour turnaround basis at Seller's expense. (b) Regulatory Source Surveillance: Cymbal Aerospace and Federal Aviation Administration (`FAA`) representatives may conduct unannounced source inspections at Seller's facility at any time to verify `AS9100 Rev D` quality compliance, `FAA 14 CFR Part 21.140` production certificate airworthiness conformity, and sub-tier test bench calibration records.",
+    "vendor_redline_text": "12.2 (a) Airworthiness & Hardware/Firmware Warranty: Seller warrants all Goods, including `FCC-900` flight control hardware, triplex voting channels, and embedded `DO-178C DAL-A` avionics firmware, to be free from defects in design, material, and workmanship for twelve (12) months from factory shipment, and Seller shall repair or replace defective flight-critical LRUs on an Aircraft-on-Ground (`AOG`) 24-hour turnaround basis at Seller's expense. (b) Regulatory Source Surveillance: Cymbal Aerospace and Federal Aviation Administration (`FAA`) representatives may conduct scheduled inspections upon thirty (30) days prior written notice to verify `AS9100 Rev D` quality compliance, `FAA 14 CFR Part 21.140` production certificate airworthiness conformity, and sub-tier test bench calibration records.",
+    "insertions": [
+      "twelve (12) months from factory shipment",
+      "scheduled inspections upon thirty (30) days prior written notice"
+    ],
+    "deletions": [
+      "thirty-six (36) months from initial aircraft delivery to Cymbal Aerospace's airline customer",
+      "unannounced source inspections at Seller's facility at any time"
+    ],
+    "vendor_comments": [
+      "Apex AeroSystems Legal: Our standard commercial avionics warranty is 12 months from ex-works factory shipment, and unannounced facility audits disrupt Class-100 cleanroom assembly shifts; we require 30 days advance written notice."
+    ],
+    "diff_html": "12.2 (a) Airworthiness & Hardware/Firmware Warranty: Seller warrants all Goods, including `FCC-900` flight control hardware, triplex voting channels, and embedded `DO-178C DAL-A` avionics firmware, to be free from defects in design, material, and workmanship for <span class=\"diff-del\">thirty-six (36) months from initial aircraft delivery to Cymbal Aerospace's airline customer</span><span class=\"diff-add\">twelve (12) months from factory shipment</span>, and Seller shall repair or replace defective flight-critical LRUs on an Aircraft-on-Ground (`AOG`) 24-hour turnaround basis at Seller's expense. (b) Regulatory Source Surveillance: Cymbal Aerospace and Federal Aviation Administration (`FAA`) representatives may conduct <span class=\"diff-del\">unannounced source inspections at Seller's facility at any time</span><span class=\"diff-add\">scheduled inspections upon thirty (30) days prior written notice</span> to verify `AS9100 Rev D` quality compliance, `FAA 14 CFR Part 21.140` production certificate airworthiness conformity, and sub-tier test bench calibration records."
+  },
+  {
+    "clause_id": "GP1-15",
+    "proforma_doc": "GP1",
+    "clause_ref": "GP1 §15.1",
+    "clause_title": "Termination for Convenience",
+    "sme_team": "LEGAL",
+    "sme_owner_label": "Corporate Legal & Commercial",
+    "risk_level": "NONE",
+    "regulatory_flag": "FAR 52.249-2 Aligned",
+    "has_redline": false,
+    "boeing_baseline_text": "15.1 (a) Unilateral Right to Terminate: Buyer may terminate all or any severable portion of this Contract for convenience at any time by written notice of termination to Seller. Upon receipt of such notice, Seller shall immediately stop all terminated work, place no further sub-tier purchase orders for raw materials or semiconductors, and protect all property in which Buyer has or may acquire an interest. (b) Termination Settlement & Cap: Seller's sole recovery upon termination for convenience, aligned with `FAR 52.249-2` principles, shall be limited to documented actual costs incurred for work-in-process prior to termination notice plus a reasonable profit on completed work, never to exceed the terminated portion of the GP1 §3.1 Firm-Fixed-Price Contract value, with zero recovery for anticipatory or consequential profits.",
+    "vendor_redline_text": "15.1 (a) Unilateral Right to Terminate: Buyer may terminate all or any severable portion of this Contract for convenience at any time by written notice of termination to Seller. Upon receipt of such notice, Seller shall immediately stop all terminated work, place no further sub-tier purchase orders for raw materials or semiconductors, and protect all property in which Buyer has or may acquire an interest. (b) Termination Settlement & Cap: Seller's sole recovery upon termination for convenience, aligned with `FAR 52.249-2` principles, shall be limited to documented actual costs incurred for work-in-process prior to termination notice plus a reasonable profit on completed work, never to exceed the terminated portion of the GP1 §3.1 Firm-Fixed-Price Contract value, with zero recovery for anticipatory or consequential profits.",
+    "insertions": [],
+    "deletions": [],
+    "vendor_comments": [],
+    "diff_html": "15.1 (a) Unilateral Right to Terminate: Buyer may terminate all or any severable portion of this Contract for convenience at any time by written notice of termination to Seller. Upon receipt of such notice, Seller shall immediately stop all terminated work, place no further sub-tier purchase orders for raw materials or semiconductors, and protect all property in which Buyer has or may acquire an interest. (b) Termination Settlement & Cap: Seller's sole recovery upon termination for convenience, aligned with `FAR 52.249-2` principles, shall be limited to documented actual costs incurred for work-in-process prior to termination notice plus a reasonable profit on completed work, never to exceed the terminated portion of the GP1 §3.1 Firm-Fixed-Price Contract value, with zero recovery for anticipatory or consequential profits."
+  },
+  {
+    "clause_id": "GP1-19",
+    "proforma_doc": "GP1",
+    "clause_ref": "GP1 §19 & §24",
+    "clause_title": "Limitation of Liability & IP Indemnity",
+    "sme_team": "LEGAL",
+    "sme_owner_label": "Corporate Legal & IP",
+    "risk_level": "CRITICAL",
+    "regulatory_flag": "Corporate Legal Playbook Tier-1",
+    "has_redline": true,
+    "boeing_baseline_text": "19.1 (a) Direct, Line-Stoppage & Airworthiness Recall Liability: Seller's aggregate liability to Cymbal Aerospace for direct damages, Everett/Renton final assembly line-stoppage costs, Fleet Airworthiness Directive (`AD`) grounding/retrofit campaigns, and airworthiness recall costs shall be uncapped. 24.1 (b) Intellectual Property Indemnification: Seller shall defend, indemnify, and hold harmless Cymbal Aerospace and its airline customers against all third-party patent, copyright, trade secret, and intellectual property infringement claims arising from the manufacture, sale, or use of the Goods including system-level avionics bus integration, and if any `FCC-900` unit is enjoined, Seller shall at its sole expense procure a perpetual royalty-free license or re-architect the infringing avionics module to maintain FAA type-design airworthiness.",
+    "vendor_redline_text": "19.1 (a) Direct, Line-Stoppage & Airworthiness Recall Liability: Seller's aggregate liability to Cymbal Aerospace for direct damages, Everett/Renton final assembly line-stoppage costs, Fleet Airworthiness Directive (`AD`) grounding/retrofit campaigns, and airworthiness recall costs shall not exceed one hundred percent (100%) of the total Purchase Order value ($45M). 24.1 (b) Intellectual Property Indemnification: Seller shall defend, indemnify, and hold harmless Cymbal Aerospace and its airline customers against all third-party patent, copyright, trade secret, and intellectual property infringement claims arising from the manufacture, sale, or use of the Goods except where such claim arises from combination of Goods with any Cymbal Aerospace or third-party flight control bus, and if any `FCC-900` unit is enjoined, Seller shall at its sole expense procure a perpetual royalty-free license or re-architect the infringing avionics module to maintain FAA type-design airworthiness.",
+    "insertions": [
+      "not exceed one hundred percent (100%) of the total Purchase Order value ($45M)",
+      " except where such claim arises from combination of Goods with any Cymbal Aerospace or third-party flight control bus"
+    ],
+    "deletions": [
+      "be uncapped",
+      " including system-level avionics bus integration"
+    ],
+    "vendor_comments": [
+      "Apex AeroSystems Legal: Board risk policy requires a strict 1x PO liability cap ($45M) across all direct/recall damages and a standard commercial carveout excluding IP claims arising from combination of our LRUs with Cymbal Aerospace's flight control bus."
+    ],
+    "diff_html": "19.1 (a) Direct, Line-Stoppage & Airworthiness Recall Liability: Seller's aggregate liability to Cymbal Aerospace for direct damages, Everett/Renton final assembly line-stoppage costs, Fleet Airworthiness Directive (`AD`) grounding/retrofit campaigns, and airworthiness recall costs shall <span class=\"diff-del\">be uncapped</span><span class=\"diff-add\">not exceed one hundred percent (100%) of the total Purchase Order value ($45M)</span>. 24.1 (b) Intellectual Property Indemnification: Seller shall defend, indemnify, and hold harmless Cymbal Aerospace and its airline customers against all third-party patent, copyright, trade secret, and intellectual property infringement claims arising from the manufacture, sale, or use of the Goods<span class=\"diff-del\"> including system-level avionics bus integration</span><span class=\"diff-add\"> except where such claim arises from combination of Goods with any Cymbal Aerospace or third-party flight control bus</span>, and if any `FCC-900` unit is enjoined, Seller shall at its sole expense procure a perpetual royalty-free license or re-architect the infringing avionics module to maintain FAA type-design airworthiness."
+  },
+  {
+    "clause_id": "GP1-28",
+    "proforma_doc": "GP1",
+    "clause_ref": "GP1 §28.1",
+    "clause_title": "Governing Law & Dispute Resolution",
+    "sme_team": "LEGAL",
+    "sme_owner_label": "Corporate Legal",
+    "risk_level": "NONE",
+    "regulatory_flag": "Delaware / Washington Law Standard",
+    "has_redline": false,
+    "boeing_baseline_text": "28.1 (a) Governing Law & Exclusive Venue: This Contract and all claims, controversies, or disputes arising hereunder shall be governed by and construed in accordance with the substantive laws of the State of Delaware, excluding its conflict of laws rules and excluding the United Nations Convention on Contracts for the International Sale of Goods (`CISG`). Exclusive judicial venue shall lie in the state or federal courts located in Wilmington, Delaware or King County, Washington. (b) Continuity of Flight-Critical Supply: Pending final resolution of any dispute, claim, or Change Order valuation, Seller shall proceed diligently with uninterrupted manufacture, testing, and delivery of all `FCC-900` flight control units in accordance with Buyer's production schedule.",
+    "vendor_redline_text": "28.1 (a) Governing Law & Exclusive Venue: This Contract and all claims, controversies, or disputes arising hereunder shall be governed by and construed in accordance with the substantive laws of the State of Delaware, excluding its conflict of laws rules and excluding the United Nations Convention on Contracts for the International Sale of Goods (`CISG`). Exclusive judicial venue shall lie in the state or federal courts located in Wilmington, Delaware or King County, Washington. (b) Continuity of Flight-Critical Supply: Pending final resolution of any dispute, claim, or Change Order valuation, Seller shall proceed diligently with uninterrupted manufacture, testing, and delivery of all `FCC-900` flight control units in accordance with Buyer's production schedule.",
+    "insertions": [],
+    "deletions": [],
+    "vendor_comments": [],
+    "diff_html": "28.1 (a) Governing Law & Exclusive Venue: This Contract and all claims, controversies, or disputes arising hereunder shall be governed by and construed in accordance with the substantive laws of the State of Delaware, excluding its conflict of laws rules and excluding the United Nations Convention on Contracts for the International Sale of Goods (`CISG`). Exclusive judicial venue shall lie in the state or federal courts located in Wilmington, Delaware or King County, Washington. (b) Continuity of Flight-Critical Supply: Pending final resolution of any dispute, claim, or Change Order valuation, Seller shall proceed diligently with uninterrupted manufacture, testing, and delivery of all `FCC-900` flight control units in accordance with Buyer's production schedule."
+  },
+  {
+    "clause_id": "SP3-02",
+    "proforma_doc": "SP3",
+    "clause_ref": "SP3 §2.1",
+    "clause_title": "Export Compliance (ITAR & EAR)",
+    "sme_team": "TAX",
+    "sme_owner_label": "Global Trade Controls",
+    "risk_level": "NONE",
+    "regulatory_flag": "22 CFR 120-130 (ITAR) / 15 CFR 730-774 (EAR)",
+    "has_redline": false,
+    "boeing_baseline_text": "2.1 (a) Export Control Regulatory Compliance: Seller shall comply with all applicable U.S. export control laws and regulations, including the International Traffic in Arms Regulations (`ITAR`, 22 CFR Parts 120–130) and the Export Administration Regulations (`EAR`, 15 CFR Parts 730–774), covering dual-use flight control algorithms (`ECCN 7A994` / `7E994`) and defense technical data. (b) Export Classification & Deemed Exports: Seller shall maintain active DDTC registration where applicable, furnish accurate ECCN/USML Commodity Jurisdiction classifications prior to first shipment, and prevent unauthorized deemed exports of Cymbal Aerospace technical data to foreign nationals without prior U.S. Department of State or Bureau of Industry and Security (`BIS`) authorization.",
+    "vendor_redline_text": "2.1 (a) Export Control Regulatory Compliance: Seller shall comply with all applicable U.S. export control laws and regulations, including the International Traffic in Arms Regulations (`ITAR`, 22 CFR Parts 120–130) and the Export Administration Regulations (`EAR`, 15 CFR Parts 730–774), covering dual-use flight control algorithms (`ECCN 7A994` / `7E994`) and defense technical data. (b) Export Classification & Deemed Exports: Seller shall maintain active DDTC registration where applicable, furnish accurate ECCN/USML Commodity Jurisdiction classifications prior to first shipment, and prevent unauthorized deemed exports of Cymbal Aerospace technical data to foreign nationals without prior U.S. Department of State or Bureau of Industry and Security (`BIS`) authorization.",
+    "insertions": [],
+    "deletions": [],
+    "vendor_comments": [],
+    "diff_html": "2.1 (a) Export Control Regulatory Compliance: Seller shall comply with all applicable U.S. export control laws and regulations, including the International Traffic in Arms Regulations (`ITAR`, 22 CFR Parts 120–130) and the Export Administration Regulations (`EAR`, 15 CFR Parts 730–774), covering dual-use flight control algorithms (`ECCN 7A994` / `7E994`) and defense technical data. (b) Export Classification & Deemed Exports: Seller shall maintain active DDTC registration where applicable, furnish accurate ECCN/USML Commodity Jurisdiction classifications prior to first shipment, and prevent unauthorized deemed exports of Cymbal Aerospace technical data to foreign nationals without prior U.S. Department of State or Bureau of Industry and Security (`BIS`) authorization."
+  },
+  {
+    "clause_id": "SP3-04",
+    "proforma_doc": "SP3",
+    "clause_ref": "SP3 §4.1",
+    "clause_title": "Customs, Duties & International Tariffs",
+    "sme_team": "TAX",
+    "sme_owner_label": "Global Tax & Trade",
+    "risk_level": "MOD",
+    "regulatory_flag": "Cross-Clause SOW §3.1 Dependency",
+    "has_redline": true,
+    "boeing_baseline_text": "4.1 (a) Importer of Record & Customs Clearance: Seller shall act as Importer of Record for all imported sub-tier components, raw aerospace titanium forgings, and radiation-hardened semiconductor wafers. (b) Tariff & Duty Allocation: All unit prices in Statement of Work (`SOW-AV-8921`) Schedule A are DDP (Incoterms 2020) Cymbal Aerospace Everett/Renton facility and inclusive of all import duties, customs fees, and tariffs, and Seller shall cooperate with Buyer's Global Trade team on U.S. CBP duty drawback documentation.",
+    "vendor_redline_text": "4.1 (a) Importer of Record & Customs Clearance: Seller shall act as Importer of Record for all imported sub-tier components, raw aerospace titanium forgings, and radiation-hardened semiconductor wafers. (b) Tariff & Duty Allocation: All unit prices in Statement of Work (`SOW-AV-8921`) Schedule A are exclusive of any new or increased Section 232/301 tariffs on titanium forgings or semiconductor wafers exceeding five percent (5%), which shall be passed through 100% to Cymbal Aerospace, and Seller shall cooperate with Buyer's Global Trade team on U.S. CBP duty drawback documentation.",
+    "insertions": [
+      "exclusive of any new or increased Section 232/301 tariffs on titanium forgings or semiconductor wafers exceeding five percent (5%), which shall be passed through 100% to Cymbal Aerospace"
+    ],
+    "deletions": [
+      "DDP (Incoterms 2020) Cymbal Aerospace Everett/Renton facility and inclusive of all import duties, customs fees, and tariffs"
+    ],
+    "vendor_comments": [
+      "Apex AeroSystems Tax: Due to volatile Section 232/301 trade duties on European titanium forgings and Taiwanese semiconductor wafers, Seller cannot absorb open-ended tariff spikes under DDP pricing and requires 100% pass-through of tariff increases above 5%."
+    ],
+    "diff_html": "4.1 (a) Importer of Record & Customs Clearance: Seller shall act as Importer of Record for all imported sub-tier components, raw aerospace titanium forgings, and radiation-hardened semiconductor wafers. (b) Tariff & Duty Allocation: All unit prices in Statement of Work (`SOW-AV-8921`) Schedule A are <span class=\"diff-del\">DDP (Incoterms 2020) Cymbal Aerospace Everett/Renton facility and inclusive of all import duties, customs fees, and tariffs</span><span class=\"diff-add\">exclusive of any new or increased Section 232/301 tariffs on titanium forgings or semiconductor wafers exceeding five percent (5%), which shall be passed through 100% to Cymbal Aerospace</span>, and Seller shall cooperate with Buyer's Global Trade team on U.S. CBP duty drawback documentation."
+  },
+  {
+    "clause_id": "SP5-03",
+    "proforma_doc": "SP5",
+    "clause_ref": "SP5 §3.2",
+    "clause_title": "Cybersecurity Incident Reporting (DFARS)",
+    "sme_team": "CYBER",
+    "sme_owner_label": "Supplier Cyber Defense",
+    "risk_level": "HIGH",
+    "regulatory_flag": "DFARS 252.204-7012 Lockout",
+    "has_redline": true,
+    "boeing_baseline_text": "3.2 (a) CUI Safeguards & NIST SP 800-171 Rev 2 Compliance: Seller shall maintain an accredited Cybersecurity Maturity Model Certification (`CMMC 2.0 Level 2`) posture and implement all 110 security controls in `NIST SP 800-171 Rev 2` across all engineering networks storing or processing Cymbal Aerospace Covered Defense Information (`CDI`), Controlled Unclassified Information (`CUI`), or `FCC-900` flight control source code. (b) Mandatory Cyber Incident Reporting & Forensics: Pursuant to `DoD DFARS 252.204-7012`, Seller shall report any cybersecurity incident affecting Cymbal Aerospace CDI or technical data to Buyer's Cyber Security Operations Center (`CSOC`) and the DoD DIBNet portal within seventy-two (72) hours of discovery, preserve affected system media for ninety (90) days, and provide raw forensic log images and malware telemetry upon request.",
+    "vendor_redline_text": "3.2 (a) CUI Safeguards & NIST SP 800-171 Rev 2 Compliance: Seller shall maintain an accredited Cybersecurity Maturity Model Certification (`CMMC 2.0 Level 2`) posture and implement all 110 security controls in `NIST SP 800-171 Rev 2` across all engineering networks storing or processing Cymbal Aerospace Covered Defense Information (`CDI`), Controlled Unclassified Information (`CUI`), or `FCC-900` flight control source code. (b) Mandatory Cyber Incident Reporting & Forensics: Pursuant to `DoD DFARS 252.204-7012`, Seller shall report any cybersecurity incident affecting Cymbal Aerospace CDI or technical data to Buyer's Cyber Security Operations Center (`CSOC`) and the DoD DIBNet portal within ten (10) business days following confirmation of a material breach, preserve affected system media for ninety (90) days, and provide raw forensic log images and malware telemetry upon request.",
+    "insertions": [
+      "ten (10) business days following confirmation of a material breach"
+    ],
+    "deletions": [
+      "seventy-two (72) hours of discovery"
+    ],
+    "vendor_comments": [
+      "Apex AeroSystems CISO: Our internal Security Operations Center (SOC) requires 10 business days to complete forensic root-cause triage and confirm a material breach before issuing external customer notifications."
+    ],
+    "diff_html": "3.2 (a) CUI Safeguards & NIST SP 800-171 Rev 2 Compliance: Seller shall maintain an accredited Cybersecurity Maturity Model Certification (`CMMC 2.0 Level 2`) posture and implement all 110 security controls in `NIST SP 800-171 Rev 2` across all engineering networks storing or processing Cymbal Aerospace Covered Defense Information (`CDI`), Controlled Unclassified Information (`CUI`), or `FCC-900` flight control source code. (b) Mandatory Cyber Incident Reporting & Forensics: Pursuant to `DoD DFARS 252.204-7012`, Seller shall report any cybersecurity incident affecting Cymbal Aerospace CDI or technical data to Buyer's Cyber Security Operations Center (`CSOC`) and the DoD DIBNet portal within <span class=\"diff-del\">seventy-two (72) hours of discovery</span><span class=\"diff-add\">ten (10) business days following confirmation of a material breach</span>, preserve affected system media for ninety (90) days, and provide raw forensic log images and malware telemetry upon request."
+  }
+]
