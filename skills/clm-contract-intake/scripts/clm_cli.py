@@ -3988,10 +3988,7 @@ def main() -> None:
     p_state = sub.add_parser("state", help="Get full DealWorkbenchState and render Canvas Workbench")
     p_state.add_argument("--deal-id", default="BA-2026-AV-8921")
 
-    p_upload = sub.add_parser("upload-redline", help="Workflow 1 Step A: Check Adele Vance's inbound email and upload Vendor_Redlined_GP1.docx to the BA-2026-AV-8921 SharePoint folder")
-    p_upload.add_argument("--deal-id", default="BA-2026-AV-8921")
-
-    p_ingest = sub.add_parser("ingest", help="Workflow 1 Step B (clm-contract-intake): Compare Vendor_Redlined_GP1.docx vs Cymbal Playbook & BigQuery precedents, identify SME owners, and render Canvas Diff Workbench")
+    p_ingest = sub.add_parser("ingest", help="Workflow 1 (clm-contract-intake): Compare Vendor_Redlined_GP1.docx vs Cymbal Playbook & BigQuery precedents, identify SME owners, and render Canvas Diff Workbench")
     p_ingest.add_argument("--deal-id", default="BA-2026-AV-8921")
     p_ingest.add_argument("--vendor-docx-path", default="specs/04_golden_fixtures/Vendor_Redlined_GP1.docx")
     p_ingest.add_argument("--baseline-docx-path", default="specs/04_golden_fixtures/Cymbal_GP1_Standard.docx")
@@ -4068,43 +4065,6 @@ def main() -> None:
         state["canvas_workbench_html"] = str(canvas_path)
         print(json.dumps(state, indent=2))
 
-    elif args.cmd == "upload-redline":
-        fixture_vendor_docx = next(
-            (
-                p
-                for p in [
-                    SCRIPT_DIR.parent / "specs/04_golden_fixtures/Vendor_Redlined_GP1.docx",
-                    Path("/Users/rahulsankrut/Desktop/code/Cymbal Aerospace/specs/04_golden_fixtures/Vendor_Redlined_GP1.docx"),
-                    Path("/Users/rahulsankrut/Desktop/code/Cybmal Aerospace/specs/04_golden_fixtures/Vendor_Redlined_GP1.docx"),
-                ]
-                if p.exists()
-            ),
-            SCRIPT_DIR.parent / "specs/04_golden_fixtures/Vendor_Redlined_GP1.docx",
-        )
-        sp_vendor_upload = []
-        if fixture_vendor_docx.exists():
-            local_vendor_copy = Path.cwd() / "Vendor_Redlined_GP1.docx"
-            try:
-                if local_vendor_copy.resolve() != fixture_vendor_docx.resolve():
-                    shutil.copy2(fixture_vendor_docx, local_vendor_copy)
-            except Exception:
-                pass
-            sp_vendor_upload = upload_files_to_sharepoint([fixture_vendor_docx])
-
-        out = {
-            "deal_id": args.deal_id,
-            "inbound_outlook_email": {
-                "from": "Adele Vance <AdeleV@36zrbd.onmicrosoft.com>",
-                "to": "Rahul Kasanagottu <m365-admin@rahulsankrut.demo.altostrat.com>",
-                "subject": "[URGENT REDLINE] Deal BA-2026-AV-8921 — Apex AeroSystems Markup of Cymbal GP1 / SP3 / SP5 ($45,000,000 FCC-900 Flight Control Subsystem)",
-                "attachments": ["Vendor_Redlined_GP1.docx", "Apex_AeroSystems_Redline_Transmittal_Memo.docx"],
-            },
-            "sharepoint_folder_url": SHAREPOINT_FOLDER_WEB_URL,
-            "sharepoint_vendor_redline_upload": sp_vendor_upload,
-            "local_vendor_docx_path": str(Path.cwd() / "Vendor_Redlined_GP1.docx"),
-        }
-        print(json.dumps(out, indent=2))
-
     elif args.cmd == "ingest":
         cloud_res = try_cloud_json(
             "POST",
@@ -4117,29 +4077,6 @@ def main() -> None:
             state = json.loads(json.dumps(seed["initial_state"]))
         save_local_state(state)
 
-        # Copy Vendor_Redlined_GP1.docx from fixture to session workspace and upload to SharePoint folder
-        fixture_vendor_docx = next(
-            (
-                p
-                for p in [
-                    SCRIPT_DIR.parent / "specs/04_golden_fixtures/Vendor_Redlined_GP1.docx",
-                    Path("/Users/rahulsankrut/Desktop/code/Cymbal Aerospace/specs/04_golden_fixtures/Vendor_Redlined_GP1.docx"),
-                    Path("/Users/rahulsankrut/Desktop/code/Cybmal Aerospace/specs/04_golden_fixtures/Vendor_Redlined_GP1.docx"),
-                ]
-                if p.exists()
-            ),
-            SCRIPT_DIR.parent / "specs/04_golden_fixtures/Vendor_Redlined_GP1.docx",
-        )
-        sp_vendor_upload = []
-        if fixture_vendor_docx.exists():
-            local_vendor_copy = Path.cwd() / "Vendor_Redlined_GP1.docx"
-            try:
-                if local_vendor_copy.resolve() != fixture_vendor_docx.resolve():
-                    shutil.copy2(fixture_vendor_docx, local_vendor_copy)
-            except Exception:
-                pass
-            sp_vendor_upload = upload_files_to_sharepoint([fixture_vendor_docx])
-
         # Initialize the Working Review Document (`BA-2026-AV-8921_Working_Review.docx`) so every UI accept/edit/comment writes to it
         try:
             build_fresh_docx_and_xlsx(state, Path.cwd())
@@ -4151,7 +4088,6 @@ def main() -> None:
             state,
             active_clause_id="GP1-12",
             sme_drafts=sme_drafts,
-            sharepoint_uploads=sp_vendor_upload,
         )
 
         prec_map = seed.get("precedents", {})
@@ -4172,13 +4108,6 @@ def main() -> None:
             "deal_id": state["deal_id"],
             "vendor_name": state["vendor_name"],
             "contract_value_usd": state["contract_value_usd"],
-            "inbound_outlook_email": {
-                "from": "Adele Vance <AdeleV@36zrbd.onmicrosoft.com>",
-                "to": "Rahul Kasanagottu <m365-admin@rahulsankrut.demo.altostrat.com>",
-                "subject": "[URGENT REDLINE] Deal BA-2026-AV-8921 — Apex AeroSystems Markup of Cymbal GP1 / SP3 / SP5 ($45,000,000 FCC-900 Flight Control Subsystem)",
-                "attachments": ["Vendor_Redlined_GP1.docx", "Apex_AeroSystems_Redline_Transmittal_Memo.docx"],
-            },
-            "sharepoint_vendor_redline_upload": sp_vendor_upload,
             "playbook_compared_against": "Cymbal Tier-1 Avionics Contract Playbook (GP1 / SP3 / SP5 — Preferred Standards, Pre-Approved Tier-1 Fallbacks & Regulatory Lockouts)",
             "proforma_compared_against": "https://36zrbd.sharepoint.com/sites/CymbalAerospace/Shared%20Documents/BA-2026-AV-8921/Cymbal_GP1_Standard.docx",
             "working_review_docx": str(Path.cwd() / "BA-2026-AV-8921_Working_Review.docx"),
@@ -4385,11 +4314,9 @@ def main() -> None:
         save_local_state(state)
 
         if args.cmd == "consolidate":
-            sp_uploads = upload_files_to_sharepoint([docx_path, xlsx_path])
             canvas_path = generate_canvas_workbench_html(
                 state,
                 active_clause_id="GP1-19",
-                sharepoint_uploads=sp_uploads,
             )
             out = {
                 "deal_id": state["deal_id"],
@@ -4399,8 +4326,6 @@ def main() -> None:
                 "local_docx_path": str(docx_path),
                 "local_xlsx_path": str(xlsx_path),
                 "canvas_workbench_html": str(canvas_path),
-                "sharepoint_live_uploads": sp_uploads,
-                "next_step_hint": "To save or send the Final Counter-Proposal Reply Email with .docx & .xlsx attachments in Microsoft Outlook, run `clm-comms` (`clm_cli.py draft-vendor-reply --deal-id BA-2026-AV-8921`).",
             }
             print(json.dumps(out, indent=2))
         elif args.cmd == "draft-vendor-reply":

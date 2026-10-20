@@ -60,10 +60,13 @@ Before starting the demo, run (or say **`"Bake CLM demo"`** in chat):
 **Prompt 4A (Verify Precedents Across All 4 Redlined Positions):**
 > *"Check our historical precedents in BigQuery across all 4 redlined positions, including GP1 §19 Limitation of Liability and IP Indemnity."*
 
-**Prompt 4B (Consolidate Final Counter-Proposal Package & Upload to SharePoint):**
-> *"Consolidate all approved counter-positions and reviewer comments into the final Counter-Proposal Word document and Deviation Matrix Excel sheet, and upload them to SharePoint."*
+**Prompt 4B (Consolidate Final Counter-Proposal Package):**
+> *"Consolidate all approved counter-positions and reviewer comments into the final Counter-Proposal Word document and Deviation Matrix Excel sheet."*
 
-**Prompt 4C (Draft Reply Email to Vendor with Attachments):**
+**Prompt 4C (Explicitly Upload Final Package to SharePoint):**
+> *"Upload the final Counter-Proposal Word document and Deviation Matrix Excel sheet to the BA-2026-AV-8921 folder in SharePoint."*
+
+**Prompt 4D (Draft Reply Email to Vendor with Attachments):**
 > *"Draft a reply email to Adele Vance in Outlook with the final Counter-Proposal Word document and Deviation Matrix attached."*
 *(Or say *"Send the reply email to Adele Vance..."* to send immediately.)*
 
