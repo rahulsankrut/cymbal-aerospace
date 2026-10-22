@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cymbal CLM — Short-Form Deal Triage Widget (BA-2026-AV-8921)</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <script src="http://127.0.0.1:58921/preload.js" onerror="window.__sparkCanvasMode=true"></script>
+  <style>
+    * { box-sizing: border-box; }
+    .clause-row { transition: background-color 0.15s ease, border-color 0.15s ease; }
+    .clause-row:hover { background-color: var(--accent, rgba(99, 102, 241, 0.08)); }
+  </style>
+</head>
+<body class="bg-transparent text-[var(--foreground)] antialiased p-3">
+  <div class="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm">
+    <!-- Top Header: Deal Identity + Expand to Full Sidecar CTA -->
+    <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[var(--border)]">
+      <div class="flex items-center gap-2.5">
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-amber-500/15 text-amber-500 border border-amber-500/30">
+          4 / 12 Redlined
+        </span>
+        <div>
+          <div class="text-sm font-semibold text-[var(--foreground)]">
+            Deal BA-2026-AV-8921 · Apex AeroSystems Inc. ($45.0M)
+          </div>
+          <div class="text-xs text-[var(--muted-foreground)]">
+            Short-Form Chat Triage Widget · 8 Playbook Clauses Unchanged · 1 Active Conflict(s)
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5">
+        <button
+          onclick="expandFullSidecar('/tax-workbench')"
+          class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-[var(--border)] bg-[var(--accent)] text-[var(--foreground)] hover:opacity-90 transition cursor-pointer"
+          title="Open Tunneled Tax SME Workbench in Sidecar"
+        >
+          ⚖️ Tax View
+        </button>
+        <button
+          id="expandSidecarBtn"
+          onclick="expandFullSidecar('/')"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--primary)] text-[var(--primary-foreground,#ffffff)] hover:opacity-90 transition cursor-pointer shadow-xs"
+          title="Toggle the full Cymbal CLM Sidecar Workbench in the right-hand Auxiliary Pane"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4" />
+          </svg>
+          Expand Full Sidecar
+        </button>
+      </div>
+    </div>
+
+    <!-- Interactive Filter Strip -->
+    <div class="flex items-center justify-between gap-2 my-2.5">
+      <div class="flex items-center gap-1.5">
+        <button onclick="filterClauses('all')" id="tab-all" class="px-2.5 py-1 rounded-md text-xs font-semibold bg-[var(--accent)] text-[var(--foreground)] cursor-pointer">
+          All Exceptions (4)
+        </button>
+        <button onclick="filterClauses('lockout')" id="tab-lockout" class="px-2.5 py-1 rounded-md text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer">
+          Hard Lockouts (4)
+        </button>
+        <button onclick="filterClauses('conflict')" id="tab-conflict" class="px-2.5 py-1 rounded-md text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer">
+          SOW Conflicts (1)
+        </button>
+      </div>
+      <span id="statusToast" class="text-xs font-medium text-emerald-500 hidden"></span>
+    </div>
+
+    <!-- Compact Redline Exception List -->
+    <div id="clauseList" class="space-y-1.5">
+      
+      <div data-kind="lockout" onclick="selectClause('GP1-12', 'GP1 §12.2 Warranty &amp; FAA Source Inspection', '/')" class="clause-row flex items-center justify-between gap-2 p-2 rounded-lg border border-red-500/30 bg-red-500/5 cursor-pointer">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="px-1.5 py-0.5 rounded text-xs font-mono font-semibold bg-red-500/20 text-red-500">GP1 §12.2</span>
+          <span class="text-xs font-medium text-[var(--foreground)] truncate">Warranty &amp; FAA Source Inspection</span>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <span class="text-xs text-[var(--muted-foreground)]">🔒 88% Held Firm Lockout</span>
+          <span class="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/15 text-emerald-500">✓ Dr. Aris Thorne</span>
+        </div>
+      </div>
+
+      <div data-kind="lockout" onclick="selectClause('GP1-19', 'GP1 §19 &amp; §24 Limitation of Liability &amp; IP Indemnity', '/')" class="clause-row flex items-center justify-between gap-2 p-2 rounded-lg border border-red-500/30 bg-red-500/5 cursor-pointer">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="px-1.5 py-0.5 rounded text-xs font-mono font-semibold bg-red-500/20 text-red-500">GP1 §19 &amp; §24</span>
+          <span class="text-xs font-medium text-[var(--foreground)] truncate">Limitation of Liability &amp; IP Indemnity</span>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <span class="text-xs text-[var(--muted-foreground)]">🔒 25% Held Firm Lockout</span>
+          <span class="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/15 text-emerald-500">✓ Elena Rostova, J.D.</span>
+        </div>
+      </div>
+
+      <div data-kind="lockout" onclick="selectClause('SP3-04', 'SP3 §4.1 Customs, Duties &amp; International Tariffs', '/tax-workbench')" class="clause-row flex items-center justify-between gap-2 p-2 rounded-lg border border-red-500/30 bg-red-500/5 cursor-pointer">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="px-1.5 py-0.5 rounded text-xs font-mono font-semibold bg-red-500/20 text-red-500">SP3 §4.1</span>
+          <span class="text-xs font-medium text-[var(--foreground)] truncate">Customs, Duties &amp; International Tariffs</span>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <span class="text-xs text-[var(--muted-foreground)]">🔒 31% Held Firm Lockout</span>
+          <span class="px-2 py-0.5 rounded text-xs font-medium bg-[var(--accent)] text-[var(--foreground)]">TAX · Marcus Chen, CPA</span>
+        </div>
+      </div>
+
+      <div data-kind="lockout" onclick="selectClause('SP5-03', 'SP5 §3.2 Cybersecurity Incident Reporting (DFARS)', '/')" class="clause-row flex items-center justify-between gap-2 p-2 rounded-lg border border-red-500/30 bg-red-500/5 cursor-pointer">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="px-1.5 py-0.5 rounded text-xs font-mono font-semibold bg-red-500/20 text-red-500">SP5 §3.2</span>
+          <span class="text-xs font-medium text-[var(--foreground)] truncate">Cybersecurity Incident Reporting (DFARS)</span>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <span class="text-xs text-[var(--muted-foreground)]">🔒 94% Held Firm Lockout</span>
+          <span class="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/15 text-emerald-500">✓ Capt. Devon Brooks</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Embedded Mini-Chat / Action Bar (Forwards Query to Main Agent) -->
+    <div class="mt-3 pt-2.5 border-t border-[var(--border)] flex items-center gap-2">
+      <input
+        id="agentQueryInput"
+        type="text"
+        value="Draft the 4 SME review emails in Outlook for Deal BA-2026-AV-8921"
+        placeholder="Ask main agent about a clause or trigger a CLM action..."
+        onkeydown="if(event.key==='Enter')sendQueryToMainAgent()"
+        class="flex-1 px-3 py-1.5 rounded-lg text-xs border border-[var(--border)] bg-transparent text-[var(--foreground)] focus:outline-none"
+      />
+      <button
+        onclick="sendQueryToMainAgent()"
+        class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-[var(--border)] bg-[var(--accent)] text-[var(--foreground)] hover:opacity-90 transition cursor-pointer shrink-0"
+      >
+        Send to Main Agent ↵
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = (window.location.protocol === 'http:' || window.location.protocol === 'https:')
+      ? window.location.origin
+      : 'http://127.0.0.1:58921';
+
+    function showToast(msg) {
+      const el = document.getElementById('statusToast');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      setTimeout(() => el.classList.add('hidden'), 4000);
+    }
+
+    function filterClauses(kind) {
+      ['all', 'lockout', 'conflict'].forEach(k => {
+        const btn = document.getElementById('tab-' + k);
+        if (k === kind) {
+          btn.className = 'px-2.5 py-1 rounded-md text-xs font-semibold bg-[var(--accent)] text-[var(--foreground)] cursor-pointer';
+        } else {
+          btn.className = 'px-2.5 py-1 rounded-md text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer';
+        }
+      });
+      document.querySelectorAll('#clauseList > div').forEach(row => {
+        if (kind === 'all' || row.getAttribute('data-kind') === kind) {
+          row.style.display = 'flex';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+
+    function selectClause(clauseId, label, viewPath) {
+      const input = document.getElementById('agentQueryInput');
+      input.value = `Analyze ${label} on Deal BA-2026-AV-8921 and recommend our counter-position`;
+      expandFullSidecar(viewPath);
+    }
+
+    function expandFullSidecar(viewPath) {
+      if (window.sidecar && window.sidecar.ui && window.sidecar.ui.toggleAuxPane) {
+        window.sidecar.ui.toggleAuxPane({
+          pluginName: 'cymbal-aerospace-clm',
+          sidecarName: 'cymbal-clm-workbench',
+          viewPath: viewPath || '/'
+        });
+        showToast('Opened Sidecar Workbench (' + (viewPath || '/') + ')');
+        return;
+      }
+      window.parent.postMessage({
+        type: 'toggle-aux-pane',
+        payload: {
+          pluginName: 'cymbal-aerospace-clm',
+          sidecarName: 'cymbal-clm-workbench',
+          viewPath: viewPath || '/'
+        }
+      }, '*');
+      showToast('Opened Sidecar Workbench (' + (viewPath || '/') + ')');
+    }
+
+    async function sendQueryToMainAgent() {
+      const input = document.getElementById('agentQueryInput');
+      const query = (input.value || '').trim();
+      if (!query) return;
+
+      if (window.sidecar && window.sidecar.agent && window.sidecar.agent.sendMessage && !window.__sparkCanvasMode) {
+        try {
+          await window.sidecar.agent.sendMessage(query);
+          showToast('✓ Sent to Main Agent Chat!');
+          return;
+        } catch (_) {}
+      }
+
+      try {
+        const r = await fetch(`${API_BASE}/api/ask-agent`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            deal_id: 'BA-2026-AV-8921',
+            clause_id: 'GP1-19',
+            prompt: query,
+            raw_prompt: query
+          })
+        });
+        if (r.ok) {
+          const data = await r.json();
+          showToast(data.toast || '✓ Sent to Main Agent Chat!');
+          return;
+        }
+      } catch (_) {}
+
+      showToast('✓ Sent to Main Agent Chat!');
+    }
+  </script>
+</body>
+</html>

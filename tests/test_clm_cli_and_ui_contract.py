@@ -408,4 +408,50 @@ def test_three_deal_portfolio_stages_and_finance_legal_conflict_resolution(tmp_p
     assert counter_d3.exists() and xlsx_d3.exists()
 
 
+def test_generative_ui_inline_widget_and_sidecar_embedded_chat(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Verify Short-Form Inline Triage Widget, Sidecar Embedded Agent Chat Bar, and preload.js SDK."""
+    from skills.clm_cli import (
+        SIDECAR_PRELOAD_JS_SCRIPT,
+        build_deal_initial_state,
+        fetch_live_precedents_map,
+        generate_canvas_workbench_html,
+        generate_inline_triage_widget_html,
+        generate_tax_reviewer_workbench_html,
+    )
+
+    monkeypatch.chdir(tmp_path)
+    state = DealWorkbenchState.model_validate(build_deal_initial_state("BA-2026-AV-8921")).model_dump(mode="json")
+
+    # 1. Verify Short-Form Inline Triage Widget (<agent-embed>)
+    widget_path = generate_inline_triage_widget_html(state)
+    assert widget_path.exists()
+    widget_html = widget_path.read_text(encoding="utf-8")
+    assert "https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js" in widget_html
+    assert "Expand Full Sidecar" in widget_html
+    assert "toggleAuxPane" in widget_html
+    assert "Send to Main Agent" in widget_html
+    assert "h-screen" not in widget_html and "100vh" not in widget_html
+
+    # 2. Verify Sidecar Embedded Agent Chat Bar in Main Workbench & Tax Workbench
+    wb_html = generate_canvas_workbench_html(state).read_text(encoding="utf-8")
+    assert "Embedded Sidecar Agent Chat" in wb_html
+    assert "sendEmbeddedAgentPrompt" in wb_html
+    assert "window.sidecar.agent.sendMessage" in wb_html
+
+    prec_map = fetch_live_precedents_map(state)
+    tax_html = generate_tax_reviewer_workbench_html(state, prec_map.get("SP3-04", {})).read_text(encoding="utf-8")
+    assert "Embedded Sidecar Agent Chat" in tax_html
+    assert "sendTaxAgentPrompt" in tax_html
+    assert "window.sidecar.agent.sendMessage" in tax_html
+
+    # 3. Verify preload.js SDK contract
+    assert "window.sidecar =" in SIDECAR_PRELOAD_JS_SCRIPT
+    assert "sendMessage(message, convId)" in SIDECAR_PRELOAD_JS_SCRIPT
+    assert "toggleAuxPane(request)" in SIDECAR_PRELOAD_JS_SCRIPT
+    assert "window.__sparkCanvasMode" in SIDECAR_PRELOAD_JS_SCRIPT
+
+
+
 

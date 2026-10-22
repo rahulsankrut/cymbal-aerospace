@@ -50,5 +50,6 @@ Using the JSON output returned by `scripts/intake.py`:
      - Recommended Counter-Position (`recommended_counter_position`)
 3. **Active Cross-Clause Conflicts**:
    - Surface any active cross-clause conflicts reported in `active_conflicts` (such as `rule_id`, `source_clause_id`, `conflicting_clause_id`, and `description`).
-4. **Open the Interactive Reviewer UI in Spark Canvas**:
-   - Output a clickable Markdown file link to `[cymbal_clm_redline_workbench.html](cymbal_clm_redline_workbench.html)` so the user can click it to open the **Word 365 & Playbook Review Workbench** in the right-hand Canvas pane.
+4. **Open the Interactive Reviewer UI (Antigravity Sidecar & Spark Canvas)**:
+   - Output a clickable Markdown file link to `[cymbal_clm_redline_workbench.html](cymbal_clm_redline_workbench.html)` so the user can open the **Word 365 & Playbook Review Workbench** in Spark Canvas, alongside the Antigravity Sidecar pill links `[Cymbal CLM Workbench](sidecar://cymbal-aerospace-clm/cymbal-clm-workbench/)` and `[Cymbal Tax & Tariff Review](sidecar://cymbal-aerospace-clm/cymbal-clm-workbench/tax-workbench)`.
+   - In Antigravity, if the conversation artifact directory (`<appDataDir>/brain/<conversation-id>/clm_inline_triage_widget.html`) is available, you may also embed the Short-Form Inline Triage Widget right in chat via `<agent-embed src="file:///<appDataDir>/brain/<conversation-id>/clm_inline_triage_widget.html"></agent-embed>`.

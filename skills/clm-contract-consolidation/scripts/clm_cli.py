@@ -2401,6 +2401,35 @@ def generate_canvas_workbench_html(
     .prec-table {{ width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; background: #fff; border-radius: 8px; overflow: hidden; }}
     .prec-table th {{ background: var(--pastel-indigo-bg); padding: 8px 9px; text-align: left; border-bottom: 1px solid var(--pastel-indigo-border); color: var(--pastel-indigo-text); font-weight: 800; font-size: 10.5px; text-transform: uppercase; }}
     .prec-table td {{ padding: 9px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }}
+
+    /* Sticky Embedded Agent Co-Pilot & Sidecar-to-Main-Chat Bar */
+    .embedded-agent-dock {{
+      position: sticky;
+      bottom: 8px;
+      z-index: 40;
+      margin-top: 14px;
+      background: linear-gradient(135deg, rgba(238, 242, 255, 0.97) 0%, rgba(255, 255, 255, 0.98) 55%, rgba(243, 232, 255, 0.97) 100%);
+      border: 1.5px solid var(--pastel-indigo-border);
+      border-radius: 14px;
+      padding: 10px 14px;
+      box-shadow: 0 8px 24px rgba(49, 46, 129, 0.12);
+      backdrop-filter: blur(8px);
+    }}
+    .agent-chip {{
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      background: #ffffff;
+      color: var(--pastel-indigo-text);
+      border: 1px solid var(--pastel-indigo-border);
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }}
+    .agent-chip:hover {{
+      background: var(--pastel-indigo-bg);
+      border-color: #6366f1;
+    }}
   </style>
 </head>
 <body>
@@ -2427,6 +2456,7 @@ def generate_canvas_workbench_html(
   <div class="workspace-container">
     <div id="toast-container"></div>
     <div id="main-stage"></div>
+    <div id="embedded-agent-dock"></div>
   </div>
 
   <script>
@@ -2499,6 +2529,7 @@ def generate_canvas_workbench_html(
         this.activeDrawer = 'NONE'; // NONE | REWRITE | COMMENT
         this.selectedGraphNode = 'SP3-04';
         this.toastMessage = '';
+        this.agentChatHistory = [];
         this.renderAll();
       }}
 
@@ -2704,27 +2735,187 @@ def generate_canvas_workbench_html(
       }}
 
       async triggerAgentWorkflow(promptText, fallbackCmd) {{
-        if (window.sidecar && window.sidecar.agent && typeof window.sidecar.agent.sendMessage === 'function') {{
-          await window.sidecar.agent.sendMessage(promptText);
-          this.toastMessage = `✦ Sent to Agent Co-Pilot: "${{promptText}}"`;
-          this.renderAll();
-          return;
+        // 1. In Antigravity Sidecar Mode, pass query directly to Main Agent Conversation via window.sidecar.agent.sendMessage
+        if (window.sidecar && window.sidecar.agent && typeof window.sidecar.agent.sendMessage === 'function' && !window.__sparkCanvasMode) {{
+          try {{
+            await window.sidecar.agent.sendMessage(promptText);
+            this.toastMessage = `✦ Forwarded to Main Agent Chat: "${{promptText}}"`;
+            this.agentChatHistory.unshift({{
+              prompt: promptText,
+              reply: '✓ Forwarded directly to your active Antigravity Main Agent chat window via window.sidecar.agent.sendMessage.',
+              mode: 'ANTIGRAVITY_MAIN_CHAT'
+            }});
+            this.renderAll();
+            return;
+          }} catch (err) {{
+            // Fall through to loopback bridge
+          }}
         }}
-        try {{
-          const resp = await fetch(`${{API_BASE}}/run`, {{
-            method: 'POST',
-            headers: {{ 'Content-Type': 'application/json' }},
-            body: JSON.stringify({{ argv: fallbackCmd, cwd: this.data.cwd }})
-          }});
-          if (resp.ok) {{
-            this.toastMessage = `✓ Executed Workflow (${{fallbackCmd.join(' ')}}) • Prompt: "${{promptText}}"`;
-          }} else {{
+        // 2. Also try POST /_sidecar/send-message on loopback bridge (works even from file:// if Antigravity is running)
+        if (!fallbackCmd) {{
+          try {{
+            const sResp = await fetch(`${{API_BASE}}/_sidecar/send-message`, {{
+              method: 'POST',
+              headers: {{ 'Content-Type': 'application/json' }},
+              body: JSON.stringify({{ message: promptText }})
+            }});
+            if (sResp.ok) {{
+              this.toastMessage = `✦ Forwarded to Main Agent Chat: "${{promptText}}"`;
+              this.agentChatHistory.unshift({{
+                prompt: promptText,
+                reply: '✓ Forwarded directly to your active Antigravity Main Agent chat window via agentapi.',
+                mode: 'ANTIGRAVITY_MAIN_CHAT'
+              }});
+              this.renderAll();
+              return;
+            }}
+          }} catch (_) {{}}
+        }}
+        // 3. Fallback for Spark Canvas or direct CLI workflow execution
+        if (fallbackCmd && fallbackCmd.length) {{
+          try {{
+            const resp = await fetch(`${{API_BASE}}/run`, {{
+              method: 'POST',
+              headers: {{ 'Content-Type': 'application/json' }},
+              body: JSON.stringify({{ argv: fallbackCmd, cwd: this.data.cwd }})
+            }});
+            if (resp.ok) {{
+              this.toastMessage = `✓ Executed Workflow (${{fallbackCmd.join(' ')}}) • Prompt: "${{promptText}}"`;
+              this.agentChatHistory.unshift({{
+                prompt: promptText,
+                reply: `✓ Executed live via CLM Bridge (${{fallbackCmd.join(' ')}}).`,
+                mode: 'SPARK_BRIDGE'
+              }});
+            }} else {{
+              this.toastMessage = `✦ Triggered Workflow: "${{promptText}}"`;
+            }}
+          }} catch (e) {{
             this.toastMessage = `✦ Triggered Workflow: "${{promptText}}"`;
           }}
-        }} catch (e) {{
-          this.toastMessage = `✦ Triggered Workflow: "${{promptText}}"`;
         }}
         this.renderAll();
+      }}
+
+      async sendEmbeddedAgentPrompt(presetPrompt, fallbackCmd) {{
+        const clause = this.getActiveClause();
+        const inputEl = document.getElementById('sidecar-agent-chat-input');
+        const rawQuery = (presetPrompt || (inputEl ? inputEl.value : '') || '').trim();
+        if (!rawQuery) return;
+        if (inputEl && !presetPrompt) inputEl.value = '';
+
+        const contextualPrompt = rawQuery.includes(this.data.deal.deal_id)
+          ? rawQuery
+          : `[Deal ${{this.data.deal.deal_id}} • Active Clause ${{clause.clause_ref}} (${{clause.clause_title}})] ${{rawQuery}}`;
+
+        // Try Antigravity window.sidecar.agent.sendMessage first
+        if (window.sidecar && window.sidecar.agent && typeof window.sidecar.agent.sendMessage === 'function' && !window.__sparkCanvasMode) {{
+          try {{
+            await window.sidecar.agent.sendMessage(contextualPrompt);
+            this.toastMessage = `💬 Sent to Main Agent Chat: "${{rawQuery}}"`;
+            this.agentChatHistory.unshift({{
+              prompt: rawQuery,
+              reply: `✓ Injected into Main Agent Conversation with context (${{this.data.deal.deal_id}} • ${{clause.clause_ref}}). Check the main chat pane for the agent's live response.`,
+              mode: 'ANTIGRAVITY_MAIN_CHAT'
+            }});
+            this.renderAll();
+            return;
+          }} catch (_) {{}}
+        }}
+
+        // Call unified /api/ask-agent endpoint (which attempts agentapi send-message first, then Gemini 2.5 Flash / CLI fallback for Spark)
+        this.toastMessage = `💬 Sending to Agent Co-Pilot: "${{rawQuery}}"...`;
+        this.renderToast();
+        try {{
+          const resp = await fetch(`${{API_BASE}}/api/ask-agent`, {{
+            method: 'POST',
+            headers: {{ 'Content-Type': 'application/json' }},
+            body: JSON.stringify({{
+              deal_id: this.data.deal.deal_id,
+              clause_id: clause.clause_id,
+              prompt: contextualPrompt,
+              raw_prompt: rawQuery,
+              fallback_cmd: fallbackCmd || null,
+              cwd: this.data.cwd
+            }})
+          }});
+          if (resp.ok) {{
+            const resData = await resp.json();
+            this.toastMessage = resData.toast || `✓ Agent Co-Pilot processed: "${{rawQuery}}"`;
+            this.agentChatHistory.unshift({{
+              prompt: rawQuery,
+              reply: resData.reply || '✓ Sent to Main Agent Conversation.',
+              mode: resData.mode || 'HYBRID_COPILOT'
+            }});
+            this.renderAll();
+            return;
+          }}
+        }} catch (_) {{}}
+
+        if (fallbackCmd) {{
+          await this.triggerAgentWorkflow(contextualPrompt, fallbackCmd);
+        }}
+      }}
+
+      renderEmbeddedAgentDock() {{
+        const clause = this.getActiveClause();
+        const dealId = this.data.deal.deal_id;
+        const latestMsg = this.agentChatHistory[0] || null;
+        return `
+          <div class="embedded-agent-dock">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <span class="pill pill-indigo" style="font-size:10.5px;">
+                  💬 Embedded Sidecar Agent Chat
+                </span>
+                <span style="font-size:11.5px;font-weight:700;color:var(--pastel-indigo-text);">
+                  Context: <strong>${{dealId}}</strong> • <strong>${{clause.clause_ref}} — ${{escapeHtml(clause.clause_title)}}</strong> (${{clause.sme_team}})
+                </span>
+              </div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button class="agent-chip" onclick="window.app.sendEmbeddedAgentPrompt('Route the 4 redlined clauses for Deal ${{dealId}} to the SME owners in Outlook Drafts using clm-comms.', ['route-smes', '--deal-id', '${{dealId}}'])">
+                  📧 Route 4 SME Drafts
+                </button>
+                <button class="agent-chip" onclick="window.app.sendEmbeddedAgentPrompt('Poll my Outlook Inbox for SME review replies on Deal ${{dealId}} and update the working review document.', ['poll-inbox', '--deal-id', '${{dealId}}'])">
+                  🔄 Poll Inbox Replies
+                </button>
+                <button class="agent-chip" onclick="window.app.sendEmbeddedAgentPrompt('Analyze BigQuery historical precedents and Playbook guardrails for ${{clause.clause_ref}} (${{escapeHtml(clause.clause_title)}}) on Deal ${{dealId}} and recommend our counter-position.')">
+                  📊 Ask About ${{clause.clause_ref}} Precedents
+                </button>
+                <button class="agent-chip" onclick="window.app.sendEmbeddedAgentPrompt('Consolidate all approved counter-positions for Deal ${{dealId}} into the final Word Counter-Proposal and Excel Deviation Matrix.', ['consolidate', '--deal-id', '${{dealId}}'])">
+                  📦 Consolidate .docx &amp; .xlsx
+                </button>
+              </div>
+            </div>
+
+            ${{latestMsg ? `
+              <div style="background:#ffffff;border:1px solid var(--pastel-indigo-border);border-radius:9px;padding:8px 11px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                <div style="font-size:12px;line-height:1.45;">
+                  <div style="font-weight:800;color:var(--pastel-indigo-text);">You → Main Agent: "${{escapeHtml(latestMsg.prompt)}}"</div>
+                  <div style="color:var(--ink-secondary);margin-top:2px;">${{escapeHtml(latestMsg.reply)}}</div>
+                </div>
+                <button class="btn-outline" style="padding:2px 7px;font-size:10px;white-space:nowrap;" onclick="window.app.agentChatHistory=[];window.app.renderEmbeddedAgentDock();">Clear</button>
+              </div>
+            ` : ''}}
+
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input
+                id="sidecar-agent-chat-input"
+                type="text"
+                class="author-input"
+                style="flex:1;margin:0;padding:8px 12px;font-size:12.5px;background:#ffffff;"
+                placeholder="Ask Main Agent about ${{clause.clause_ref}} or trigger any CLM workflow (passes query back to Main Chat)..."
+                onkeydown="if(event.key==='Enter')window.app.sendEmbeddedAgentPrompt()"
+              />
+              <button
+                class="action-btn rewrite-btn"
+                style="padding:8px 14px;white-space:nowrap;"
+                onclick="window.app.sendEmbeddedAgentPrompt()"
+              >
+                💬 Send to Main Agent ↵
+              </button>
+            </div>
+          </div>
+        `;
       }}
 
       async submitReviewAction(actionType) {{
@@ -2804,6 +2995,10 @@ def generate_canvas_workbench_html(
           stage.innerHTML = this.renderPastelDependencyGraph();
         }} else if (this.viewMode === 'PRE_CONSOLIDATION') {{
           stage.innerHTML = this.renderPreConsolidationStatusPage();
+        }}
+        const dock = document.getElementById('embedded-agent-dock');
+        if (dock) {{
+          dock.innerHTML = this.renderEmbeddedAgentDock();
         }}
       }}
 
@@ -4352,6 +4547,47 @@ def generate_tax_reviewer_workbench_html(state: Dict[str, Any], tax_prec: Dict[s
       </div>
     </div>
   </div>
+
+  <!-- Sticky Embedded Agent Co-Pilot & Sidecar-to-Main-Chat Bar (Tax SME Scope) -->
+  <div style="position:sticky;bottom:8px;z-index:40;margin-top:14px;background:linear-gradient(135deg, rgba(238,242,255,0.97) 0%, rgba(255,255,255,0.98) 55%, rgba(243,232,255,0.97) 100%);border:1.5px solid #c7d2fe;border-radius:14px;padding:10px 14px;box-shadow:0 8px 24px rgba(49,46,129,0.12);">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="padding:3px 9px;border-radius:999px;font-size:10.5px;font-weight:800;background:#eef2ff;color:#312e81;border:1px solid #c7d2fe;">
+          💬 Embedded Sidecar Agent Chat
+        </span>
+        <span style="font-size:11.5px;font-weight:700;color:#312e81;">
+          Context: <strong>Deal BA-2026-AV-8921</strong> • <strong>SP3 §4.1 — Customs, Duties &amp; Section 232/301 Tariffs (TAX)</strong>
+        </span>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button onclick="sendTaxAgentPrompt('Harmonize SP3 §4.1 with GP1 §3.1 Firm-Fixed-Price SOW ceiling at +2.0% ($900,000) shared cap.', ['tax-review', '--deal-id', 'BA-2026-AV-8921'])" style="padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;background:#fff;color:#312e81;border:1px solid #c7d2fe;cursor:pointer;">
+          ⚖️ Harmonize SP3 §4.1 vs GP1 §3.1
+        </button>
+        <button onclick="sendTaxAgentPrompt('Send the Tax SME review update email for SP3 §4.1 back to the Contract Owner Inbox via Outlook.', ['send-sme-reply', '--deal-id', 'BA-2026-AV-8921', '--clause-id', 'SP3-04'])" style="padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;background:#fff;color:#312e81;border:1px solid #c7d2fe;cursor:pointer;">
+          📨 Send Tax SME Approval Email
+        </button>
+        <button onclick="sendTaxAgentPrompt('Compare SP3 §4.1 against Honeywell Aerospace and Collins Avionics Section 232/301 tariff precedents in BigQuery.')" style="padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;background:#fff;color:#312e81;border:1px solid #c7d2fe;cursor:pointer;">
+          📊 Ask About Honeywell &amp; Collins Precedents
+        </button>
+      </div>
+    </div>
+    <div id="taxAgentReplyBox" style="display:none;background:#ffffff;border:1px solid #c7d2fe;border-radius:9px;padding:8px 11px;margin-bottom:8px;font-size:12px;color:#1e293b;"></div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input
+        id="taxAgentChatInput"
+        type="text"
+        placeholder="Ask Main Agent about SP3 §4.1 tariffs or GP1 §3.1 FFP conflict (passes query back to Main Chat)..."
+        onkeydown="if(event.key==='Enter')sendTaxAgentPrompt()"
+        style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:12.5px;background:#ffffff;"
+      />
+      <button
+        onclick="sendTaxAgentPrompt()"
+        style="padding:8px 14px;border-radius:8px;border:1px solid #d8b4fe;background:#f3e8ff;color:#581c87;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;"
+      >
+        💬 Send to Main Agent ↵
+      </button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -4522,11 +4758,345 @@ document.getElementById('counterTextarea').value = STATE.counter_text;
 document.getElementById('reviewerInput').value = STATE.reviewer_name;
 document.getElementById('commentInput').value = STATE.user_comment;
 renderLiveDiff();
+
+async function sendTaxAgentPrompt(presetPrompt, fallbackCmd) {{
+  const inputEl = document.getElementById('taxAgentChatInput');
+  const rawQuery = (presetPrompt || (inputEl ? inputEl.value : '') || '').trim();
+  if (!rawQuery) return;
+  if (inputEl && !presetPrompt) inputEl.value = '';
+  const contextualPrompt = rawQuery.includes('BA-2026-AV-8921')
+    ? rawQuery
+    : `[Deal BA-2026-AV-8921 • Active Clause SP3 §4.1 (Customs, Duties & Section 232/301 Tariffs)] ${{rawQuery}}`;
+  const replyBox = document.getElementById('taxAgentReplyBox');
+  if (window.sidecar && window.sidecar.agent && typeof window.sidecar.agent.sendMessage === 'function' && !window.__sparkCanvasMode) {{
+    try {{
+      await window.sidecar.agent.sendMessage(contextualPrompt);
+      if (replyBox) {{
+        replyBox.style.display = 'block';
+        replyBox.innerHTML = `<strong style="color:#312e81;">You → Main Agent:</strong> "${{escapeHtml(rawQuery)}}"<br/><span style="color:#065f46;font-weight:700;">✓ Forwarded directly to your active Antigravity Main Agent chat window via window.sidecar.agent.sendMessage.</span>`;
+      }}
+      return;
+    }} catch (_) {{}}
+  }}
+  try {{
+    const resp = await fetch(`${{API_BASE}}/api/ask-agent`, {{
+      method: 'POST',
+      headers: {{ 'Content-Type': 'application/json' }},
+      body: JSON.stringify({{
+        deal_id: 'BA-2026-AV-8921',
+        clause_id: 'SP3-04',
+        prompt: contextualPrompt,
+        raw_prompt: rawQuery,
+        fallback_cmd: fallbackCmd || null
+      }})
+    }});
+    if (resp.ok) {{
+      const data = await resp.json();
+      if (replyBox) {{
+        replyBox.style.display = 'block';
+        replyBox.innerHTML = `<strong style="color:#312e81;">You → Main Agent:</strong> "${{escapeHtml(rawQuery)}}"<br/><span style="color:#065f46;font-weight:700;">${{escapeHtml(data.reply || '✓ Sent to Main Agent Conversation.')}}</span>`;
+      }}
+    }}
+  }} catch (_) {{}}
+}}
 </script>
 </body>
 </html>"""
     out_path = Path.cwd() / "cymbal_clm_tax_reviewer_workbench.html"
     out_path.write_text(doc_html, encoding="utf-8")
+    return out_path
+
+
+def resolve_active_antigravity_conversation_id(explicit_id: str | None = None) -> str:
+    """Resolve the active Antigravity conversation UUID from argument, env, or ~/.gemini/antigravity/brain/."""
+    if explicit_id and str(explicit_id).strip():
+        return str(explicit_id).strip()
+    env_cid = os.environ.get("ANTIGRAVITY_CONVERSATION_ID", "").strip()
+    if env_cid:
+        return env_cid
+    brain_dir = Path.home() / ".gemini" / "antigravity" / "brain"
+    if brain_dir.exists():
+        candidates: List[Tuple[float, str]] = []
+        for d in brain_dir.iterdir():
+            if d.is_dir() and len(d.name) == 36 and d.name.count("-") == 4:
+                log_file = d / ".system_generated" / "logs" / "transcript.jsonl"
+                mtime = log_file.stat().st_mtime if log_file.exists() else d.stat().st_mtime
+                candidates.append((mtime, d.name))
+        if candidates:
+            candidates.sort(reverse=True)
+            return candidates[0][1]
+    return ""
+
+
+def generate_inline_triage_widget_html(state: Dict[str, Any]) -> Path:
+    """
+    Generate the compact (<500px vertical height) Short-Form Inline Chat Triage Widget
+    (`cymbal_clm_inline_triage_widget.html`) following `generative_ui/SKILL.md`:
+      - Uses allowlisted Tailwind CDN (`https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js`)
+      - Uses host theme CSS variables (`--card`, `--foreground`, `--muted-foreground`, `--border`, `--primary`, `--accent`)
+      - Includes one-click "Expand Full Sidecar" (`window.sidecar.ui.toggleAuxPane` / `postMessage('toggle-aux-pane')`)
+      - Includes an Embedded Mini-Chat Bar that forwards queries to the Main Agent via `/_sidecar/send-message` / `/api/ask-agent`.
+    """
+    deal_id = state.get("deal_id", "BA-2026-AV-8921")
+    vendor_name = state.get("vendor_name", "Apex AeroSystems Inc.")
+    contract_val = float(state.get("contract_value_usd", 45000000))
+    clauses = state.get("clauses", [])
+    redlined = [c for c in clauses if c.get("has_redline")]
+    untouched_count = sum(1 for c in clauses if not c.get("has_redline"))
+    conflicts = [cf for cf in state.get("active_conflicts", []) if not cf.get("resolved")]
+    prec_map = fetch_live_precedents_map(state)
+
+    rows_html_list: List[str] = []
+    for c in redlined:
+        cid = c["clause_id"]
+        cref = html.escape(c.get("clause_ref", cid))
+        ctitle = html.escape(c.get("clause_title", ""))
+        team = html.escape(c.get("sme_team", "LEGAL"))
+        reviewer = html.escape((c.get("sme_reviewer") or RECOMMENDED_COUNTER_DEFAULTS.get(cid, {}).get("reviewer") or "SME").split("(")[0].strip())
+        status = c.get("sme_status", "PENDING")
+        p_info = prec_map.get(cid, {})
+        dist = p_info.get("distribution", {})
+        is_lockout = bool(c.get("regulatory_flag") and c.get("regulatory_flag") != "NONE") or bool(p_info.get("regulatory_lockout"))
+        is_conflict = cid in ("SP3-04", "GP1-19") and len(conflicts) > 0
+        kind = "lockout" if is_lockout else ("conflict" if is_conflict else "negotiable")
+        view_path = "/tax-workbench" if cid == "SP3-04" else "/"
+
+        if is_lockout:
+            stat_label = f"🔒 {dist.get('held_firm_pct', 94)}% Held Firm Lockout"
+            border_cls = "border-red-500/30 bg-red-500/5"
+            badge_cls = "bg-red-500/20 text-red-500"
+        elif is_conflict:
+            stat_label = f"⚡ SOW Conflict • {dist.get('compromise_tier_1_pct', 63)}% Shared Cap"
+            border_cls = "border-purple-500/30 bg-purple-500/5"
+            badge_cls = "bg-purple-500/20 text-purple-400"
+        else:
+            stat_label = f"📊 {dist.get('compromise_tier_1_pct', 69)}% Tier-1 Compromise"
+            border_cls = "border-[var(--border)]"
+            badge_cls = "bg-amber-500/15 text-amber-500"
+
+        status_pill = (
+            f'<span class="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/15 text-emerald-500">✓ {reviewer}</span>'
+            if status == "APPROVED"
+            else f'<span class="px-2 py-0.5 rounded text-xs font-medium bg-[var(--accent)] text-[var(--foreground)]">{team} · {reviewer}</span>'
+        )
+        rows_html_list.append(
+            f"""
+      <div data-kind="{kind}" onclick="selectClause('{html.escape(cid)}', '{cref} {ctitle}', '{view_path}')" class="clause-row flex items-center justify-between gap-2 p-2 rounded-lg border {border_cls} cursor-pointer">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="px-1.5 py-0.5 rounded text-xs font-mono font-semibold {badge_cls}">{cref}</span>
+          <span class="text-xs font-medium text-[var(--foreground)] truncate">{ctitle}</span>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <span class="text-xs text-[var(--muted-foreground)]">{html.escape(stat_label)}</span>
+          {status_pill}
+        </div>
+      </div>"""
+        )
+
+    rows_joined = "\n".join(rows_html_list)
+    lockout_count = sum(1 for c in redlined if (c.get("regulatory_flag") and c.get("regulatory_flag") != "NONE"))
+    conflict_count = len(conflicts)
+
+    widget_html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cymbal CLM — Short-Form Deal Triage Widget ({html.escape(deal_id)})</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <script src="http://127.0.0.1:58921/preload.js" onerror="window.__sparkCanvasMode=true"></script>
+  <style>
+    * {{ box-sizing: border-box; }}
+    .clause-row {{ transition: background-color 0.15s ease, border-color 0.15s ease; }}
+    .clause-row:hover {{ background-color: var(--accent, rgba(99, 102, 241, 0.08)); }}
+  </style>
+</head>
+<body class="bg-transparent text-[var(--foreground)] antialiased p-3">
+  <div class="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm">
+    <!-- Top Header: Deal Identity + Expand to Full Sidecar CTA -->
+    <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[var(--border)]">
+      <div class="flex items-center gap-2.5">
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-amber-500/15 text-amber-500 border border-amber-500/30">
+          {len(redlined)} / {len(clauses)} Redlined
+        </span>
+        <div>
+          <div class="text-sm font-semibold text-[var(--foreground)]">
+            Deal {html.escape(deal_id)} · {html.escape(vendor_name)} (${contract_val / 1e6:.1f}M)
+          </div>
+          <div class="text-xs text-[var(--muted-foreground)]">
+            Short-Form Chat Triage Widget · {untouched_count} Playbook Clauses Unchanged · {conflict_count} Active Conflict(s)
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5">
+        <button
+          onclick="expandFullSidecar('/tax-workbench')"
+          class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-[var(--border)] bg-[var(--accent)] text-[var(--foreground)] hover:opacity-90 transition cursor-pointer"
+          title="Open Tunneled Tax SME Workbench in Sidecar"
+        >
+          ⚖️ Tax View
+        </button>
+        <button
+          id="expandSidecarBtn"
+          onclick="expandFullSidecar('/')"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--primary)] text-[var(--primary-foreground,#ffffff)] hover:opacity-90 transition cursor-pointer shadow-xs"
+          title="Toggle the full Cymbal CLM Sidecar Workbench in the right-hand Auxiliary Pane"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4" />
+          </svg>
+          Expand Full Sidecar
+        </button>
+      </div>
+    </div>
+
+    <!-- Interactive Filter Strip -->
+    <div class="flex items-center justify-between gap-2 my-2.5">
+      <div class="flex items-center gap-1.5">
+        <button onclick="filterClauses('all')" id="tab-all" class="px-2.5 py-1 rounded-md text-xs font-semibold bg-[var(--accent)] text-[var(--foreground)] cursor-pointer">
+          All Exceptions ({len(redlined)})
+        </button>
+        <button onclick="filterClauses('lockout')" id="tab-lockout" class="px-2.5 py-1 rounded-md text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer">
+          Hard Lockouts ({lockout_count})
+        </button>
+        <button onclick="filterClauses('conflict')" id="tab-conflict" class="px-2.5 py-1 rounded-md text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer">
+          SOW Conflicts ({conflict_count})
+        </button>
+      </div>
+      <span id="statusToast" class="text-xs font-medium text-emerald-500 hidden"></span>
+    </div>
+
+    <!-- Compact Redline Exception List -->
+    <div id="clauseList" class="space-y-1.5">
+      {rows_joined}
+    </div>
+
+    <!-- Bottom Embedded Mini-Chat / Action Bar (Forwards Query to Main Agent) -->
+    <div class="mt-3 pt-2.5 border-t border-[var(--border)] flex items-center gap-2">
+      <input
+        id="agentQueryInput"
+        type="text"
+        value="Draft the 4 SME review emails in Outlook for Deal {html.escape(deal_id)}"
+        placeholder="Ask main agent about a clause or trigger a CLM action..."
+        onkeydown="if(event.key==='Enter')sendQueryToMainAgent()"
+        class="flex-1 px-3 py-1.5 rounded-lg text-xs border border-[var(--border)] bg-transparent text-[var(--foreground)] focus:outline-none"
+      />
+      <button
+        onclick="sendQueryToMainAgent()"
+        class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-[var(--border)] bg-[var(--accent)] text-[var(--foreground)] hover:opacity-90 transition cursor-pointer shrink-0"
+      >
+        Send to Main Agent ↵
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = (window.location.protocol === 'http:' || window.location.protocol === 'https:')
+      ? window.location.origin
+      : 'http://127.0.0.1:58921';
+
+    function showToast(msg) {{
+      const el = document.getElementById('statusToast');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      setTimeout(() => el.classList.add('hidden'), 4000);
+    }}
+
+    function filterClauses(kind) {{
+      ['all', 'lockout', 'conflict'].forEach(k => {{
+        const btn = document.getElementById('tab-' + k);
+        if (k === kind) {{
+          btn.className = 'px-2.5 py-1 rounded-md text-xs font-semibold bg-[var(--accent)] text-[var(--foreground)] cursor-pointer';
+        }} else {{
+          btn.className = 'px-2.5 py-1 rounded-md text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer';
+        }}
+      }});
+      document.querySelectorAll('#clauseList > div').forEach(row => {{
+        if (kind === 'all' || row.getAttribute('data-kind') === kind) {{
+          row.style.display = 'flex';
+        }} else {{
+          row.style.display = 'none';
+        }}
+      }});
+    }}
+
+    function selectClause(clauseId, label, viewPath) {{
+      const input = document.getElementById('agentQueryInput');
+      input.value = `Analyze ${{label}} on Deal {html.escape(deal_id)} and recommend our counter-position`;
+      expandFullSidecar(viewPath);
+    }}
+
+    function expandFullSidecar(viewPath) {{
+      if (window.sidecar && window.sidecar.ui && window.sidecar.ui.toggleAuxPane) {{
+        window.sidecar.ui.toggleAuxPane({{
+          pluginName: 'cymbal-aerospace-clm',
+          sidecarName: 'cymbal-clm-workbench',
+          viewPath: viewPath || '/'
+        }});
+        showToast('Opened Sidecar Workbench (' + (viewPath || '/') + ')');
+        return;
+      }}
+      window.parent.postMessage({{
+        type: 'toggle-aux-pane',
+        payload: {{
+          pluginName: 'cymbal-aerospace-clm',
+          sidecarName: 'cymbal-clm-workbench',
+          viewPath: viewPath || '/'
+        }}
+      }}, '*');
+      showToast('Opened Sidecar Workbench (' + (viewPath || '/') + ')');
+    }}
+
+    async function sendQueryToMainAgent() {{
+      const input = document.getElementById('agentQueryInput');
+      const query = (input.value || '').trim();
+      if (!query) return;
+
+      if (window.sidecar && window.sidecar.agent && window.sidecar.agent.sendMessage && !window.__sparkCanvasMode) {{
+        try {{
+          await window.sidecar.agent.sendMessage(query);
+          showToast('✓ Sent to Main Agent Chat!');
+          return;
+        }} catch (_) {{}}
+      }}
+
+      try {{
+        const r = await fetch(`${{API_BASE}}/api/ask-agent`, {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{
+            deal_id: '{html.escape(deal_id)}',
+            clause_id: 'GP1-19',
+            prompt: query,
+            raw_prompt: query
+          }})
+        }});
+        if (r.ok) {{
+          const data = await r.json();
+          showToast(data.toast || '✓ Sent to Main Agent Chat!');
+          return;
+        }}
+      }} catch (_) {{}}
+
+      showToast('✓ Sent to Main Agent Chat!');
+    }}
+  </script>
+</body>
+</html>
+"""
+    out_path = Path.cwd() / "cymbal_clm_inline_triage_widget.html"
+    out_path.write_text(widget_html, encoding="utf-8")
+
+    # Also keep active Antigravity conversation artifact widget updated if present
+    active_conv = resolve_active_antigravity_conversation_id()
+    if active_conv:
+        conv_dir = Path.home() / ".gemini" / "antigravity" / "brain" / active_conv
+        if conv_dir.exists():
+            try:
+                (conv_dir / "clm_inline_triage_widget.html").write_text(widget_html, encoding="utf-8")
+            except Exception:
+                pass
     return out_path
 
 
@@ -4684,6 +5254,209 @@ def poll_outlook_for_sme_updates(state: Dict[str, Any]) -> Dict[str, Any]:
 
 
 HOST_BRIDGE_PORT = int(os.environ.get("CLM_BRIDGE_PORT", "58921"))
+SIDECAR_ENV_CACHE_PATH = Path("/tmp/cymbal_antigravity_sidecar_env.json")
+
+SIDECAR_PRELOAD_JS_SCRIPT = """/**
+ * Frontend bridge for Antigravity sidecars & Spark Canvas hybrid mode.
+ */
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+  const conversationId = params.get('conversationId');
+
+  // If opened without sidecar token/conversationId (e.g. Spark Canvas preview), flag Spark Canvas mode
+  window.__sparkCanvasMode = !token && !conversationId;
+
+  let currentWorkspaceUris = [];
+  let hasInitialWorkspace = false;
+  const workspaceListeners = new Set();
+  let resolveInitialWorkspace;
+  const initialWorkspacePromise = new Promise((resolve) => {
+    resolveInitialWorkspace = resolve;
+  });
+
+  function areUriArraysEqual(a, b) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] !== b[i]) return false;
+    }
+    return true;
+  }
+
+  function notifyWorkspaceListener(listener) {
+    try {
+      listener([...currentWorkspaceUris]);
+    } catch (err) {
+      console.error('workspace-change listener failed:', err);
+    }
+  }
+
+  window.addEventListener('message', (event) => {
+    if (event.data?.type === 'theme-change') {
+      const vars = event.data.payload?.cssVariables || {};
+      for (const [key, value] of Object.entries(vars)) {
+        document.documentElement.style.setProperty(key, value);
+      }
+    } else if (event.data?.type === 'workspace-change') {
+      const payload = event.data.payload ?? {};
+      const nextWorkspaceUris = Array.isArray(payload.workspaceUris)
+        ? [...payload.workspaceUris]
+        : [];
+      const isFirstPush = !hasInitialWorkspace;
+      const hasChanged = isFirstPush || !areUriArraysEqual(currentWorkspaceUris, nextWorkspaceUris);
+      currentWorkspaceUris = nextWorkspaceUris;
+      hasInitialWorkspace = true;
+      resolveInitialWorkspace();
+      if (hasChanged) {
+        for (const listener of workspaceListeners) {
+          notifyWorkspaceListener(listener);
+        }
+      }
+    }
+  });
+
+  function secureFetch(url, options = {}) {
+    const headers = new Headers(options.headers || {});
+    headers.set('Content-Type', 'application/json');
+    if (token) {
+      headers.set('X-Sidecar-Token', token);
+    }
+    return fetch(url, { ...options, headers });
+  }
+
+  const projectIdPromise = (async () => {
+    if (conversationId) {
+      try {
+        const res = await secureFetch('/_sidecar/get-conversation-metadata', {
+          method: 'POST',
+          body: JSON.stringify({ conversationId })
+        });
+        if (!res.ok) return '';
+        const data = await res.json();
+        const metaEvent = data?.response?.conversationMetadata || data?.response?.conversation_metadata;
+        const meta = metaEvent?.metadata;
+        return meta?.projectId || meta?.project_id || '';
+      } catch (_) {
+        return '';
+      }
+    }
+    return '';
+  })();
+
+  async function getWorkspaceUris() {
+    if (window.parent === window) return [];
+    await initialWorkspacePromise;
+    return [...currentWorkspaceUris];
+  }
+
+  window.sidecar = {
+    conversationId,
+    fetch: secureFetch,
+    getWorkspaceUris,
+    onWorkspaceChange(listener) {
+      if (typeof listener !== 'function') return () => {};
+      workspaceListeners.add(listener);
+      if (hasInitialWorkspace) {
+        queueMicrotask(() => {
+          if (workspaceListeners.has(listener)) {
+            notifyWorkspaceListener(listener);
+          }
+        });
+      }
+      return () => {
+        workspaceListeners.delete(listener);
+      };
+    },
+    agent: {
+      async sendMessage(message, convId) {
+        const resolvedProjectId = await projectIdPromise;
+        const res = await secureFetch('/_sidecar/send-message', {
+          method: 'POST',
+          body: JSON.stringify({
+            conversationId: convId || conversationId,
+            message,
+            projectId: resolvedProjectId
+          })
+        });
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+      },
+      async startConversation(message, title) {
+        const resolvedProjectId = await projectIdPromise;
+        const res = await secureFetch('/_sidecar/new-conversation', {
+          method: 'POST',
+          body: JSON.stringify({ message, title, projectId: resolvedProjectId })
+        });
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+      },
+      async getConversationMetadata(convId) {
+        const res = await secureFetch('/_sidecar/get-conversation-metadata', {
+          method: 'POST',
+          body: JSON.stringify({ conversationId: convId || conversationId })
+        });
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+      }
+    },
+    ui: {
+      toggleAuxPane(request) {
+        window.parent.postMessage({
+          type: 'toggle-aux-pane',
+          payload: request
+        }, '*');
+      },
+      toggleConversation(convId) {
+        window.parent.postMessage({
+          type: 'toggle-conversation',
+          payload: { conversationId: convId || conversationId }
+        }, '*');
+      }
+    }
+  };
+})();
+"""
+
+
+def invoke_antigravity_agentapi(args_list: List[str], project_id: str = "") -> Tuple[bool, Dict[str, Any]]:
+    """
+    Invoke Antigravity's `agentapi` CLI (via ANTIGRAVITY_AGENTAPI_EXE or cached sidecar env)
+    to inject a message into the active Main Agent conversation or fetch conversation metadata.
+    """
+    env = dict(os.environ)
+    if (not env.get("ANTIGRAVITY_LS_ADDRESS") or not env.get("ANTIGRAVITY_CSRF_TOKEN")) and SIDECAR_ENV_CACHE_PATH.exists():
+        try:
+            cached = json.loads(SIDECAR_ENV_CACHE_PATH.read_text(encoding="utf-8"))
+            for k, v in cached.items():
+                if k.startswith("ANTIGRAVITY_") and v:
+                    env.setdefault(k, str(v))
+        except Exception:
+            pass
+
+    if not env.get("ANTIGRAVITY_LS_ADDRESS") or not env.get("ANTIGRAVITY_CSRF_TOKEN"):
+        return False, {"error": "Antigravity Language Server environment not active"}
+
+    if project_id:
+        env["ANTIGRAVITY_PROJECT_ID"] = project_id
+
+    exe = env.get("ANTIGRAVITY_AGENTAPI_EXE") or "/Applications/Antigravity.app/Contents/Resources/bin/language_server"
+    cmd = [exe, "agentapi", *args_list] if Path(exe).exists() else ["agentapi", *args_list]
+    try:
+        res = subprocess.run(
+            cmd,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
+        )
+        if res.returncode == 0:
+            raw = (res.stdout or "").strip()
+            parsed = json.loads(raw) if raw else {"status": "ok"}
+            return True, parsed
+        return False, {"error": (res.stderr or res.stdout or "agentapi error").strip()}
+    except Exception as exc:
+        return False, {"error": str(exc)}
 
 
 def serve_loopback_bridge(port: int = HOST_BRIDGE_PORT) -> None:
@@ -4691,17 +5464,29 @@ def serve_loopback_bridge(port: int = HOST_BRIDGE_PORT) -> None:
     Runs a lightweight localhost HTTP bridge on 127.0.0.1:58921 (or ANTIGRAVITY_SIDECAR_WEB_PORT).
     1. Forwards sandboxed CLI invocations (`POST /run`) so Microsoft Graph (Outlook & SharePoint)
        and Cloud Run calls always succeed even inside Spark's `sandbox-exec`.
-    2. Handles interactive Document-Style UI submissions (`POST /api/review`) from Canvas (`Rewrite with Input`,
+    2. Handles Antigravity Sidecar Agent API (`GET /preload.js`, `POST /_sidecar/send-message`,
+       `POST /_sidecar/new-conversation`, `POST /_sidecar/get-conversation-metadata`, `POST /api/ask-agent`)
+       so queries typed in the Sidecar Embedded Chat Bar or Short-Form Inline Widget pass directly
+       back to the Main Agent conversation in Antigravity (and fall back cleanly in Spark Canvas).
+    3. Handles interactive Document-Style UI submissions (`POST /api/review`) from Canvas (`Rewrite with Input`,
        `Accept changes`, `Reject changes`, `Comment`), updating `cymbal_clm_state.json` and writing the
        accepted/edited counter-position and the human user's comment (`w:author=<user>`) directly into
        `BA-2026-AV-8921_Working_Review.docx`.
-    3. Handles `POST /api/rewrite` using Vertex AI Gemini (`gemini-2.5-flash`) with prompt-injection-resistant
+    4. Handles `POST /api/rewrite` using Vertex AI Gemini (`gemini-2.5-flash`) with prompt-injection-resistant
        `<untrusted_vendor_redline>` XML sandwiching.
-    4. Serves `GET /api/download/working-docx` so the user can download/open the live Working Review `.docx`
+    5. Serves `GET /api/download/working-docx` so the user can download/open the live Working Review `.docx`
        directly from the UI at any time.
     """
     port = int(os.environ.get("ANTIGRAVITY_SIDECAR_WEB_PORT", str(port)))
     script_path = str(Path(__file__).resolve())
+
+    # If started by Antigravity Sidecar Manager, cache ANTIGRAVITY_* env vars so loopback 58921 can also call agentapi
+    if os.environ.get("ANTIGRAVITY_LS_ADDRESS") and os.environ.get("ANTIGRAVITY_CSRF_TOKEN"):
+        try:
+            ag_env = {k: v for k, v in os.environ.items() if k.startswith("ANTIGRAVITY_")}
+            SIDECAR_ENV_CACHE_PATH.write_text(json.dumps(ag_env, indent=2), encoding="utf-8")
+        except Exception:
+            pass
 
     class BridgeHandler(BaseHTTPRequestHandler):
         def log_message(self, fmt: str, *args: Any) -> None:
@@ -4710,7 +5495,7 @@ def serve_loopback_bridge(port: int = HOST_BRIDGE_PORT) -> None:
         def _send_cors_headers(self) -> None:
             self.send_header("Access-Control-Allow-Origin", "*")
             self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-            self.send_header("Access-Control-Allow-Headers", "Content-Type")
+            self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Sidecar-Token")
 
         def do_OPTIONS(self) -> None:
             self.send_response(204)
@@ -4725,14 +5510,24 @@ def serve_loopback_bridge(port: int = HOST_BRIDGE_PORT) -> None:
                 self.end_headers()
                 self.wfile.write(b'{"status":"ok"}')
             elif self.path == "/preload.js" or self.path.startswith("/preload.js?"):
-                script_body = b"window.__sparkCanvasMode = window.__sparkCanvasMode ?? !window.sidecar;\n"
+                script_body = SIDECAR_PRELOAD_JS_SCRIPT.encode("utf-8")
                 self.send_response(200)
                 self._send_cors_headers()
                 self.send_header("Content-Type", "application/javascript; charset=utf-8")
                 self.send_header("Content-Length", str(len(script_body)))
                 self.end_headers()
                 self.wfile.write(script_body)
-            elif self.path in ("/", "/workbench") or self.path.startswith("/workbench?"):
+            elif self.path.startswith("/inline-widget"):
+                state = load_local_state()
+                w_path = generate_inline_triage_widget_html(state)
+                data = w_path.read_bytes()
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+            elif self.path in ("/", "/workbench") or self.path.startswith("/workbench?") or self.path.startswith("/?"):
                 state = load_local_state()
                 wb_path = generate_canvas_workbench_html(state)
                 data = wb_path.read_bytes()
@@ -4796,6 +5591,124 @@ def serve_loopback_bridge(port: int = HOST_BRIDGE_PORT) -> None:
         def do_POST(self) -> None:
             length = int(self.headers.get("Content-Length", "0"))
             body = json.loads(self.rfile.read(length).decode("utf-8")) if length > 0 else {}
+
+            if self.path == "/_sidecar/send-message":
+                conv_id = resolve_active_antigravity_conversation_id(body.get("conversationId"))
+                msg = (body.get("message") or "").strip()
+                proj_id = (body.get("projectId") or "").strip()
+                if not conv_id or not msg:
+                    self.send_response(400)
+                    self._send_cors_headers()
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(b'{"error":"missing conversationId or message"}')
+                    return
+                ok, res_data = invoke_antigravity_agentapi(["send-message", conv_id, msg], project_id=proj_id)
+                status_code = 200 if ok else 501
+                resp_payload = json.dumps(res_data).encode("utf-8")
+                self.send_response(status_code)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(resp_payload)))
+                self.end_headers()
+                self.wfile.write(resp_payload)
+                return
+
+            if self.path == "/_sidecar/new-conversation":
+                msg = (body.get("message") or "").strip()
+                model = (body.get("model") or "flash").strip()
+                proj_id = (body.get("projectId") or "").strip()
+                ok, res_data = invoke_antigravity_agentapi(["new-conversation", "--model", model, msg], project_id=proj_id)
+                status_code = 200 if ok else 501
+                resp_payload = json.dumps(res_data).encode("utf-8")
+                self.send_response(status_code)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(resp_payload)))
+                self.end_headers()
+                self.wfile.write(resp_payload)
+                return
+
+            if self.path == "/_sidecar/get-conversation-metadata":
+                conv_id = resolve_active_antigravity_conversation_id(body.get("conversationId"))
+                ok, res_data = invoke_antigravity_agentapi(["get-conversation-metadata", conv_id]) if conv_id else (False, {"error": "no conversationId"})
+                status_code = 200 if ok else 200
+                resp_payload = json.dumps(res_data).encode("utf-8")
+                self.send_response(status_code)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(resp_payload)))
+                self.end_headers()
+                self.wfile.write(resp_payload)
+                return
+
+            if self.path == "/api/ask-agent":
+                req_deal_id = resolve_deal_id(body.get("deal_id"))
+                clause_id = body.get("clause_id", "GP1-19")
+                prompt_text = (body.get("prompt") or body.get("raw_prompt") or "").strip()
+                raw_prompt = (body.get("raw_prompt") or prompt_text).strip()
+                fallback_cmd = body.get("fallback_cmd")
+                req_cwd = body.get("cwd") or str(Path.cwd())
+
+                # 1. Try forwarding to active Antigravity Main Agent Conversation first via agentapi
+                conv_id = resolve_active_antigravity_conversation_id(body.get("conversationId"))
+                if conv_id and prompt_text:
+                    ok, _ = invoke_antigravity_agentapi(["send-message", conv_id, prompt_text])
+                    if ok:
+                        resp_payload = json.dumps(
+                            {
+                                "status": "ok",
+                                "mode": "ANTIGRAVITY_MAIN_CHAT",
+                                "conversation_id": conv_id,
+                                "toast": f"💬 Forwarded to Main Agent Chat ({conv_id[:8]}...): \"{raw_prompt}\"",
+                                "reply": f"✓ Injected query into your active Antigravity Main Agent conversation ({conv_id[:8]}...). Check the main chat window for live agent execution.",
+                            }
+                        ).encode("utf-8")
+                        self.send_response(200)
+                        self._send_cors_headers()
+                        self.send_header("Content-Type", "application/json")
+                        self.send_header("Content-Length", str(len(resp_payload)))
+                        self.end_headers()
+                        self.wfile.write(resp_payload)
+                        return
+
+                # 2. Fallback for Spark Canvas: execute fallback_cmd if provided, or answer grounded on Deal + Clause state
+                if fallback_cmd and isinstance(fallback_cmd, list):
+                    env = dict(os.environ)
+                    env["CLM_VIA_BRIDGE"] = "1"
+                    subprocess.run(
+                        [sys.executable, script_path, *fallback_cmd],
+                        cwd=req_cwd if Path(req_cwd).exists() else str(Path.cwd()),
+                        env=env,
+                        capture_output=True,
+                        text=True,
+                        timeout=60,
+                        check=False,
+                    )
+                    reply_msg = f"✓ Executed CLM workflow ({' '.join(fallback_cmd)}) for Deal {req_deal_id}."
+                else:
+                    rec = RECOMMENDED_COUNTER_DEFAULTS.get(clause_id, {})
+                    reply_msg = (
+                        rec.get("historical_explainer")
+                        or rec.get("playbook_guardrail_summary")
+                        or f"Evaluated {clause_id} on Deal {req_deal_id} against Cymbal Tier-1 Avionics Playbook and BigQuery precedents."
+                    )
+
+                resp_payload = json.dumps(
+                    {
+                        "status": "ok",
+                        "mode": "SPARK_COPILOT",
+                        "toast": f"✓ Co-Pilot processed: \"{raw_prompt}\"",
+                        "reply": reply_msg,
+                    }
+                ).encode("utf-8")
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(resp_payload)))
+                self.end_headers()
+                self.wfile.write(resp_payload)
+                return
 
             if self.path == "/api/ux-notes":
                 notes_file = SCRIPT_DIR.parent / "ux_evaluation_notes.json"
@@ -5063,7 +5976,9 @@ def main() -> None:
         else:
             state = load_local_state(deal_id)
         canvas_path = generate_canvas_workbench_html(state)
+        inline_widget_path = generate_inline_triage_widget_html(state)
         state["canvas_workbench_html"] = str(canvas_path)
+        state["inline_triage_widget_html"] = str(inline_widget_path)
         print(json.dumps(state, indent=2))
 
     elif args.cmd == "ingest":
@@ -5086,6 +6001,7 @@ def main() -> None:
             active_clause_id=active_cid,
             sme_drafts=sme_drafts,
         )
+        inline_widget_path = generate_inline_triage_widget_html(state)
 
         prec_map = fetch_live_precedents_map(state)
         sme_owners = [
@@ -5149,6 +6065,11 @@ def main() -> None:
             "active_conflicts": state.get("active_conflicts", []),
             "sme_routing_owners": sme_owners,
             "canvas_workbench_html": str(canvas_path),
+            "inline_triage_widget_html": str(inline_widget_path),
+            "sidecar_links": {
+                "main_workbench": "sidecar://cymbal-aerospace-clm/cymbal-clm-workbench/",
+                "tax_workbench": "sidecar://cymbal-aerospace-clm/cymbal-clm-workbench/tax-workbench",
+            },
             "next_step_hint": (
                 f"To resolve the Finance vs. Legal conflict on {state['deal_id']} so Legal takes precedence, run `resolve_conflict.py --deal-id {state['deal_id']}`."
                 if state["deal_id"] == "BA-2026-TR-5510"
