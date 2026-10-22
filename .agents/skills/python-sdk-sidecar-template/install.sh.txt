@@ -1,0 +1,23 @@
+#!/bin/bash
+# Builds and installs python_sdk_plugin into ~/.gemini/config/plugins/
+set -euo pipefail
+
+DEST_DIR="${HOME}/.gemini/config/plugins/python_sdk_plugin"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+echo "Building Python template sidecar binary (.par)..."
+blaze build //third_party/jetski/plugins/templates/python_sdk_plugin/sidecars/python_sdk_template:sidecar.par
+
+# Resolve blaze-bin path relative to google3 root
+GOOGLE3_ROOT="$(cd "${SCRIPT_DIR}/../../../../.." && pwd)"
+BIN_PATH="${GOOGLE3_ROOT}/blaze-bin/third_party/jetski/plugins/templates/python_sdk_plugin/sidecars/python_sdk_template/sidecar.par"
+
+echo "Installing python_sdk_plugin to ${DEST_DIR}..."
+mkdir -p "${DEST_DIR}/sidecars/python_sdk_template"
+cp "${SCRIPT_DIR}/plugin.json" "${DEST_DIR}/plugin.json"
+cp "${SCRIPT_DIR}/sidecars/python_sdk_template/sidecar.json" "${DEST_DIR}/sidecars/python_sdk_template/"
+cp "${BIN_PATH}" "${DEST_DIR}/sidecars/python_sdk_template/sidecar.par"
+chmod +x "${DEST_DIR}/sidecars/python_sdk_template/sidecar.par"
+
+echo "Successfully installed python_sdk_plugin!"
+echo "Open Jetski Web and navigate to the UI Plugins dashboard to enable and use the plugin."

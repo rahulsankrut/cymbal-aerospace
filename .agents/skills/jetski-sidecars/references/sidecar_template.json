@@ -1,0 +1,18 @@
+{
+  "command": "python3",
+  "args": ["server.py"],
+  "restart_policy": "always",
+  "display_name": "Sample Explainer (v0.1)",
+  "description": "Demonstrates an interactive HTML explainer with Google Drive inline rendering (v0.1)",
+  "has_web_ui": true,
+  "ui_config": {
+    "display_name": "Explainer v0.1",
+    "views": [
+      {
+        "path": "/",
+        "entrypoint": "SIDECAR_UI_ENTRYPOINT_AUX_PANE",
+        "title": "Explainer View"
+      }
+    ]
+  }
+}

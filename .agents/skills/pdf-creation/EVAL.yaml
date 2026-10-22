@@ -1,0 +1,102 @@
+suite_name: pdf-creation
+timeout_seconds: 120
+num_trials: 3
+
+cases:
+  - name: basic_report
+    prompt: "Create a PDF report summarizing: Revenue $10M, Growth 30%, 50 employees. Save it immediately."
+    timeout_seconds: 300
+    outcome_assertions:
+      - "The response plans to create or has created a PDF document"
+      - "The response uses the provided data (revenue, growth rate, employee count)"
+    expect_keywords_any:
+      - "PDF"
+      - "report"
+      - "document"
+    expect_tools:
+      - "get_skill"
+
+  - name: latex_academic
+    prompt: "Create a PDF paper that includes the quadratic formula and a brief derivation showing it solves ax²+bx+c=0. The math must be properly typeset with real equation formatting, not plain text. Save the PDF immediately."
+    timeout_seconds: 300
+    outcome_assertions:
+      - "The response uses LaTeX for mathematical content"
+      - "The response mentions the quadratic formula or equation"
+    expect_keywords_any:
+      - "LaTeX"
+      - "equation"
+      - "pdflatex"
+      - "quadratic"
+    expect_tools:
+      - "get_skill"
+      - "execute_command"
+
+  - name: generates_pdf_file
+    prompt: "Create a one-page PDF memo about Q3 results: revenue up 15%, costs down 8%. Save immediately."
+    timeout_seconds: 300
+    outcome_assertions:
+      - "The response indicates a PDF file was created or saved"
+    expect_tools:
+      - "get_skill"
+      - "execute_command"
+
+  - name: multi_section_report
+    prompt: "Create a PDF report with these exact sections: 1) Executive Summary, 2) Financial Overview with a table showing Revenue=$25M Costs=$18M Profit=$7M, 3) Team Growth from 50 to 80 employees, 4) Outlook. Save it immediately — do not ask for permission."
+    timeout_seconds: 600
+    outcome_assertions:
+      - "The response mentions creating a PDF with multiple sections or the specific section names"
+      - "The response mentions the financial data ($25M, $18M, $7M) or a table"
+    expect_tools:
+      - "get_skill"
+      - "execute_command"
+
+  - name: table_formatting
+    prompt: "Create a PDF with a professional table showing: Product A - $5M revenue, 60% margin; Product B - $3M revenue, 45% margin; Product C - $8M revenue, 72% margin. Make it look polished. Save it."
+    timeout_seconds: 300
+    outcome_assertions:
+      - "The response creates a PDF with a formatted table"
+      - "The response mentions professional styling (alternating colors, header styling, or structured formatting)"
+    expect_tools:
+      - "get_skill"
+      - "execute_command"
+
+  - name: title_page
+    prompt: "Create a professional PDF report titled 'Annual Performance Review 2025' by 'Strategy Team'. The report should cover: total revenue $45M (up 22%), headcount grew from 150 to 210, customer NPS improved from 42 to 61. Include a title page with the date, then an executive summary section. Save it."
+    timeout_seconds: 300
+    outcome_assertions:
+      - "The response creates a PDF with a title page"
+      - "The response includes the title 'Annual Performance Review 2025'"
+    expect_tools:
+      - "get_skill"
+      - "execute_command"
+
+  - name: chart_in_pdf
+    prompt: "Create a PDF report that includes a bar chart showing quarterly revenue: Q1=$5M, Q2=$7M, Q3=$9M, Q4=$12M. The chart should be embedded in the document, not just described. Save the final PDF."
+    timeout_seconds: 600
+    outcome_assertions:
+      - "The response creates a PDF with an embedded chart or image"
+      - "The response indicates both a chart and PDF were generated"
+    expect_tools:
+      - "get_skill"
+      - "execute_command"
+
+  - name: negative_spreadsheet
+    prompt: "Create an Excel budget with formulas for monthly tracking"
+    outcome_assertions:
+      - "The response does NOT create a PDF"
+      - "The response treats this as a spreadsheet task"
+    tags:
+      - "negative"
+    reject_tools:
+      - "get_skill"
+
+  - name: negative_slides
+    prompt: "Make a PowerPoint presentation with 5 slides about our product roadmap"
+    timeout_seconds: 300
+    outcome_assertions:
+      - "The response does NOT create a PDF"
+      - "The response does NOT use fpdf2 or pdflatex to generate a document"
+    tags:
+      - "negative"
+    reject_tools:
+      - "get_skill"

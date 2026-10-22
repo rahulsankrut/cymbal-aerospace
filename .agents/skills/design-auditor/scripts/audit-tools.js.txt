@@ -1,0 +1,249 @@
+/**
+ * Selectors used to locate the navigation rail / vertical sidebar. Tried in
+ * order; first match wins. The list intentionally mixes the canonical Material
+ * kit class name with semantic and common ad-hoc names so the audit can
+ * evaluate pages that do NOT use the kit's class names (otherwise the audit
+ * silently returns 'Not Found' and grants a free pass).
+ */
+const RAIL_SELECTORS = [
+  '.navigation-rail',
+  '.nav-rail',
+  'nav[aria-label*="rail" i]',
+  'nav[aria-orientation="vertical"]',
+  '[role="navigation"][aria-orientation="vertical"]',
+  'nav.sidebar',
+  'nav.side-nav',
+  'nav.left-nav',
+  'aside.sidebar',
+  'aside.side-nav',
+  'aside nav',
+];
+
+/**
+ * Selectors used to locate the main content container. Used by tonal and
+ * alignment checks.
+ */
+const MAIN_SELECTORS = ['main', '[role="main"]', '.main-content', '.content'];
+
+/**
+ * Returns the first element matching any selector in the list, or null.
+ * @param {!Array<string>} selectors
+ * @return {?Element}
+ */
+const queryFirst = (selectors) => {
+  for (const sel of selectors) {
+    const el = document.querySelector(sel);
+    if (el) return el;
+  }
+  return null;
+};
+
+window.AuditTools = {
+  /**
+   * Returns the width of the sidebar rail.
+   *
+   * Spec: per Material Design 3, a navigation rail is 96px (collapsed
+   * default) or 220-360px (expanded). Widths outside both bands (e.g. an
+   * 80px ad-hoc rail or a 200px in-between value) are non-spec.
+   *
+   * Tries multiple selectors so non-canonical class names (`<aside class=
+   * "sidebar">`, `<nav>` with no class, etc.) are still measured.
+   *
+   * @return {number|string} Width of the located rail in CSS px, or the
+   *     string `'Not Found'` if no rail-like element is present in the DOM.
+   */
+  getRailWidth: () => {
+    const rail = queryFirst(RAIL_SELECTORS);
+    return rail ? rail.getBoundingClientRect().width : 'Not Found';
+  },
+
+  getIconCenteringDelta: () => {
+    const menu = document.querySelector('.navigation-rail-menu-button') ||
+        document.querySelector('.nav-rail-menu-button') ||
+        document.querySelector('nav button[aria-label*="menu" i]');
+    const icon =
+        document.querySelector('.navigation-rail-item-icon-container') ||
+        document.querySelector('.nav-rail-item-icon-container') ||
+        document.querySelector('.icon-container');
+    if (menu && icon) {
+      return Math.abs(
+          menu.getBoundingClientRect().left -
+          icon.getBoundingClientRect().left);
+    }
+    return 'Elements Not Found';
+  },
+
+  getSubpixelDrift: () => {
+    const dividers = Array.from(document.querySelectorAll(
+        '.border-r, .border-l, .border-t, .border-b, hr, .divider'));
+    return dividers
+        .map(d => {
+          const rect = d.getBoundingClientRect();
+          return {
+            tag: d.tagName,
+            classes: d.className,
+            x: rect.left,
+            y: rect.top,
+            isDrifting:
+                !Number.isInteger(rect.left) || !Number.isInteger(rect.top)
+          };
+        })
+        .filter(d => d.isDrifting);
+  },
+
+  getTonalSeparation: () => {
+    const sidebarEl =
+        queryFirst(RAIL_SELECTORS) || document.querySelector('aside');
+    const contentEl = queryFirst(MAIN_SELECTORS);
+    if (sidebarEl && contentEl) {
+      const sidebar = window.getComputedStyle(sidebarEl).backgroundColor;
+      const content = window.getComputedStyle(contentEl).backgroundColor;
+      // Two transparent (or unset) backgrounds are NOT a tonal flatness
+      // violation: they are inheriting from a common parent (commonly the
+      // body), and the kit's navigation-rail-code.md explicitly recommends
+      // `background-color: transparent` for nav rails. Only flag isFlat
+      // when both containers have explicit non-transparent colors that
+      // happen to match.
+      const isTransparent = (c) =>
+          c === 'rgba(0, 0, 0, 0)' || c === 'transparent';
+      const sidebarOpaque = !isTransparent(sidebar);
+      const contentOpaque = !isTransparent(content);
+      return {
+        sidebar,
+        content,
+        isFlat: sidebarOpaque && contentOpaque && sidebar === content,
+      };
+    }
+    return 'Containers Not Found';
+  },
+
+  getPaddingViolations: () => {
+    const containers = Array.from(document.querySelectorAll(
+        '.bg-surface-container, .surface-container, .card, .panel, .pane,' +
+        ' main, aside, section, [role="main"], .main-content'));
+    return containers
+        .map(c => {
+          const rect = c.getBoundingClientRect();
+          const children = Array.from(c.children);
+          const touching = children.filter(child => {
+            const cRect = child.getBoundingClientRect();
+            return Math.abs(cRect.left - rect.left) < 0.1 ||
+                Math.abs(cRect.right - rect.right) < 0.1 ||
+                Math.abs(cRect.top - rect.top) < 0.1 ||
+                Math.abs(cRect.bottom - rect.bottom) < 0.1;
+          });
+          // Containers with adequate padding can legitimately have full-width
+          // children (e.g., a full-width header inside a card with 16px
+          // padding); those are NOT violations. Only flag when the parent
+          // itself has insufficient padding (< 8px on any side) AND a child
+          // touches its edge, or when the container is clipping overflow.
+          const cs = window.getComputedStyle(c);
+          const minPadding = Math.min(
+              parseFloat(cs.paddingLeft) || 0, parseFloat(cs.paddingRight) || 0,
+              parseFloat(cs.paddingTop) || 0,
+              parseFloat(cs.paddingBottom) || 0);
+          const hasInsufficientPadding = minPadding < 8;
+          return {
+            tag: c.tagName,
+            classes: c.className,
+            touchingCount: touching.length,
+            hasInsufficientPadding,
+            clipped:
+                c.scrollHeight > c.clientHeight || c.scrollWidth > c.clientWidth
+          };
+        })
+        .filter(
+            res => (res.touchingCount > 0 && res.hasInsufficientPadding) ||
+                res.clipped);
+  },
+
+  getGridCoherence: (selector = '.grid') => {
+    const grid = document.querySelector(selector);
+    if (!grid) return 'Grid Not Found';
+
+    const items =
+        Array.from(grid.children).filter(el => el.offsetParent !== null);
+    if (items.length < 2) return 'Insufficient Items';
+
+    const gaps = [];
+    for (let i = 1; i < items.length; i++) {
+      const prev = items[i - 1].getBoundingClientRect();
+      const curr = items[i].getBoundingClientRect();
+      if (Math.abs(prev.top - curr.top) < 1) {
+        gaps.push(Math.abs(curr.left - prev.right));
+      }
+    }
+
+    const isConsistent = gaps.every(g => Math.abs(g - gaps[0]) < 1.1);
+    return {
+      gaps,
+      isConsistent,
+      delta: isConsistent ? 0 : Math.max(...gaps) - Math.min(...gaps)
+    };
+  },
+
+  getGlobalAlignment: () => {
+    const headerEl = document.querySelector('header > div') ||
+        document.querySelector('header > *:first-child') ||
+        document.querySelector('.app-bar > div') ||
+        document.querySelector('.top-app-bar > div') ||
+        document.querySelector('.toolbar > div');
+    const headerLeading = headerEl?.getBoundingClientRect().left;
+    const mainEl = document.querySelector('main > div') ||
+        document.querySelector('main > *:first-child') ||
+        document.querySelector('[role="main"] > *:first-child') ||
+        document.querySelector('.main-content > *:first-child');
+    const mainLeading = mainEl?.getBoundingClientRect().left;
+    const railLeading =
+        queryFirst(RAIL_SELECTORS)?.getBoundingClientRect().left;
+
+    const points =
+        [headerLeading, mainLeading, railLeading].filter(p => p !== undefined);
+    const maxDelta = Math.max(...points) - Math.min(...points);
+
+    return {
+      points: {headerLeading, mainLeading, railLeading},
+      maxDelta,
+      isAligned: maxDelta < 2
+    };
+  },
+
+  getStickyIntegrity: () => {
+    const stickies =
+        Array.from(document.querySelectorAll('*'))
+            .filter(
+                el => window.getComputedStyle(el).position === 'sticky' ||
+                    window.getComputedStyle(el).position === 'fixed');
+
+    return stickies
+        .map(s => {
+          const style = window.getComputedStyle(s);
+          const isTransparent = style.backgroundColor === 'rgba(0, 0, 0, 0)' ||
+              style.backgroundColor === 'transparent';
+          const hasZIndex = parseInt(style.zIndex) > 0;
+          const isScrolled =
+              window.scrollY > 0 || (s.closest('main')?.scrollTop > 0);
+
+          return {
+            tag: s.tagName,
+            classes: s.className,
+            isBroken: isScrolled && isTransparent && hasZIndex,
+            zIndex: style.zIndex
+          };
+        })
+        .filter(res => res.isBroken);
+  },
+
+  runFullAudit: () => {
+    return {
+      railWidth: window.AuditTools.getRailWidth(),
+      iconDelta: window.AuditTools.getIconCenteringDelta(),
+      subpixelDrifts: window.AuditTools.getSubpixelDrift(),
+      tonalSeparation: window.AuditTools.getTonalSeparation(),
+      paddingViolations: window.AuditTools.getPaddingViolations(),
+      gridCoherence: window.AuditTools.getGridCoherence(),
+      globalAlignment: window.AuditTools.getGlobalAlignment(),
+      stickyIntegrity: window.AuditTools.getStickyIntegrity()
+    };
+  }
+};

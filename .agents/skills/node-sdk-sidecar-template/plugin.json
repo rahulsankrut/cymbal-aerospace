@@ -1,0 +1,9 @@
+{
+  "name": "node_sdk_plugin",
+  "description": "Template plugin demonstrating Node.js Sidecar SDK usage.",
+  "suggestedPrompts": [
+    "Open the Node.js sidecar panel and check live status",
+    "Add a GET route in main.mjs that returns git status",
+    "Add a button in index.html that triggers a workspace build"
+  ]
+}

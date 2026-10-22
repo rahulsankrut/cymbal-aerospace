@@ -1,0 +1,19 @@
+#!/bin/bash
+# Installs node_sdk_plugin into ~/.gemini/config/plugins/
+set -euo pipefail
+
+DEST_DIR="${HOME}/.gemini/config/plugins/node_sdk_plugin"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+echo "Installing node_sdk_plugin to ${DEST_DIR}..."
+
+mkdir -p "${DEST_DIR}/sidecars/node_sdk_template"
+cp "${SCRIPT_DIR}/plugin.json" "${DEST_DIR}/plugin.json"
+cp "${SCRIPT_DIR}/sidecars/node_sdk_template/sidecar.json" "${DEST_DIR}/sidecars/node_sdk_template/"
+cp "${SCRIPT_DIR}/sidecars/node_sdk_template/main.mjs" "${DEST_DIR}/sidecars/node_sdk_template/"
+cp "${SCRIPT_DIR}/sidecars/node_sdk_template/index.html" "${DEST_DIR}/sidecars/node_sdk_template/"
+cp "${SCRIPT_DIR}/sidecars/node_sdk_template/styles.css" "${DEST_DIR}/sidecars/node_sdk_template/"
+cp "${SCRIPT_DIR}/sidecars/node_sdk_template/package.json" "${DEST_DIR}/sidecars/node_sdk_template/"
+
+echo "Successfully installed node_sdk_plugin!"
+echo "Open Jetski Web and navigate to the UI Plugins dashboard to enable and use the plugin."

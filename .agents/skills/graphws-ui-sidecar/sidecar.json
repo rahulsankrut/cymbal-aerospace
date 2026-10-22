@@ -1,0 +1,20 @@
+{
+  "command": "/bin/bash",
+  "args": [
+    "-c",
+    "SCRIPT_PATH=\"/google/src/files/head/depot/google3/devtools/knowledge/jetski/sidecars/graphws_ui/sidecar.py\"; LOCAL_PATH=\"/google/src/cloud/$USER/$ANTIGRAVITY_PROJECT_ID/google3/devtools/knowledge/jetski/sidecars/graphws_ui/sidecar.py\"; if [ -f \"$LOCAL_PATH\" ]; then SCRIPT_PATH=\"$LOCAL_PATH\"; fi; exec python3 \"$SCRIPT_PATH\""
+  ],
+  "restart_policy": "always",
+  "display_name": "GraphWorkspace UI",
+  "description": "Vis-Network Dynamic GraphWorkspace Live Sync UI (with Fallback)",
+  "has_web_ui": true,
+  "ui_config": {
+    "display_name": "GraphWorkspace Panel",
+    "views": [
+      {
+        "path": "/",
+        "entrypoint": "SIDECAR_UI_ENTRYPOINT_AUX_PANE"
+      }
+    ]
+  }
+}

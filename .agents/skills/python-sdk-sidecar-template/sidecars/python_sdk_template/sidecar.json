@@ -1,0 +1,18 @@
+{
+  "command": "./sidecar.par",
+  "args": [],
+  "restart_policy": "always",
+  "display_name": "Python Template Sidecar",
+  "description": "A template sidecar demonstrating the Python SDK",
+  "has_web_ui": true,
+  "ui_config": {
+    "display_name": "Python Template",
+    "views": [
+      {
+        "path": "/",
+        "entrypoint": "SIDECAR_UI_ENTRYPOINT_AUX_PANE",
+        "title": "Python Template"
+      }
+    ]
+  }
+}

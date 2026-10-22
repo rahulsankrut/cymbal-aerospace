@@ -1,58 +1,84 @@
 ---
-title: Media & Audio (GAR 1.4, 2.2)
-shortname: gar-web-media
+title: Media, Captions, Transcripts & Audio Control (gar-web-captions-transcripts, gar-web-pause-audio)
+shortname: gar-web-captions-transcripts
 priority: HIGH
 ---
 
-# Media: Captions, Transcripts, & Control
+# Media: Captions, Transcripts & Audio Control
 
-Audio/Video MUST be accessible without hearing or seeing.
+All multimedia content must be perceivable without hearing or vision and must
+never play unpausable audio automatically. This file covers
+[Captions & Transcripts](http://go/gar-web-captions-transcripts) and
+[Pause Audio](http://go/gar-web-pause-audio).
 
-## 1. Captions & Transcripts (MANDATORY)
+## 1. GAR Checkpoints & Core Rules
 
--   **Captions:** All video with spoken dialogue MUST have synchronized
-    captions.
--   **Transcripts:** All audio-only content (podcasts) MUST have a text
-    transcript available.
--   **Audio Description:** If visual-only information is critical (e.g., a
-    silent chart shown in a video), it MUST be described in the audio track or a
-    separate track.
+-   **Captions, Transcripts & Audio Descriptions
+    (`gar-web-captions-transcripts`):**
+    -   **Synchronized Video Captions:** Every `<video>` containing speech or
+        meaningful audio must include synchronized `<track kind="captions">`.
+    -   **Audio-Only Transcripts:** Every audio-only clip (`<audio>`, podcast,
+        voice note) must provide an adjacent link or expandable region with a
+        full text transcript.
+    -   **Audio Descriptions:** When video conveys essential visual information
+        not spoken in the dialogue (e.g., silent charts or on-screen text),
+        provide `<track kind="descriptions">` or an audio-described track.
+-   **Audio Control & No Uncontrolled Autoplay (`gar-web-pause-audio`):**
+    -   **No Unpausable Autoplay (>3s):** Audio must not play automatically for
+        more than 3 seconds unless a keyboard-accessible Pause/Stop/Mute control
+        is immediately reachable at the top of the page.
+    -   **Accessible Player Controls:** Native `controls` (or custom player
+        buttons with explicit `aria-label`s for Play/Pause, Mute, Volume, and
+        Captions) must be operable via keyboard without trapping `Tab` focus.
 
-## 2. Audio Control (No Autoplay)
+## 2. Decision Matrix
 
--   **User Control:** Audio MUST NOT play automatically for >3 seconds.
--   **Pause/Stop:** If audio plays automatically, there MUST be a mechanism to
-    pause or stop it *independent* of system volume.
--   **Volume:** The user MUST be able to adjust the volume of the specific media
-    element.
+Media Type                          | Required Accessibility Elements                                                                   | GAR 2027 Criterion
+:---------------------------------- | :------------------------------------------------------------------------------------------------ | :-----------------
+**Video with Dialogue**             | `<video controls>` + `<track kind="captions">` + `<track kind="descriptions">` + transcript link. | `gar-web-captions-transcripts`
+**Audio-Only Clip / Podcast**       | `<audio controls>` + visible link/disclosure to full text transcript.                             | `gar-web-captions-transcripts`
+**Silent Looping Background Video** | `muted` attribute + visible Pause/Stop `<button>` (`gar-web-motion-stoppable`).                   | `gar-web-pause-audio`, `gar-web-motion-stoppable`
 
 ## 3. Implementation Patterns
 
-### Accessible Video Player
+### Accessible Video Player with Captions, Descriptions & Transcript
 
 ```html
-<video controls>
-  <source src="video.mp4" type="video/mp4">
-  <track kind="captions" src="captions_en.vtt" srclang="en" label="English">
-  <track kind="descriptions" src="descriptions_en.vtt" srclang="en" label="Audio Description">
-</video>
-<a href="/transcript.html">Read Transcript</a>
+<!-- GOOD: Native controls, synchronized caption and description tracks, and transcript link -->
+<figure>
+  <video controls preload="metadata">
+    <source src="overview.mp4" type="video/mp4">
+    <track kind="captions" src="captions_en.vtt" srclang="en" label="English" default>
+    <track kind="descriptions" src="descriptions_en.vtt" srclang="en" label="Audio Description">
+  </video>
+  <figcaption>
+    <a href="/overview-transcript.html">Read video transcript (HTML)</a>
+  </figcaption>
+</figure>
+
+<!-- BAD: Autoplaying video with unmuted audio and no caption tracks -->
+<video src="overview.mp4" autoplay></video>
 ```
 
-### Audio Player with Transcript
+### Accessible Audio Player with Text Transcript
 
 ```html
+<!-- GOOD: Keyboard-accessible audio controls paired with a text transcript -->
 <figure>
-  <audio controls src="podcast.mp3"></audio>
+  <audio controls src="episode-12.mp3"></audio>
   <figcaption>
-    <a href="/podcast-transcript">Download Transcript</a>
+    <a href="/episode-12-transcript.html">Read Episode 12 Transcript</a>
   </figcaption>
 </figure>
 ```
 
 ## 4. Blockers (Auto-Fail)
 
-1.  **Missing Tracks:** `<video>` elements without a `<track kind="captions">`.
-2.  **Unstoppable Audio:** Background music that loops infinitely with no pause
-    button.
-3.  **Trap:** A video player that traps keyboard focus (user cannot Tab out).
+1.  **Missing Video Captions (`video-caption`):** `<video>` elements with audio
+    tracks that omit `<track kind="captions">`.
+2.  **Audio Without Transcript:** `<audio>` players with no accompanying text
+    transcript.
+3.  **Uncontrolled Autoplay (`no-autoplay-audio`):** Media that auto-plays sound
+    for `> 3 seconds` without an immediately accessible Pause/Mute control.
+4.  **Player Keyboard Trap:** Media player widgets that capture `Tab` focus and
+    prevent keyboard users from exiting the player.

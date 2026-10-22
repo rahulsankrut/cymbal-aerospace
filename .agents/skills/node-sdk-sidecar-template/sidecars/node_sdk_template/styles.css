@@ -1,0 +1,86 @@
+/*
+ * Theme tokens injected by the host into the sidecar iframe.
+ *
+ * The host posts a `theme-change` message on load and whenever the theme
+ * changes; `preload.js` applies the payload to this document's root element.
+ * Available tokens:
+ *
+ *   Surfaces   --background --content --card --secondary --muted
+ *              --sidebar --sidebar-secondary --sidebar-muted
+ *   Text       --foreground --secondary-foreground --muted-foreground
+ *              --primary-foreground --placeholder
+ *   Accent     --primary --accent
+ *   Borders    --border --card-border
+ *
+ * Fallback values keep the page readable when it is opened directly in a
+ * browser (e.g. http://localhost:<port> during development), where no host is
+ * present to inject the tokens.
+ */
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--background, #fafafa);
+  color: var(--foreground, #333);
+  line-height: 1.4;
+}
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 16px;
+}
+h3 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+p {
+  margin-bottom: 20px;
+  color: var(--muted-foreground, #666);
+  font-size: 13px;
+}
+.button-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+/* Buttons that require an active conversation are hidden by default and
+   revealed via JS only when the conversationId query param is present. */
+.conversation-btn {
+  display: none;
+}
+button {
+  background: var(--primary, #0e639c);
+  color: var(--primary-foreground, #ffffff);
+  border: 1px solid var(--border, transparent);
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+/* There is no dedicated hover token, so shift the accent toward the
+   foreground: that lightens it in dark themes and darkens it in light ones. */
+button:hover {
+  background: color-mix(in srgb, var(--primary, #0e639c) 88%, var(--foreground, #000));
+}
+button:active {
+  background: color-mix(in srgb, var(--primary, #0e639c) 76%, var(--foreground, #000));
+}
+h4 {
+  margin-top: 20px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+pre {
+  background: var(--secondary, #f5f5f5);
+  border: 1px solid var(--border, #e0e0e0);
+  border-radius: 4px;
+  padding: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  margin: 0;
+}

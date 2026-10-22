@@ -17,19 +17,27 @@ metadata:
 
 # GAR Web Accessibility Skill
 
-Expert guidance for implementing the Google Accessibility Rating (GAR) in web
-applications and HTML/JS template generators.
+Expert guidance for implementing the Google Accessibility Rating
+([go/gar-web](http://go/gar-web)) and GAR 2027 Checkpoints
+([go/gar-checkpoints](http://go/gar-checkpoints)) across web applications,
+Google3 UI frameworks, and HTML/JS template generators.
 
 ## Core Mandates (A11y-First)
 
-1.  **Semantic First:** ALWAYS use native HTML elements (`<button
-    type="button">`, `<a>`, `<input>`, `<dialog>`) before considering ARIA.
-2.  **Interactive Elements:** Use `<button type="button">` for actions and `<a>`
-    for navigation. NEVER use `<div>` or `<span>` for interaction.
-3.  **Keyboard Operable & Modal Focus Lifecycle:** All functionality MUST be
-    usable with only `Tab`, `Shift+Tab`, `Space`, `Enter`, and `Escape`. For
-    modals/dialogs (see [Focus Management](references/focus.md)):
-    -   Trigger button MUST declare `aria-haspopup="dialog"`.
+1.  **Semantic First:** Use native HTML elements (`<button type="button">`,
+    `<a>`, `<input>`, `<dialog>`) before considering ARIA.
+2.  **Interactive Elements (`google-keynav-click-interactive`):** Use `<button
+    type="button">` for actions and `<a href="...">` for navigation. Never use
+    `<div>` or `<span>` for interaction—and never attach click handlers
+    (`onclick`, `addEventListener('click', ...)`) or `cursor: pointer` to
+    secondary click zones (such as album/book page corners or card surfaces)
+    even when separate `<button>` controls exist—unless they are native
+    `<button>` elements or also carry `role="button"`, `tabindex="0"`, and
+    `Enter`/`Space` keyboard handlers.
+3.  **Keyboard Operable & Modal Focus Lifecycle:** All functionality must be
+    usable with `Tab`, `Shift+Tab`, `Space`, `Enter`, and `Escape`. For
+    modals/dialogs (see [Focus & DOM Order](references/focus.md)):
+    -   Trigger button must declare `aria-haspopup="dialog"`.
     -   Prefer native `<dialog aria-labelledby="<title-id>">` opened via
         `.showModal()`. For custom modal containers (e.g., `<div id="...">`),
         declare `role="dialog"`, `aria-modal="true"`, and
@@ -47,111 +55,84 @@ applications and HTML/JS template generators.
         `lastActiveElement` is null or detached; if closed by an in-dialog
         action, move focus to that action's logical destination (never dropping
         focus to `<body>`).
-4.  **Decorative vs. Standalone Icons (see
-    [Accessible Names](references/accessible-names.md)):** Inline `<svg>` or
-    font icons accompanying visible button/link text MUST set
+4.  **Decorative vs. Standalone Icons & Clear Purpose (see
+    [Accessible Names & Clear Purpose](references/accessible-names.md)):**
+    Inline `<svg>` or font icons accompanying visible button/link text must set
     `aria-hidden="true"`. Standalone icon-only buttons (e.g., `&times;` close
-    buttons) MUST set `aria-label="..."` on the `<button>`.
+    buttons) must set `aria-label="..."` on the `<button>`. Links must convey
+    clear purpose without relying on bare stop words (`"here"`, `"learn more"`).
 5.  **No Hidden Focus:** Never use `outline: none` without a high-contrast
     replacement; always define explicit `:focus-visible` outline styles
     (`outline: 2px solid ...; outline-offset: 2px;`).
 6.  **Pre-Output Audit:** Before providing code (including HTML/JS string
-    templates inside Python/Go/C++ files), you MUST audit it against the
-    "Blockers" in the `references/` files.
+    templates inside Python/Go/C++ files), audit it against the `Blockers`
+    section in the relevant `references/` files.
 
 ## Mandatory Execution Workflow
 
 When asked to create or modify frontend code or HTML templates:
 
-1.  **Load Framework Guidance:** Identify the target web framework and load the
-    matching file from `references/frameworks/` (see **Framework-Specific
-    Guidance** below) before making any edits.
-2.  **Audit:** Compare your proposed code against the [Blockers] sections in the
-    reference files.
-3.  **Select Patterns:** Prefer "Golden Path" patterns found in `references/` or
-    `assets/components/`.
-4.  **Self-Correct:** If the user asks for a "Clickable Div," you MUST politely
-    correct them and use a `<button>`.
-5.  **Preserve Visual Layout When Fixing Bugs:** Avoid making unrequested visual
-    UI changes (such as adding visible text elements, changing CSS styles, or
-    altering the layout) to resolve accessibility violations, unless the bug
-    report explicitly requires a visual change. Focus on semantic HTML, focus
-    management, and ARIA attributes that preserve the existing visual design.
+1.  **Load Framework Guidance & Apply Syntax Matrix:** Inspect the target file
+    extension and imports, apply the attribute/localization syntax from the
+    matrix below, and load the matching `references/frameworks/` file **before**
+    making any edits.
+2.  **Load Topic Reference(s):** Open the relevant topic reference file(s) from
+    the **GAR 2027 Checkpoints & Topic Reference Router** below.
+3.  **Select Golden Path & Audit Blockers:** Follow the `Decision Matrix` and
+    `Implementation Patterns`, and verify zero violations against `Blockers
+    (Auto-Fail)`.
+4.  **Self-Correct, Preserve Visual Layout & Keep Fixes Minimal-Scope:**
+    Politely replace requested "clickable `<div>`s" with `<button
+    type="button">`. When fixing a reported bug or ATF violation in an existing
+    UI, preserve the visual layout and apply a minimal, surgical fix at the
+    exact component or directive where the issue originates—never modify
+    unrelated components, upstream base libraries, or downstream victim
+    components.
 
-## Navigation & Search Guide
+### Framework & File Extension Routing Matrix (CRITICAL FOR GOOGLE3)
 
-Use these consolidated references to find criteria:
+Generic HTML5 attribute patterns frequently fail or cause regressions in Google3
+frameworks (e.g., host attribute dropping on custom components, missing i18n
+wrappers, or synchronous focus during animations). Match the target framework
+and file extension below before editing (when an extension like `.ts`, `.dart`,
+or `.html` is shared across stacks, inspect the file's imports or decorators
+such as `@Component`, `LitElement`, `wiz`, or `package:flutter` to pick the
+single matching framework row):
 
-*   **Interaction & Logic:** [Keyboard](references/keyboard.md),
-    [Focus](references/focus.md),
-    [Interaction & Gestures](references/interaction-patterns.md).
-*   **Forms & Entry:** [Forms, Inputs & Errors](references/forms.md).
-*   **Structure & Semantics:** [Structure & Semantics](references/structure.md),
-    [Accessible Names](references/accessible-names.md).
-*   **Dynamic Content:**
-    [Live Regions & Updates](references/updates-with-screen-reader.md),
-    [Media & Audio](references/media.md).
-*   **Visuals:** [Visuals, Contrast & Spacing](references/visuals.md).
+Framework / Stack (File Extensions)                     | Attribute & ARIA Binding Syntax                                                                                                                        | Mandatory Localization (`i18n`)                                                                                   | Framework Guide (Load First)
+:------------------------------------------------------ | :----------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------- | :---------------------------
+**Angular TS & Material** (`.ng.html`, `.component.ts`) | Static: `aria-label="Close"`<br>Dynamic native: `[attr.aria-label]="expr"`<br>Material component: `[ariaLabel]="expr"`, `[optionsAriaLabel]="expr"`    | Pair static strings with `i18n-aria-label="desc"` (`i18n-title`); prefer `aria-labelledby` to reuse existing text | [Angular TS Guidance](references/frameworks/angular-ts.md)
+**AngularDart & ACX** (`.acx.html`, `.dart`)            | Native DOM: `[attr.aria-label]="getter"`<br>ACX component: `[ariaLabel]="getter"`, `[buttonAriaLabel]="getter"` *(never raw `aria-label` on ACX host)* | Public getter in `.dart` using `Intl.message('...', name: '...', desc: '...')`                                    | [AngularDart Guidance](references/frameworks/dart-angulardart.md)
+**Closure Templates & UI** (`.soy`, `.js`)              | Delegate ARIA to inner interactive target (e.g., `extraTriggerAttributes` / `buttonAttributes`), not outer wrapper                                     | Wrap all user-facing strings in `{msg desc="..."}...{/msg}`                                                       | [Soy & Closure Guidance](references/frameworks/soy-closure.md)
+**Lit, Polymer & Wiz** (`.ts`, `.js`)                   | Lit: `aria-label=${this.label}`; set `aria-hidden="true"` on decorative inner `<svg>`                                                                  | Framework message catalog (`msg(...)`)                                                                            | [Lit, Polymer & Wiz Guidance](references/frameworks/lit-polymer-wiz.md)
+**Flutter Web** (`.dart`)                               | `Semantics(label: ..., button: true)`, `ReadingOrderTraversalPolicy()`                                                                                 | `Intl.message` / Flutter l10n                                                                                     | [Flutter Guidance](references/frameworks/flutter.md)
+**Standard HTML / DOM** (`.html`, `.ts`, `.js`)         | `aria-label="Close"`, `for="id"`, `tabindex="-1"`                                                                                                      | `goog.getMsg('...')` in JS/TS                                                                                     | *(Use Topic References below)*
+**React** (`.tsx`, `.jsx`)                              | `aria-label={label}` *(hyphenated)*, `htmlFor="id"`, `tabIndex={-1}` *(camelCase)*                                                                     | App i18n helper / message catalog                                                                                 | *(Use Topic References below)*
 
-## Available GAR Criteria (Highly Optimized)
+## GAR 2027 Checkpoints & Topic Reference Router (Full Web ATF Rule Mapping)
 
-### High Priority (Critical)
+Load the reference file matching the accessibility domain, GAR 2027 checkpoint,
+or ATF rule ID (`p4a_tooling.metrics.gar_atf_rule_mapping`):
 
-*   [Keyboard Navigation](references/keyboard.md) - Operability.
-*   [Focus Management](references/focus.md) - Logical flow.
-*   [Accessible Names](references/accessible-names.md) - Labelling & Alt Text.
-*   [Structural Integrity](references/structure.md) - Headings, DOM, & Global
-    Semantics.
+Reference File                                                                 | GAR 2027 Shortnames (`http://go/gar-web`)                                                                                                                                                                                                                                                                            | Complete Mapped Web ATF Rules & Scope
+:----------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------
+**[Accessible Names & Clear Purpose](references/accessible-names.md)**         | `gar-web-accessibility-labels`, `gar-web-text-alternatives`, `gar-web-clear-purpose`                                                                                                                                                                                                                                 | **Accessible Names:** `area-alt`, `aria-command-name`, `aria-input-field-name`, `aria-meter-name`, `aria-progressbar-name`, `aria-prohibited-attr`, `aria-toggle-field-name`, `aria-tooltip-name`, `aria-treeitem-name`, `button-name`, `duplicate-id`, `duplicate-id-active`, `duplicate-id-aria`, `empty-table-header`, `form-field-multiple-labels`, `frame-title`, `google-acx-table-missing-aria-label`, `google-cta-icon-purpose`, `google-gws-image-hidden-significant`, `google-icon-purpose`, `google-label-content-name-mismatch-fuzzy`, `image-alt`, `input-button-name`, `input-image-alt`, `label`, `label-content-name-mismatch`, `label-title-only`, `link-name`, `object-alt`, `role-img-alt`, `select-name`, `summary-name`, `svg-img-alt`.<br>**Clear Purpose:** `frame-title-unique`, `google-gws-image-bad-default-label`, `google-label-purpose`, `google-link-purpose`, `identical-links-same-purpose`, `image-redundant-alt`, `landmark-unique`.
+**[Keyboard Operability](references/keyboard.md)**                             | `gar-web-keyboard`                                                                                                                                                                                                                                                                                                   | **Keyboard Navigation:** `frame-focusable-content`, `google-aria-hidden-focus`, `google-aria-tooltip`, `google-focus-dialog-trap`, `google-focus-trap`, `google-focus-visible`, `google-keynav-click-interactive`, `google-keynav-reachable`, `google-keynav-unsupported-component`, `google-tooltip-has-trigger`, `link-name`, `scrollable-region-focusable`, `server-side-image-map`.<br>**Interactive ARIA Roles & Attributes:** `nested-interactive`, `aria-allowed-attr`, `aria-allowed-role`, `aria-conditional-attr`, `aria-deprecated-role`, `aria-prohibited-attr`, `aria-required-attr`, `aria-roles`, `aria-valid-attr`, `aria-valid-attr-value`, `presentation-role-conflict`.
+**[Focus & DOM Order](references/focus.md)**                                   | `gar-web-focus`, `gar-web-dom-order`                                                                                                                                                                                                                                                                                 | **Focus:** `focus-order-semantics`, `google-focus-extra-tab`, `google-focus-order-semantics`, `google-focus-presence`, `google-focus-trap`, `tabindex`, `aria-hidden-focus`, `google-aria-hidden-focus`, `google-focus-dialog-trap`, `google-focus-visible`, `google-focus-outline`, `aria-dialog-name`.<br>**DOM Order:** `dlitem`, `google-landmark-order`, `landmark-banner-is-top-level`, `landmark-complementary-is-top-level`, `landmark-contentinfo-is-top-level`, `landmark-main-is-top-level`, `listitem`, `tabindex`.
+**[Structure & Semantics](references/structure.md)**                           | `gar-web-headings`, `gar-web-page-title`, `gar-web-language-markup`, `gar-web-consistent-components`, `gar-web-consistent-help-order`, `gar-web-context-change`, `gar-web-accessible-navigation`, `gar-web-repeated-content`, `gar-web-run-through-screen-reader`                                                    | **Headings:** `empty-heading`, `google-dialog-has-heading`, `google-heading-purpose`, `google-heading-semantics`, `heading-order`, `p-as-heading`, `page-has-heading-one`.<br>**Page Title, Language & Repeated Content:** `aria-dialog-name`, `document-title`, `html-has-lang`, `html-lang-valid`, `html-xml-lang-mismatch`, `valid-lang`, `bypass`, `skip-link`.<br>**Tables, Lists & Landmarks:** `aria-braille-equivalent`, `aria-hidden-body`, `aria-required-children`, `aria-required-parent`, `definition-list`, `dlitem`, `empty-table-header`, `google-landmark-order`, `google-table-invalid-roles`, `hidden-content`, `landmark-banner-is-top-level`, `landmark-complementary-is-top-level`, `landmark-contentinfo-is-top-level`, `landmark-main-is-top-level`, `landmark-no-duplicate-banner`, `landmark-no-duplicate-contentinfo`, `landmark-no-duplicate-main`, `landmark-one-main`, `landmark-unique`, `list`, `listitem`, `region`, `scope-attr-valid`, `table-fake-caption`, `td-has-header`, `td-headers-attr`, `th-has-data-cells`.
+**[Forms, Inputs & Errors](references/forms.md)**                              | `gar-web-autofill`, `gar-web-efficient-entry`, `gar-web-user-instructions`, `gar-web-recaptcha`, `gar-web-undo`                                                                                                                                                                                                      | **Autofill, Instructions & reCAPTCHA:** `autocomplete-valid`, `google-aria-invalid-form-not-submitted`, `google-aria-invalid-form-submitted`, `google-aria-required`, `google-captcha`.<br>**Form Labels:** `aria-input-field-name`, `aria-toggle-field-name`, `form-field-multiple-labels`, `input-button-name`, `input-image-alt`, `label`, `label-title-only`, `select-name`.
+**[Interaction & Gestures](references/interaction-patterns.md)**               | `gar-web-gesture-based-interaction`, `gar-web-single-pointer-operations`, `gar-web-dragging-movements`, `gar-web-single-key-shortcuts`, `gar-web-target-size`, `gar-web-motion-stoppable`, `gar-web-timeout`                                                                                                         | **Target Size:** `google-target-size`, `target-size`.<br>**Motion Stoppable:** `blink`, `marquee`, `meta-refresh`, `meta-refresh-no-exceptions`.<br>**Scope:** Single-pointer alternatives for drag/swipe/pinch, modifier keys for shortcuts, timeout warnings.
+**[Visuals, Contrast & Zoom](references/visuals.md)**                          | `gar-web-text-color`, `gar-web-non-text-contrast`, `gar-web-text-spacing`, `gar-web-responsive-design`, `gar-web-screen-orientation`, `gar-web-hover`, `gar-web-run-through-page-zoom`, `gar-web-run-through-magnification`, `gar-web-run-through-forced-colors`, `gar-web-dark-mode`, `gar-web-reduce-transparency` | **Text Color & Contrast:** `color-contrast`, `google-acuiti-color-contrast`, `google-focus-color-contrast`, `google-zero-contrast`, `link-in-text-block`, Material 3 HCT delta-Tone (`ΔT >= 50` / `40`).<br>**Spacing, Orientation, Hover & Zoom:** `avoid-inline-spacing`, `css-orientation-lock`, `google-focus-outline`, `google-tooltip-has-trigger`, `google-aria-tooltip`, `google-zoom-size`, `meta-viewport`, `meta-viewport-large`.<br>**Forced Colors:** `google-focus-high-color-contrast`, `google-focus-unnoticed-high-contrast`, `google-link-high-contrast`, `google-overlay-high-contrast`, `high-color-contrast`.
+**[Media & Audio](references/media.md)**                                       | `gar-web-captions-transcripts`, `gar-web-pause-audio`                                                                                                                                                                                                                                                                | **Captions/Transcripts:** `google-webvtt-captions-valid`, `google-youtube-captions-available`, `video-caption`.<br>**Pause Audio:** `no-autoplay-audio`.
+**[Dynamic Updates & Live Regions](references/updates-with-screen-reader.md)** | `gar-web-updates-with-screen-reader`                                                                                                                                                                                                                                                                                 | **ATF Rules & Live Regions:** `aria-meter-name`, `aria-progressbar-name`, polite (`aria-live="polite"`, `role="status"`) vs. assertive (`role="alert"`) announcements without stealing focus, Android TalkBack timer workaround.
 
-### Specialized Implementation
+## Contributions
 
-*   [Forms & Inputs](references/forms.md) - Autofill, Errors, & reCAPTCHA.
-*   [Interaction & Gestures](references/interaction-patterns.md) - Touch, Mouse,
-    & Shortcuts.
-*   [Visuals & Contrast](references/visuals.md) - Color, Spacing, & Forced
-    Colors.
-*   [Media & Audio](references/media.md) - Captions & Transcripts.
-*   [Dynamic Updates](references/updates-with-screen-reader.md) - ARIA Live
-    regions.
-
-### Framework-Specific Guidance (CRITICAL FOR GOOGLE3)
-
-When modifying Google3 frontend frameworks, generic HTML5 patterns often fail or
-cause regressions. You MUST read and follow the framework-specific rules for the
-target codebase:
-
-*   **AngularDart & ACX (`.dart`, `.acx.html`):**
-    [AngularDart Guidance](references/frameworks/dart-angulardart.md) -
-    Mandatory `Intl.message` localization, `@ViewChild(read: HtmlElement)`
-    typing, and async focus scheduling.
-*   **Angular (TypeScript) & Material (`.ts`, `.ng.html`):**
-    [Angular TS Guidance](references/frameworks/angular-ts.md) - Preventing
-    double announcements with `<mat-label>`, custom input bindings, and
-    animation completion focus restoration.
-*   **Closure Templates (Soy) & Closure UI (`.soy`, `.js`):**
-    [Soy & Closure Guidance](references/frameworks/soy-closure.md) - Mandatory
-    `{msg}` blocks and wrapper component targeting.
-*   **Lit, Polymer & Wiz (`.ts`, `.js`):**
-    [Lit, Polymer & Wiz Guidance](references/frameworks/lit-polymer-wiz.md) -
-    Decorative inner icon `aria-hidden="true"` and view transition lifecycle
-    focus.
-*   **Flutter (`.dart`):**
-    [Flutter Guidance](references/frameworks/flutter.md) - Using
-    `ReadingOrderTraversalPolicy()` for visual reading order.
-
-### Verification
-
-For testing procedures, see the `references/testing/` directory.
-
-## Automated Testing (MCP)
-
-If the `analyze_accessibility` MCP tool is available to you, you MUST run it
-against any HTML UI components you generate or modify before providing the final
-code to the user. Use it to automatically catch and resolve structural and
-labeling violations.
+To contribute or modify this skill or its references, follow the
+[contribution guidelines](references/contributing.md) before making changes.
 
 ## Reporting Issues
 
 Report bugs or improvements for this skill at
-[Agent Skill: web_accessibility](http://b/hotlists/8524768). See the skill_issue
-skill for instructions on filing and triaging skill bugs.
+[Agent Skill: web_accessibility](https://b.corp.google.com/issues/new?component=2156867&template=2361107).
+See the skill_issue skill for instructions on filing and triaging skill bugs.

@@ -1,0 +1,1122 @@
+import { existsSync, readFileSync, statSync, mkdirSync, writeFileSync, readdirSync, lstatSync, realpathSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+import { SidecarApp, Response } from 'sidecar_sdk';
+
+const app = new SidecarApp();
+
+const HOME = homedir();
+const JETSKI_DIR = process.env.ANTIGRAVITY_APP_DATA_DIR || join(HOME, '.gemini/jetski');
+const PLUGIN_DATA_DIR = join(JETSKI_DIR, 'plugin_data/interactive-gen-ui');
+const CACHE_FILE = join(PLUGIN_DATA_DIR, 'active_canvases.json');
+
+let activeCanvases = new Set();
+const activeTimers = new Map();
+
+/**
+ * Finds the most recently active conversation in ~/.gemini/jetski/brain/
+ * by inspecting the modification timestamp of transcripts or the directory itself.
+ */
+function getActiveConversationId() {
+  const brainDir = join(JETSKI_DIR, 'brain');
+  if (!existsSync(brainDir)) return null;
+
+  try {
+    const entries = readdirSync(brainDir, { withFileTypes: true });
+    let latestConvId = null;
+    let latestMtime = 0;
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      if (entry.name === 'test-fake-id') continue;
+
+      const convId = entry.name;
+      const transcriptPath = join(brainDir, convId, '.system_generated/logs/transcript.jsonl');
+      let mtime = 0;
+      if (existsSync(transcriptPath)) {
+        mtime = statSync(transcriptPath).mtimeMs;
+      } else {
+        mtime = statSync(join(brainDir, convId)).mtimeMs;
+      }
+
+      if (mtime > latestMtime) {
+        latestMtime = mtime;
+        latestConvId = convId;
+      }
+    }
+    return latestConvId;
+  } catch (err) {
+    console.error('[server] Error scanning recent conversation:', err);
+    return null;
+  }
+}
+
+/**
+ * Resolves the target HTML file for a given conversation.
+ * Always strictly scopes to the current conversation; never falls back to global files.
+ */
+function resolveCanvasFile(conversationId, explicitFile) {
+  const effectiveConvId = conversationId || getActiveConversationId();
+  if (!effectiveConvId) {
+    return null;
+  }
+
+  if (explicitFile && existsSync(explicitFile)) {
+    const allowedPrefix = join(JETSKI_DIR, `brain/${effectiveConvId}`);
+    if (explicitFile.startsWith(allowedPrefix)) {
+      return explicitFile;
+    }
+  }
+
+  const candidates = [
+    join(JETSKI_DIR, `brain/${effectiveConvId}/scratch/canvas.html`),
+    join(JETSKI_DIR, `brain/${effectiveConvId}/canvas.html`),
+    join(JETSKI_DIR, `brain/${effectiveConvId}/scratch/index.html`),
+    join(JETSKI_DIR, `brain/${effectiveConvId}/index.html`),
+  ];
+  for (const cand of candidates) {
+    if (existsSync(cand)) {
+      return cand;
+    }
+  }
+
+  // Never fall back to global files or other conversations.
+  return null;
+}
+
+const DEFAULT_REFRESH_INTERVAL_SECONDS = 1800; // 30 minutes default
+const MIN_REFRESH_INTERVAL_SECONDS = 30; // 30s minimum safety floor
+const DEFAULT_REFRESH_PROMPT =
+  '[Interactive Canvas Auto-Refresh] Please refresh the dashboard data and update scratch/canvas.html.';
+
+const lastRefreshPingByConv = new Map();
+
+/**
+ * Resolves the canvas.config.json path for a given conversation.
+ */
+function resolveConfigFile(conversationId) {
+  const effectiveConvId = conversationId || getActiveConversationId();
+  if (!effectiveConvId) return null;
+  return join(JETSKI_DIR, `brain/${effectiveConvId}/scratch/canvas.config.json`);
+}
+
+/**
+ * Reads and normalizes the auto-refresh configuration for a conversation.
+ * Returns null if no config file exists.
+ */
+function readCanvasConfig(conversationId) {
+  const configPath = resolveConfigFile(conversationId);
+  if (!configPath || !existsSync(configPath)) {
+    return null;
+  }
+
+  try {
+    const rawText = readFileSync(configPath, 'utf-8');
+    const raw = JSON.parse(rawText);
+    const stat = statSync(configPath);
+
+    let rawSeconds = DEFAULT_REFRESH_INTERVAL_SECONDS;
+    if (typeof raw.intervalSeconds === 'number' && Number.isFinite(raw.intervalSeconds)) {
+      rawSeconds = raw.intervalSeconds;
+    } else if (typeof raw.intervalMinutes === 'number' && Number.isFinite(raw.intervalMinutes)) {
+      rawSeconds = raw.intervalMinutes * 60;
+    }
+
+    const intervalSeconds = Math.max(MIN_REFRESH_INTERVAL_SECONDS, Math.round(rawSeconds));
+    const prompt =
+      typeof raw.prompt === 'string' && raw.prompt.trim()
+        ? raw.prompt.trim()
+        : DEFAULT_REFRESH_PROMPT;
+
+    return {
+      enabled: Boolean(raw.enabled),
+      intervalSeconds,
+      prompt,
+      mtimeMs: stat.mtimeMs,
+      path: configPath,
+    };
+  } catch (err) {
+    console.error(`[server] Error reading canvas config for ${conversationId}:`, err);
+    return null;
+  }
+}
+
+/**
+ * Checks if an active dashboard with an associated canvas.config.json is due for a refresh ping.
+ */
+function saveCache() {
+  try {
+    if (!existsSync(PLUGIN_DATA_DIR)) mkdirSync(PLUGIN_DATA_DIR, { recursive: true });
+    writeFileSync(CACHE_FILE, JSON.stringify(Array.from(activeCanvases)));
+  } catch (err) {
+    console.error('[server] Error saving cache:', err);
+  }
+}
+
+function loadCache() {
+  try {
+    if (existsSync(CACHE_FILE)) {
+      const data = JSON.parse(readFileSync(CACHE_FILE, 'utf-8'));
+      activeCanvases = new Set(data);
+      for (const convId of activeCanvases) {
+        scheduleNextPing(convId);
+      }
+    }
+  } catch (err) {
+    console.error('[server] Error loading cache:', err);
+  }
+}
+
+function unregisterConversation(convId) {
+  if (activeCanvases.has(convId)) {
+    activeCanvases.delete(convId);
+    saveCache();
+  }
+  if (activeTimers.has(convId)) {
+    clearTimeout(activeTimers.get(convId));
+    activeTimers.delete(convId);
+  }
+}
+
+function scheduleNextPing(convId) {
+  if (activeTimers.has(convId)) {
+    clearTimeout(activeTimers.get(convId));
+    activeTimers.delete(convId);
+  }
+
+  const autoRefresh = checkAndTriggerAutoRefresh(convId);
+  if (!autoRefresh || !autoRefresh.enabled) {
+    unregisterConversation(convId);
+    return;
+  }
+
+  const delaySeconds = autoRefresh.nextPingInSeconds || autoRefresh.intervalSeconds || 30;
+  const timer = setTimeout(() => {
+    scheduleNextPing(convId);
+  }, delaySeconds * 1000);
+  
+  activeTimers.set(convId, timer);
+}
+
+function registerConversation(convId) {
+  if (!activeCanvases.has(convId)) {
+    activeCanvases.add(convId);
+    saveCache();
+    console.log(`[server] Registered conversation ${convId} for auto-refresh`);
+  }
+  scheduleNextPing(convId);
+}
+
+function checkAndTriggerAutoRefresh(conversationId, explicitCanvasFile = null) {
+  if (!conversationId) {
+    return { enabled: false, intervalSeconds: DEFAULT_REFRESH_INTERVAL_SECONDS, prompt: DEFAULT_REFRESH_PROMPT };
+  }
+
+  const targetFile = explicitCanvasFile || resolveCanvasFile(conversationId);
+  if (!targetFile || !existsSync(targetFile)) {
+    return { enabled: false, intervalSeconds: DEFAULT_REFRESH_INTERVAL_SECONDS, prompt: DEFAULT_REFRESH_PROMPT };
+  }
+
+  const config = readCanvasConfig(conversationId);
+  if (!config || !config.enabled) {
+    return {
+      enabled: false,
+      intervalSeconds: config ? config.intervalSeconds : DEFAULT_REFRESH_INTERVAL_SECONDS,
+      prompt: config ? config.prompt : DEFAULT_REFRESH_PROMPT,
+    };
+  }
+
+  try {
+    let actualFile = targetFile;
+    if (lstatSync(targetFile).isSymbolicLink()) {
+      actualFile = realpathSync(targetFile);
+    }
+    const canvasStat = statSync(actualFile);
+    const now = Date.now();
+    const lastPingMs = lastRefreshPingByConv.get(conversationId) || 0;
+    const lastActivityMs = Math.max(lastPingMs, canvasStat.mtimeMs, config.mtimeMs || 0);
+    const intervalMs = config.intervalSeconds * 1000;
+    const elapsedMs = now - lastActivityMs;
+
+    if (elapsedMs >= intervalMs) {
+      lastRefreshPingByConv.set(conversationId, now);
+      app.sendMessage(conversationId, config.prompt);
+      console.log(
+        `[server] Sent periodic auto-refresh ping to conversation ${conversationId} (interval: ${config.intervalSeconds}s)`
+      );
+      return {
+        enabled: true,
+        intervalSeconds: config.intervalSeconds,
+        prompt: config.prompt,
+        nextPingInSeconds: config.intervalSeconds,
+        pingTriggered: true,
+      };
+    }
+
+    return {
+      enabled: true,
+      intervalSeconds: config.intervalSeconds,
+      prompt: config.prompt,
+      nextPingInSeconds: Math.max(0, Math.ceil((intervalMs - elapsedMs) / 1000)),
+      pingTriggered: false,
+    };
+  } catch (err) {
+    console.error(`[server] Error in checkAndTriggerAutoRefresh for ${conversationId}:`, err);
+    return {
+      enabled: config.enabled,
+      intervalSeconds: config.intervalSeconds,
+      prompt: config.prompt,
+      error: err.message,
+    };
+  }
+}
+
+
+
+const lastNotificationTimeByConv = new Map();
+const NOTIFICATION_COOLDOWN_MS = 30000; // 30s debounce per conversation
+
+/**
+ * Sends an instruction message to the agent when the user clicks the button to create a canvas.
+ */
+function notifyAgentMissingCanvas(conversationId, force = false) {
+  if (!conversationId) return false;
+
+  const now = Date.now();
+  const lastTime = lastNotificationTimeByConv.get(conversationId) || 0;
+  if (!force && (now - lastTime < NOTIFICATION_COOLDOWN_MS)) {
+    return false;
+  }
+  lastNotificationTimeByConv.set(conversationId, now);
+
+  const targetPath = join(JETSKI_DIR, `brain/${conversationId}/scratch/canvas.html`);
+  const message = `[Interactive Canvas] The user clicked the button to create an interactive canvas for this conversation.
+
+Please create an interactive canvas for the user:
+1. Target File Path:
+   ${targetPath}
+
+2. How to use Canvas:
+   - Format: Complete HTML document with Tailwind CSS (<script src="https://cdn.tailwindcss.com"></script>) and host theme CSS variables (var(--background), var(--foreground), var(--card), var(--primary), var(--border)).
+   - Action Buttons: Add <button data-action="Prompt or instruction for agent...">...</button> to dispatch actions back into this conversation.
+   - Text Dispatchers: Wrap inputs in <div data-dispatcher><input data-field-name="Label" placeholder="..."><button data-dispatcher-send>Send</button></div> to allow the user to send attributed text commands.
+   - Voice Recording: Add <button data-record-audio data-field-name="Label">🎤 Record</button> to enable voice notes.
+   - Live Updates: As soon as you write to the target file path, the open canvas will automatically hot-reload.`;
+
+  try {
+    app.sendMessage(conversationId, message);
+    console.log(`[server] Sent canvas creation request to agent for conversation: ${conversationId}`);
+    return true;
+  } catch (err) {
+    console.error(`[server] Failed to send canvas creation request for conversation ${conversationId}:`, err);
+    return false;
+  }
+}
+
+/**
+ * Generates the bridge script to inject into agent-written HTML.
+ */
+function generateBridgeScript(conversationId, filePath) {
+  return `
+<!-- Interactive Generative UI Bridge -->
+<script src="/preload.js"></script>
+<script>
+(function() {
+  const CONVERSATION_ID = ${JSON.stringify(conversationId || '')};
+  const FILE_PATH = ${JSON.stringify(filePath || '')};
+  let lastMtime = 0;
+
+  // 1. Toast Notification Helper
+  function showToast(text, isError = false) {
+    let toast = document.getElementById('genui-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'genui-toast';
+      toast.style.cssText = 'position:fixed;bottom:16px;right:16px;z-index:99999;padding:10px 16px;border-radius:8px;font-family:system-ui,-apple-system,sans-serif;font-size:13px;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:opacity 0.2s ease,transform 0.2s ease;pointer-events:none;display:flex;align-items:center;gap:8px;';
+      document.body.appendChild(toast);
+    }
+    toast.style.background = isError ? 'var(--destructive, #d32f2f)' : 'var(--primary, #0B57D0)';
+    toast.style.color = '#ffffff';
+    toast.innerHTML = (isError ? '⚠️ ' : '⚡ ') + text;
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateY(0)';
+    clearTimeout(toast._timeout);
+    toast._timeout = setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(8px)';
+    }, 3000);
+  }
+
+  // 2. Global Agent Action Dispatcher
+  window.sendToAgent = async function(actionPrompt, btnElement, explicitTargetId) {
+    if (!actionPrompt || typeof actionPrompt !== 'string') return;
+    
+    let originalHtml = '';
+    let targetConvId = explicitTargetId || CONVERSATION_ID || undefined;
+
+    if (btnElement) {
+      if (!explicitTargetId) {
+        targetConvId = btnElement.getAttribute('data-target-conversation') || targetConvId;
+      }
+      originalHtml = btnElement.innerHTML;
+      btnElement.disabled = true;
+      btnElement.style.opacity = '0.7';
+      btnElement.style.cursor = 'wait';
+    }
+    
+    showToast('Dispatching to agent: "' + (actionPrompt.length > 40 ? actionPrompt.slice(0, 37) + '...' : actionPrompt) + '"');
+
+    try {
+      if (window.sidecar && window.sidecar.agent && typeof window.sidecar.agent.sendMessage === 'function') {
+        await window.sidecar.agent.sendMessage(actionPrompt, targetConvId);
+        showToast('Action sent to agent ✓');
+      } else {
+        console.warn('[Interactive Canvas] window.sidecar.agent.sendMessage unavailable, falling back to copy/prompt');
+        showToast('Bridge error: window.sidecar unavailable', true);
+      }
+    } catch (err) {
+      console.error('[Interactive Canvas] Send failed:', err);
+      showToast('Error: ' + err.message, true);
+    } finally {
+      if (btnElement) {
+        setTimeout(() => {
+          btnElement.disabled = false;
+          btnElement.style.opacity = '';
+          btnElement.style.cursor = '';
+          btnElement.innerHTML = originalHtml;
+        }, 1200);
+      }
+    }
+  };
+
+  // 3. Helper to resolve field name/source from an input element
+  function getFieldIdentifier(input) {
+    return input.getAttribute('data-field-name') ||
+           input.getAttribute('data-field') ||
+           input.getAttribute('data-source') ||
+           input.getAttribute('data-context') ||
+           input.getAttribute('name') ||
+           input.getAttribute('placeholder') ||
+           'Command';
+  }
+
+  // Helper to format input message with field context
+  function formatInputMessage(input, rawVal) {
+    const template = input.getAttribute('data-action-template') || input.getAttribute('data-template');
+    if (template && (template.includes('{value}') || template.includes('{input}'))) {
+      return template.replaceAll('{value}', rawVal).replaceAll('{input}', rawVal);
+    }
+    const prefix = input.getAttribute('data-action-prefix') || input.getAttribute('data-prefix');
+    if (prefix) {
+      return prefix.trim() + ' ' + rawVal;
+    }
+    const fieldName = getFieldIdentifier(input);
+    return '[' + fieldName + '] ' + rawVal;
+  }
+
+  // Helper to apply pending/processing data-* attributes to an element
+  function applyPendingAttributes(el, eventName, timestamp) {
+    if (!el) return;
+    const resolvedEvent = String(eventName || 'CanvasEvent');
+    const resolvedTs = String(timestamp || Date.now());
+    el.setAttribute('data-pending-state', 'processing');
+    el.setAttribute('data-pending-event', resolvedEvent);
+    el.setAttribute('data-pending-ts', resolvedTs);
+    const parentCard = el.closest('[data-card-id]');
+    if (parentCard) {
+      parentCard.setAttribute('data-pending-state', 'processing');
+      parentCard.setAttribute('data-pending-event', resolvedEvent);
+      parentCard.setAttribute('data-pending-ts', resolvedTs);
+    }
+  }
+
+  // Enqueues a UI event to scratch/inputs/ via POST /api/event (requires explicit element id)
+  window.enqueueCanvasEvent = async function(el, options = {}) {
+    if (!el || !el.id || !el.id.trim()) {
+      showToast('Element requires a unique id attribute', true);
+      return false;
+    }
+
+    const eventName = options.eventName || el.getAttribute('data-event') || 'CanvasEvent';
+    const ts = Date.now();
+    applyPendingAttributes(el, eventName, ts);
+    if (options.btnElement && options.btnElement !== el) {
+      applyPendingAttributes(options.btnElement, eventName, ts);
+    }
+
+    let payload = options.payload || {};
+    const rawPayloadAttr = el.getAttribute('data-payload');
+    if (rawPayloadAttr && Object.keys(payload).length === 0) {
+      try {
+        payload = JSON.parse(rawPayloadAttr);
+      } catch (err) {
+        payload = { raw: rawPayloadAttr };
+      }
+    }
+
+    try {
+      const fetchFn = (window.sidecar && typeof window.sidecar.fetch === 'function') ? window.sidecar.fetch : fetch;
+      const res = await fetchFn('/api/event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: options.conversationId || el.getAttribute('data-target-conversation') || CONVERSATION_ID,
+          id: el.id.trim(),
+          eventName,
+          action: options.action !== undefined ? options.action : (el.getAttribute('data-action') || el.getAttribute('data-prompt') || null),
+          fieldName: options.fieldName !== undefined ? options.fieldName : (el.getAttribute('data-field-name') || null),
+          inputValue: options.inputValue !== undefined ? options.inputValue : null,
+          payload,
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to enqueue canvas event');
+      }
+
+      showToast('Event queued for agent processing ✓');
+      return true;
+    } catch (err) {
+      console.error('[Interactive Canvas] Event queue failed:', err);
+      showToast('Error: ' + err.message, true);
+      return false;
+    }
+  };
+
+  // Hydrates pending data-* state on page load from unprocessed files in scratch/inputs/
+  async function hydratePendingInputs() {
+    try {
+      const fetchFn = (window.sidecar && typeof window.sidecar.fetch === 'function') ? window.sidecar.fetch : fetch;
+      const res = await fetchFn('/api/inputs?conversationId=' + encodeURIComponent(CONVERSATION_ID));
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data || !Array.isArray(data.inputs)) return;
+      for (const evt of data.inputs) {
+        if (!evt || !evt.id) continue;
+        const el = document.getElementById(evt.id);
+        if (el) {
+          applyPendingAttributes(el, evt.eventName, evt.timestamp);
+        }
+      }
+    } catch (err) {
+      console.warn('[Interactive Canvas] Failed to hydrate pending inputs:', err);
+    }
+  }
+
+  // Helper to submit a dispatcher input
+  window.submitDispatcherInput = async function(input, btnElement) {
+    if (!input) return;
+    const rawVal = input.value.trim();
+    if (!rawVal) return;
+    
+    let targetConvId = input.getAttribute('data-target-conversation');
+    const formattedMessage = formatInputMessage(input, rawVal);
+
+    const dispatcherContainer = input.closest('[data-dispatcher]');
+    const isQueuedEvent =
+      input.hasAttribute('data-event') ||
+      (btnElement && btnElement.hasAttribute('data-event')) ||
+      (dispatcherContainer && dispatcherContainer.hasAttribute('data-event'));
+
+    if (isQueuedEvent) {
+      const eventName =
+        input.getAttribute('data-event') ||
+        (btnElement && btnElement.getAttribute('data-event')) ||
+        (dispatcherContainer && dispatcherContainer.getAttribute('data-event')) ||
+        'DispatcherInput';
+      const targetEl = input.id ? input : (btnElement && btnElement.id ? btnElement : input);
+      const ok = await window.enqueueCanvasEvent(targetEl, {
+        eventName,
+        action: formattedMessage,
+        fieldName: getFieldIdentifier(input),
+        inputValue: rawVal,
+        conversationId: targetConvId,
+        btnElement,
+      });
+      if (ok) {
+        input.value = '';
+      }
+      return;
+    }
+    
+    await window.sendToAgent(formattedMessage, btnElement, targetConvId);
+    input.value = '';
+  };
+
+  // 4. Enter key listener on inputs with data-field-name
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      const input = event.target;
+      if (input.matches('input[data-field-name], input[data-field], input[data-source], input[data-context], input.dispatcher-input, [data-dispatcher] input')) {
+        event.preventDefault();
+        const container = input.closest('[data-dispatcher], .dispatcher-container, form, div');
+        const btn = container ? container.querySelector('button[type="submit"], button.dispatcher-btn, button') : null;
+        window.submitDispatcherInput(input, btn);
+      }
+    }
+  });
+
+  // 5. Delegate click events for data-event, data-action, and dispatcher buttons
+  document.addEventListener('click', (event) => {
+    // Check if clicking a button associated with an input
+    const sendBtn = event.target.closest('button[data-send-for], button.dispatcher-send, [data-dispatcher-send]');
+    if (sendBtn) {
+      event.preventDefault();
+      let input = null;
+      const targetSelector = sendBtn.getAttribute('data-send-for') || sendBtn.getAttribute('data-target');
+      if (targetSelector) {
+        input = document.querySelector(targetSelector);
+      }
+      if (!input) {
+        const container = sendBtn.closest('[data-dispatcher], .dispatcher-container, div');
+        if (container) {
+          input = container.querySelector('input, textarea');
+        }
+      }
+      if (input) {
+        window.submitDispatcherInput(input, sendBtn);
+        return;
+      }
+    }
+
+    const eventEl = event.target.closest('button[data-event], [data-event]');
+    if (eventEl && !eventEl.matches('input, textarea, [data-dispatcher]')) {
+      event.preventDefault();
+      let action = eventEl.getAttribute('data-action') || eventEl.getAttribute('data-prompt') || eventEl.getAttribute('data-agent-action') || null;
+      let inputValue = null;
+      if (action && (action.includes('{value}') || action.includes('{input}'))) {
+        const container = eventEl.closest('[data-dispatcher], div');
+        const input = container ? container.querySelector('input, textarea') : null;
+        if (input) {
+          inputValue = input.value.trim();
+          action = action.replaceAll('{value}', inputValue).replaceAll('{input}', inputValue);
+        }
+      }
+      window.enqueueCanvasEvent(eventEl, {
+        eventName: eventEl.getAttribute('data-event') || 'CanvasEvent',
+        action,
+        inputValue,
+      });
+      return;
+    }
+
+    const btn = event.target.closest('button[data-action], [data-action], button[data-prompt], [data-prompt], [data-agent-action]');
+    if (!btn) return;
+    
+    let action = btn.getAttribute('data-action') || btn.getAttribute('data-prompt') || btn.getAttribute('data-agent-action');
+    if (action && (action.includes('{value}') || action.includes('{input}'))) {
+      const container = btn.closest('[data-dispatcher], div');
+      const input = container ? container.querySelector('input, textarea') : null;
+      if (input) {
+        action = action.replaceAll('{value}', input.value.trim()).replaceAll('{input}', input.value.trim());
+      }
+    }
+    if (action) {
+      event.preventDefault();
+      window.sendToAgent(action, btn);
+    }
+  });
+
+  // 6. Multimodal Audio Recording Controller
+  let mediaRecorder = null;
+  let audioChunks = [];
+  let recordTimer = null;
+  let recordSeconds = 0;
+  let activeAudioBtn = null;
+
+  window.toggleAudioRecording = async function(btnElement) {
+    const fieldName = btnElement.getAttribute('data-field-name') ||
+                      btnElement.getAttribute('data-field') ||
+                      btnElement.getAttribute('data-source') ||
+                      'Voice Input';
+
+    // If currently recording, STOP recording
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      mediaRecorder.stop();
+      return;
+    }
+
+    // Start recording
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunks = [];
+      const mimeType = (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('audio/webm;codecs=opus'))
+        ? 'audio/webm;codecs=opus'
+        : ((typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('audio/webm')) ? 'audio/webm' : 'audio/mp4');
+
+      mediaRecorder = new MediaRecorder(stream, { mimeType });
+      activeAudioBtn = btnElement;
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunks.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        clearInterval(recordTimer);
+        stream.getTracks().forEach(track => track.stop());
+
+        // Reset button UI
+        btnElement.innerHTML = btnElement._originalHtml || '🎤 Record Voice';
+        btnElement.classList.remove('bg-rose-600', 'animate-pulse');
+
+        const audioBlob = new Blob(audioChunks, { type: mimeType });
+        if (audioBlob.size === 0) {
+          showToast('Recording was empty', true);
+          return;
+        }
+
+        showToast('Saving audio recording...');
+
+        // Convert blob to base64
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = async () => {
+          const base64Data = reader.result.split(',')[1];
+          try {
+            const fetchFn = (window.sidecar && typeof window.sidecar.fetch === 'function') ? window.sidecar.fetch : fetch;
+            const res = await fetchFn('/api/upload-audio', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                conversationId: CONVERSATION_ID,
+                audioBase64: base64Data,
+                fieldName: fieldName,
+                mimeType: mimeType
+              })
+            });
+
+            if (!res.ok) {
+              const errText = await res.text();
+              throw new Error(errText);
+            }
+
+            const data = await res.json();
+            showToast('Audio uploaded! Sending instruction to agent...');
+            
+            // Dispatch prompt to agent
+            await window.sendToAgent(data.prompt, btnElement);
+          } catch (err) {
+            console.error('Audio upload failed:', err);
+            showToast('Audio upload failed: ' + err.message, true);
+          }
+        };
+      };
+
+      mediaRecorder.start();
+      recordSeconds = 0;
+      btnElement._originalHtml = btnElement.innerHTML;
+      btnElement.classList.add('bg-rose-600', 'animate-pulse');
+      btnElement.innerHTML = '⏹ Stop (00:00)';
+
+      recordTimer = setInterval(() => {
+        recordSeconds++;
+        const mins = String(Math.floor(recordSeconds / 60)).padStart(2, '0');
+        const secs = String(recordSeconds % 60).padStart(2, '0');
+        btnElement.innerHTML = '⏹ Stop (' + mins + ':' + secs + ')';
+      }, 1000);
+
+      showToast('Recording audio... Click Stop when finished.');
+    } catch (err) {
+      console.error('Microphone access failed:', err);
+      showToast('Microphone error: ' + err.message, true);
+    }
+  };
+
+  // Delegate click for audio recording buttons
+  document.addEventListener('click', (event) => {
+    const audioBtn = event.target.closest('button[data-record-audio], button.record-audio-btn, [data-record-audio]');
+    if (audioBtn) {
+      event.preventDefault();
+      window.toggleAudioRecording(audioBtn);
+    }
+  });
+
+  // 7. Hot-reload: Poll file mtime to auto-refresh when agent edits the canvas HTML
+  async function checkFileMtime() {
+    // Skip reloading while user is recording audio
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      return;
+    }
+    try {
+      const q = new URLSearchParams({ conversationId: CONVERSATION_ID, file: FILE_PATH });
+      const res = await fetch('/api/status?' + q.toString());
+      if (res.ok) {
+        const data = await res.json();
+        if (data.autoRefresh && data.autoRefresh.pingTriggered) {
+          showToast('Auto-refresh ping sent to agent ↻');
+        }
+        if (!FILE_PATH && data.exists) {
+          showToast('Canvas generated by agent! Loading...');
+          setTimeout(() => window.location.reload(), 300);
+          return;
+        }
+        if (lastMtime && data.mtime && data.mtime !== lastMtime) {
+          showToast('Canvas updated by agent! Reloading...');
+          setTimeout(() => window.location.reload(), 300);
+        }
+        lastMtime = data.mtime;
+      }
+    } catch (e) {}
+  }
+
+  setInterval(checkFileMtime, 1500);
+  checkFileMtime();
+
+  // 8. Manual Refresh Button
+  function createRefreshButton() {
+    const btn = document.createElement('button');
+    btn.innerHTML = '↻';
+    btn.title = 'Refresh Canvas';
+    btn.style.cssText = 'position:fixed;bottom:16px;left:16px;z-index:99998;width:36px;height:36px;border-radius:18px;background:var(--card, #161b22);color:var(--foreground, #c9d1d9);border:1px solid var(--border, #30363d);box-shadow:0 2px 8px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;transition:transform 0.2s, background 0.2s;';
+    btn.onmouseover = () => btn.style.transform = 'scale(1.05)';
+    btn.onmouseout = () => btn.style.transform = 'scale(1)';
+    btn.onclick = () => window.location.reload(true);
+    document.body.appendChild(btn);
+  }
+  
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      createRefreshButton();
+      hydratePendingInputs();
+    });
+  } else {
+    createRefreshButton();
+    hydratePendingInputs();
+  }
+})();
+</script>
+`;
+}
+
+/**
+ * Renders the clean empty-state canvas when no HTML file has been generated yet for this conversation.
+ */
+function renderEmptyState(conversationId) {
+  const targetPath = conversationId 
+    ? `~/.gemini/jetski/brain/${conversationId}/scratch/canvas.html`
+    : `~/.gemini/jetski/brain/<conversation-id>/scratch/canvas.html`;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Interactive Generative UI Canvas</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <script src="/preload.js"></script>
+</head>
+<body class="bg-[var(--background,#0d1117)] text-[var(--foreground,#c9d1d9)] min-h-screen p-6 antialiased flex flex-col items-center justify-center">
+  <div class="max-w-xl w-full bg-[var(--card,#161b22)] border border-[var(--border,#30363d)] rounded-2xl p-8 shadow-xl text-center space-y-6">
+    <div class="inline-flex p-4 rounded-2xl bg-[var(--primary,#238636)]/10 text-[var(--primary,#238636)]">
+      <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+      </svg>
+    </div>
+
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight text-[var(--foreground,#ffffff)]">No Canvas for Current Conversation</h1>
+      <p class="text-sm text-[var(--muted-foreground,#8b949e)] mt-2">
+        Interactive canvases are strictly scoped to their active conversation. Click below to ask the agent to create one.
+      </p>
+    </div>
+
+    <div class="p-4 rounded-xl bg-[var(--secondary,#21262d)] border border-[var(--border,#30363d)] text-left text-xs font-mono space-y-1 text-[var(--muted-foreground,#8b949e)]">
+      <div class="flex items-center gap-2 text-[var(--foreground,#c9d1d9)] font-semibold">
+        <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+        Target Canvas File
+      </div>
+      <div class="text-[var(--primary,#58a6ff)] truncate select-all">${targetPath}</div>
+    </div>
+
+    <!-- Single Trigger Button -->
+    <div class="pt-2 border-t border-[var(--border,#30363d)] space-y-3">
+      <button id="btn-create-canvas" onclick="requestCanvasCreation(this)"
+        class="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[var(--primary,#238636)] hover:brightness-110 text-white font-semibold text-sm transition-all shadow-md active:scale-95 cursor-pointer">
+        <span>⚡ Create Canvas</span>
+      </button>
+      <div id="request-status" class="hidden p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300 text-center">
+        <span class="w-2 h-2 inline-block rounded-full bg-blue-400 animate-pulse mr-1.5"></span>
+        Requested agent to create canvas. The view will automatically hot-reload once generated.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function requestCanvasCreation(btn) {
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="inline-block animate-spin mr-2">⏳</span> Requesting Canvas...';
+        btn.classList.add('opacity-75', 'cursor-wait');
+      }
+      try {
+        const res = await fetch('/api/notify-empty', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ conversationId: ${JSON.stringify(conversationId || '')}, force: true })
+        });
+        if (res.ok) {
+          if (window.showToast) window.showToast('Requested agent to create canvas ✓');
+          const statusDiv = document.getElementById('request-status');
+          if (statusDiv) {
+            statusDiv.classList.remove('hidden');
+          }
+          if (btn) {
+            btn.innerHTML = '<span>✓ Requested</span>';
+          }
+        } else {
+          throw new Error('Failed to request canvas');
+        }
+      } catch (e) {
+        if (window.showToast) window.showToast('Failed to send request: ' + e.message, true);
+        if (btn) {
+          btn.disabled = false;
+          btn.classList.remove('opacity-75', 'cursor-wait');
+          btn.innerHTML = '<span>⚡ Create Canvas</span>';
+        }
+      }
+    }
+  </script>
+
+  ${generateBridgeScript(conversationId, null)}
+</body>
+</html>`;
+}
+
+// ---------------------------------------------------------------------------
+// Server API Handlers
+// ---------------------------------------------------------------------------
+
+// GET / -> Serves the active canvas HTML or the ready empty state
+app.api('/', (data) => {
+  const convId = data.conversationId || getActiveConversationId() || '';
+  const explicitFile = data.file || null;
+  const targetFile = resolveCanvasFile(convId, explicitFile);
+
+  if (!targetFile) {
+    return new Response(renderEmptyState(convId), { contentType: 'text/html' });
+  }
+
+  try {
+    let html = readFileSync(targetFile, 'utf-8');
+    const bridgeScript = generateBridgeScript(convId, targetFile);
+
+    // Ensure Tailwind CSS is included if not present
+    if (!html.includes('tailwindcss.min.js')) {
+      const tailwindScript = '<script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>\n';
+      if (html.includes('<head>')) {
+        html = html.replace('<head>', `<head>\n  ${tailwindScript}`);
+      } else {
+        html = `${tailwindScript}\n${html}`;
+      }
+    }
+
+    // Inject the bridge script right before </body> or at the end
+    if (html.includes('</body>')) {
+      html = html.replace('</body>', `${bridgeScript}\n</body>`);
+    } else {
+      html = `${html}\n${bridgeScript}`;
+    }
+
+    return new Response(html, { contentType: 'text/html' });
+  } catch (err) {
+    return new Response(`<h1>Error reading canvas file</h1><pre>${err.message}</pre>`, {
+      contentType: 'text/html',
+      status: 500,
+    });
+  }
+}, 'GET');
+
+// GET /api/status -> Returns file existence, mtime, and periodic auto-refresh state
+app.api('/api/status', (data) => {
+  const convId = data.conversationId || getActiveConversationId() || '';
+  const explicitFile = data.file || null;
+  const targetFile = resolveCanvasFile(convId, explicitFile);
+
+  if (!targetFile || !existsSync(targetFile)) {
+    return { exists: false, mtime: 0, path: targetFile };
+  }
+
+  try {
+    let actualFile = targetFile;
+    if (lstatSync(targetFile).isSymbolicLink()) {
+      actualFile = realpathSync(targetFile);
+    }
+    const stat = statSync(actualFile);
+    const autoRefresh = checkAndTriggerAutoRefresh(convId, actualFile);
+    if (autoRefresh && autoRefresh.enabled) {
+      if (!activeCanvases.has(convId)) {
+        registerConversation(convId);
+      }
+    }
+    return {
+      exists: true,
+      mtime: stat.mtimeMs,
+      size: stat.size,
+      path: actualFile,
+      autoRefresh,
+    };
+  } catch (err) {
+    return { exists: false, error: err.message };
+  }
+}, 'GET');
+
+// POST /api/upload-audio -> Accepts base64 audio and saves to scratch recordings directory
+app.api('/api/upload-audio', (data) => {
+  const convId = data.conversationId || getActiveConversationId() || '';
+  const audioBase64 = data.audioBase64 || '';
+  if (!audioBase64) {
+    return new Response(JSON.stringify({ error: 'No audio data provided' }), {
+      contentType: 'application/json',
+      status: 400
+    });
+  }
+
+  const fieldName = data.fieldName || 'Voice Input';
+  const mimeType = data.mimeType || 'audio/webm';
+  const ext = mimeType.includes('wav') ? '.wav' : (mimeType.includes('ogg') ? '.ogg' : '.webm');
+
+  // Determine target directory: prefer conversation brain scratch
+  const targetDir = convId 
+    ? join(JETSKI_DIR, `brain/${convId}/scratch/recordings`)
+    : join(PLUGIN_DATA_DIR, 'recordings');
+
+  if (!existsSync(targetDir)) {
+    mkdirSync(targetDir, { recursive: true });
+  }
+
+  const filename = `audio_${Date.now()}${ext}`;
+  const absPath = join(targetDir, filename);
+  const buffer = Buffer.from(audioBase64, 'base64');
+  writeFileSync(absPath, buffer);
+
+  const fileUri = `file://${absPath}`;
+  const prompt = `[Voice Input: ${fieldName}] An audio message was recorded from the interactive canvas and saved to ${fileUri}. Please use the view_file tool to listen to and inspect this audio file, and respond to the user's request.`;
+
+  return {
+    success: true,
+    filePath: absPath,
+    fileUri,
+    prompt,
+    sizeBytes: buffer.length
+  };
+}, 'POST');
+
+// POST /api/notify-empty -> Manually triggers or re-sends instructions to agent
+app.api('/api/notify-empty', (data) => {
+  const convId = data.conversationId || getActiveConversationId() || '';
+  if (!convId) {
+    return { success: false, error: 'No active conversation found' };
+  }
+  const sent = notifyAgentMissingCanvas(convId, Boolean(data.force));
+  return { success: true, sent, conversationId: convId };
+}, 'POST');
+
+const pendingWakeupTimers = new Map();
+const WAKEUP_DEBOUNCE_MS = 2000;
+
+function scheduleWakeupPing(convId) {
+  if (pendingWakeupTimers.has(convId)) {
+    clearTimeout(pendingWakeupTimers.get(convId));
+  }
+  const timer = setTimeout(() => {
+    pendingWakeupTimers.delete(convId);
+    try {
+      app.sendMessage(
+        convId,
+        '[Canvas Input Queue] New input event(s) arrived in scratch/inputs/. Please process and delete them.'
+      );
+      console.log(`[server] Sent debounced input queue wakeup ping to conversation ${convId}`);
+    } catch (err) {
+      console.error(`[server] Failed to send wakeup ping for ${convId}:`, err);
+    }
+  }, WAKEUP_DEBOUNCE_MS);
+  pendingWakeupTimers.set(convId, timer);
+}
+
+// POST /api/event -> Writes a timestamped JSON event file to scratch/inputs/ and schedules a debounced wakeup ping
+app.api('/api/event', (data) => {
+  if (!data || typeof data.id !== 'string' || !data.id.trim()) {
+    return new Response(JSON.stringify({ error: 'Explicit element id is required' }), {
+      contentType: 'application/json',
+      status: 400,
+    });
+  }
+
+  const convId = data.conversationId || getActiveConversationId() || '';
+  if (!convId) {
+    return new Response(JSON.stringify({ error: 'No active conversation found' }), {
+      contentType: 'application/json',
+      status: 400,
+    });
+  }
+
+  const inputsDir = join(JETSKI_DIR, 'brain/' + convId + '/scratch/inputs');
+  if (!existsSync(inputsDir)) {
+    mkdirSync(inputsDir, { recursive: true });
+  }
+
+  const timestamp = Date.now();
+  const safeId = String(data.id).replace(/[^a-zA-Z0-9_-]/g, '_');
+  const filename = `event_${timestamp}_${safeId}.json`;
+  const absPath = join(inputsDir, filename);
+
+  const eventRecord = {
+    id: data.id,
+    eventName: data.eventName || 'CanvasEvent',
+    timestamp: timestamp,
+    action: data.action || null,
+    fieldName: data.fieldName || null,
+    inputValue: data.inputValue !== undefined ? data.inputValue : null,
+    payload: data.payload || {},
+  };
+
+  writeFileSync(absPath, JSON.stringify(eventRecord, null, 2));
+  scheduleWakeupPing(convId);
+
+  return {
+    success: true,
+    file: filename,
+    filePath: absPath,
+    event: eventRecord,
+  };
+}, 'POST');
+
+// GET /api/inputs -> Lists unprocessed JSON event files in scratch/inputs/ sorted by timestamp ascending
+app.api('/api/inputs', (data) => {
+  const convId = data.conversationId || getActiveConversationId() || '';
+  if (!convId) {
+    return { inputs: [] };
+  }
+
+  const inputsDir = join(JETSKI_DIR, 'brain/' + convId + '/scratch/inputs');
+  if (!existsSync(inputsDir)) {
+    return { inputs: [] };
+  }
+
+  try {
+    const files = readdirSync(inputsDir).filter(
+      (name) => name.startsWith('event_') && name.endsWith('.json')
+    );
+    const events = [];
+    for (const file of files) {
+      try {
+        const content = readFileSync(join(inputsDir, file), 'utf-8');
+        const parsed = JSON.parse(content);
+        events.push({ ...parsed, file });
+      } catch (err) {
+        console.error(`[server] Error parsing input event file ${file}:`, err);
+      }
+    }
+    events.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+    return { inputs: events };
+  } catch (err) {
+    console.error(`[server] Error reading inputs directory for ${convId}:`, err);
+    return { inputs: [], error: err.message };
+  }
+}, 'GET');
+
+loadCache();
+
+app.run();

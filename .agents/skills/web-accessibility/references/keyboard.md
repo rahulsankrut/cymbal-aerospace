@@ -1,101 +1,109 @@
 ---
-title: Keyboard Navigation (GAR Web 1.2)
+title: Keyboard Operability (gar-web-keyboard)
 shortname: gar-web-keyboard
 priority: MANDATORY_CRITICAL
 ---
 
-# Keyboard Navigation: Logic & Constraints
+# Keyboard Navigation: Operability & Semantics
 
-All functionality MUST be operable via keyboard-only interface (No Mouse/Touch
-dependency).
+All interactive functionality must be operable through a keyboard-only interface
+without requiring mouse hover, drag, or touch gestures
+([go/gar-web-keyboard](http://go/gar-web-keyboard)).
 
-## 1. Interaction Rules (MANDATORY)
+> **Framework Note:** When authoring composite components or menu triggers in
+> Angular, AngularDart/ACX, Soy/Closure, or Lit/Wiz, load the matching file in
+> `references/frameworks/` to ensure ARIA state attributes are bound to the
+> inner `<button>` rather than outer wrapper containers.
 
--   **Semantic Selection:** Use native interactive elements (`<button>`, `<a>`,
-    `<input>`, `<select>`, `<textarea>`).
--   **Tab Order:** MUST match DOM order.
-    -   **Prohibited:** Positive `tabindex` (>0).
-    -   **Required:** Use `tabindex="0"` for custom components; `tabindex="-1"`
-        to remove from tab order but keep programmatic focus.
--   **Focus Management:**
-    -   **Modals:** Trap focus within the dialog. Return focus to the trigger
-        element on close.
-    -   **Esc Key:** MUST close modals, menus, and popovers.
-    -   **Dynamic Content:** Do NOT move focus unexpectedly.
+## 1. GAR Checkpoints & Core Rules
 
-## 2. Interaction Patterns by Component
+-   **Keyboard Functionality (`gar-web-keyboard`):**
+    -   **Native Interactive Elements First:** Use `<button type="button">` for
+        in-page actions/toggles and `<a href="...">` for navigation. Native
+        elements provide built-in `Tab` focusability and `Enter`/`Space`
+        activation.
+    -   **TabIndex Discipline:** Never use positive `tabindex` (`tabindex="1"`
+        or higher), which breaks natural DOM tab order. Use `tabindex="0"` only
+        on custom interactive roles (`role="button"`), and `tabindex="-1"` for
+        elements that receive programmatic `.focus()` only.
+    -   **Popup & Menu Trigger State:** Menu and popup trigger buttons must
+        declare `aria-haspopup="menu"` (or `"dialog"`, `"listbox"`) and toggle
+        `aria-expanded="true|false"` directly on the interactive `<button>`.
+    -   **Dismissal & Escape:** Pressing `Escape` must close open menus,
+        popovers, and modal dialogs and return focus to the trigger.
 
-Component           | Key Requirement
-:------------------ | :-----------------------------------------------------
-**Buttons/Links**   | Activate on `Enter`. Buttons also activate on `Space`.
-**Menu Triggers**   | `aria-haspopup="menu"`, `aria-expanded` on `<button>`.
-**Menus/Lists**     | `Tab` enters the group; `Arrow Keys` navigate items.
-**Disclosure/Tabs** | `Space/Enter` toggles; `Arrow Keys` switch tabs.
-**Modals**          | `Esc` to exit; Focus wrap-around.
+## 2. Decision Matrix
 
-## 3. High-Priority Code Patterns
+Component Type               | Required Element & ARIA                                                   | Required Keyboard Behavior
+:--------------------------- | :------------------------------------------------------------------------ | :-------------------------
+**Action / Toggle Button**   | `<button type="button">` (with `aria-pressed` if toggle)                  | Reached via `Tab`; activates on `Enter` and `Space`.
+**Navigation Link**          | `<a href="/destination">`                                                 | Reached via `Tab`; activates on `Enter`.
+**Menu / Popup Trigger**     | `<button type="button" aria-haspopup="menu" aria-expanded="false">`       | `Enter`/`Space`/`Down Arrow` opens menu and sets `aria-expanded="true"`; `Escape` closes.
+**Menu / Listbox Items**     | `role="menu"` / `role="listbox"` with `role="menuitem"` / `role="option"` | `Tab` enters group; `Arrow` keys move between items; `Escape` exits.
+**Tabs / Disclosure**        | `<button role="tab" aria-selected="true">` / `<details><summary>`         | `Space`/`Enter` toggles disclosure; `Arrow` keys switch tabs.
+**Custom Non-Native Button** | `<div role="button" tabindex="0">` *(only when `<button>` is impossible)* | Must implement explicit `keydown` handler for both `Enter` and `Space` (with `e.preventDefault()` on `Space`).
 
-### Standard (The "Default Path")
+## 3. Implementation Patterns
+
+### Buttons & Links (Native Default vs. Custom Fallback)
 
 ```html
-<button type="button" onclick="...">Submit</button>
-<a href="/dest">Navigate</a>
+<!-- GOOD (Default Path): Native <button> for actions and <a href> for navigation -->
+<button type="button" onclick="submitForm()">Submit</button>
+<a href="/settings">Account Settings</a>
+
+<!-- GOOD (Custom Fallback -- ONLY if native <button> is impossible): Requires role, tabindex="0", and Enter/Space keydown -->
+<div role="button"
+     tabindex="0"
+     onclick="act()"
+     onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); act(); }">
+  Custom Action
+</div>
+
+<!-- BAD: Clickable <div> or <span> without keyboard focusability or Enter/Space handling -->
+<div class="btn" onclick="act()">Submit</div>
 ```
 
 ### Menu & Popup Triggers
 
 ```html
-<!-- GOOD: aria-haspopup and aria-expanded directly on <button> -->
+<!-- GOOD: aria-haspopup and aria-expanded placed directly on the interactive <button> -->
 <button type="button"
+        class="dropdown-button-outlined"
         aria-haspopup="menu"
         aria-expanded="false"
         aria-controls="options-menu">
-  Options
-</button>
-```
-
-#### The "Container Trap" Anti-Pattern (Composite Components)
-
-Avoid applying menu trigger attributes (`aria-haspopup`, `aria-expanded`) to
-composite container components (such as chips or card wrappers) that render an
-outer `<span>` or `<div>` wrapping an inner `<button>`:
-
-```html
-<!-- BAD: Container receives popup attributes -->
-<span class="chip-container" aria-haspopup="menu" aria-expanded="false">
-  <button class="chip-action">Filter Options</button>
-</span>
-<!-- FAILS aria-allowed-attr: <span> disallows aria-haspopup/aria-expanded -->
-<!-- FAILS nested-interactive if role="button" is added to outer <span> -->
-
-<!-- GOOD: Use an outlined dropdown button styled to match appearance -->
-<button class="dropdown-button-outlined"
-        aria-haspopup="menu"
-        aria-expanded="false">
   Filter Options
 </button>
+
+<!-- BAD (Container Trap): Applying menu trigger attributes to an outer wrapper <span> or <div> -->
+<span class="chip-container" aria-haspopup="menu" aria-expanded="false">
+  <button type="button" class="chip-action">Filter Options</button>
+</span>
 ```
 
-### Custom (Only if native is impossible)
+## 4. Blockers (Auto-Fail)
 
-```html
-<div role="button" tabindex="0"
-     onclick="act()"
-     onkeydown="e => (e.key === 'Enter' || e.key === ' ') && act()">
-  Custom Button
-</div>
-```
-
-## 4. Blockers (Auto-Fail Criteria)
-
-1.  **Non-interactive Tags:** `onclick` on `<div>`, `<span>`, `<li>`, or `<img>`
-    without `role` and `tabindex`.
-2.  **Hidden Focus:** `outline: none` without a high-contrast `:focus-visible`
-    replacement.
-3.  **Keyboard Traps:** Focus entering a widget but unable to exit via `Tab` or
-    `Esc`.
-4.  **Motion-Only:** Functionality triggered by "Shake" or "Tilt" without a
-    keyboard alternative.
-5.  **Disallowed ARIA on Containers (`aria-allowed-attr`):** Placing popup or
-    state attributes (`aria-expanded`, `aria-haspopup`, `aria-controls`) on
-    generic `<div>` or `<span>` containers instead of interactive `<button>`s.
+1.  **Non-Interactive Click Handlers:** Attaching `onclick` or click listeners
+    to `<div>`, `<span>`, `<li>`, or `<img>` without `role`, `tabindex="0"`, and
+    `Enter`/`Space` keyboard handlers.
+2.  **Disallowed ARIA on Containers / "Container Trap" (`aria-allowed-attr`,
+    `nested-interactive`):** Applying interactive state or popup attributes
+    (`aria-haspopup`, `aria-expanded`, `aria-controls`, `aria-pressed`) to a
+    generic outer wrapper (`<span>` or `<div>`, such as a chip or card host)
+    instead of the inner `<button>`, or adding `role="button"` to an outer
+    container that already wraps an inner `<button>` or `<a>`. When fixing
+    `nested-interactive` on a clickable card, **never** merely strip
+    `role="button"` and `tabindex="0"` while leaving `@click`/`onclick` on the
+    outer `<div>` (which makes the card's primary action keyboard-inaccessible);
+    always move the primary navigation/action onto a semantic `<a href="...">`
+    or `<button>` inside the card heading (using CSS stretched-link `::after` if
+    full-card click area is desired) and remove the click handler from the outer
+    container.
+3.  **Positive TabIndex (`tabindex` > 0):** Using `tabindex="1"` or higher to
+    force tab order instead of fixing the underlying DOM order.
+4.  **Keyboard Traps:** Focus enters a non-modal widget and cannot exit via
+    standard `Tab`, `Shift+Tab`, or `Escape` keys.
+5.  **Pointer/Motion-Only Actions:** Functionality triggered exclusively by
+    mouse hover (`onmouseenter`), double-click, or device shake/tilt without a
+    keyboard-accessible control.

@@ -1,3 +1,12 @@
+---
+name: web-craft
+description: >-
+  Builds self-contained interactive HTML artifacts (narratives, dashboards and
+  data explorers, and focused tools) as a single .html file. Every visual,
+  layout, and interaction choice follows from what the content needs to help
+  someone understand, explore, or accomplish something.
+---
+
 # Web Craft — Interactive HTML Artifacts
 
 <!-- LINT.IfChange(html_author_offerings) -->

@@ -1,101 +1,128 @@
 ---
-title: Visuals, Contrast & Spacing (GAR 1.14, 2.11, 1.16, 2.13)
-shortname: gar-web-visuals
+title: Visuals, Contrast, Spacing & Forced Colors (gar-web-text-color, gar-web-non-text-contrast, gar-web-text-spacing, gar-web-responsive-design, gar-web-screen-orientation, gar-web-hover, gar-web-run-through-forced-colors, gar-web-dark-mode, gar-web-reduce-transparency)
+shortname: gar-web-text-color
 priority: HIGH
 ---
 
-# Visuals: Contrast, Spacing & Layout
+# Visuals: Contrast, Reflow, Hover & Forced Colors
 
-UI MUST be perceivable in high-contrast modes, lighting variations, and custom
-user styles.
+User interfaces must remain perceivable and operable across contrast needs,
+200%–400% zoom, custom text spacing, both screen orientations, and forced-colors
+(Windows High Contrast) mode. This file covers
+[Text Color](http://go/gar-web-text-color),
+[Non-Text Contrast](http://go/gar-web-non-text-contrast),
+[Text Spacing](http://go/gar-web-text-spacing),
+[Responsive Design](http://go/gar-web-responsive-design),
+[Screen Orientation](http://go/gar-web-screen-orientation),
+[Hover](http://go/gar-web-hover),
+[Forced Colors](http://go/gar-web-run-through-forced-colors),
+[Dark Mode](http://go/gar-web-dark-mode), and
+[Reduce Transparency](http://go/gar-web-reduce-transparency).
 
-## 1. Color Contrast (MANDATORY)
+## 1. GAR Checkpoints & Core Rules
 
--   **Standard Text:** Minimum **4.5:1** ratio against background.
--   **Large Text/UI Components:** Minimum **3.0:1** (Includes icons, input
-    borders, and checkboxes).
--   **Material Design 3 (HCT Color Space) Contrast:**
-    -   Material 3 uses the **HCT (Hue, Chroma, Tone)** color space. Contrast is
-        determined solely by the difference in **Tone (T)** (perceived lightness
-        from `0` to `100`). Hue and Chroma do not affect contrast calculations.
-    -   **Contrast Formula:** `ΔT = |T_foreground - T_background|`
-    -   **Accessibility Thresholds (Delta Tone):**
-        -   **`ΔT >= 40`**: Guarantees a contrast ratio of at least **3.0:1**.
-            This passes WCAG AA requirements for **large text and UI
-            components** (e.g., buttons, icons, input borders, text fields).
-        -   **`ΔT >= 50`**: Guarantees a contrast ratio of at least **4.5:1**.
-            This passes WCAG AA requirements for **normal/small text**.
-    -   *Example:* If the background color has a Tone of `90` (very light), any
-        normal text placed on it MUST have a Tone of `40` or lower (`90 - 50 =
-        40`) to be accessible.
--   **Color as Information:** Color MUST NOT be the only way to convey info.
-    -   **Requirement:** Add secondary markers (e.g., underline for links, icons
-        for status).
+-   **Color Contrast & Color Independence (`gar-web-text-color`,
+    `gar-web-non-text-contrast`):**
+    -   **Contrast Ratios:** Standard text (`< 18pt` or `< 14pt bold`) requires
+        at least **4.5:1** contrast against its background. Large text (`>=
+        18pt` or `>= 14pt bold`), informative icons, and interactive UI
+        boundaries (input borders, focus rings, checkboxes) require at least
+        **3.0:1** contrast.
+    -   **Material Design 3 (HCT Tone Delta):** In Material 3's HCT color space,
+        contrast is determined by Tone (`T`, `0`–`100`) difference: `ΔT =
+        |T_foreground - T_background|`. Maintain **`ΔT >= 50`** for normal text
+        (`>= 4.5:1`) and **`ΔT >= 40`** for large text and UI components (`>=
+        3.0:1`).
+    -   **Never Rely on Color Alone:** Always pair color cues with a secondary
+        visual/programmatic indicator (e.g., underlines on inline links, icons
+        plus text labels for status badges and chart series).
+-   **Text Spacing, Reflow & Orientation (`gar-web-text-spacing`,
+    `gar-web-responsive-design`, `gar-web-screen-orientation`):**
+    -   **Relative Units & Flexible Containers:** Use `rem`/`em` for typography
+        and `min-height` instead of fixed `height` with `overflow: hidden` so
+        text can expand (`1.5x` line-height, `0.12em` letter-spacing) and reflow
+        at 320 CSS px width (400% zoom) without clipping or 2D scrolling.
+    -   **No Orientation Lock:** Support both portrait and landscape layouts.
+-   **Hover & Focus Popovers (`gar-web-hover`):**
+    -   **Dismissible, Hoverable & Persistent:** Tooltips or popovers triggered
+        by pointer hover or keyboard focus must stay visible when moving the
+        pointer onto the tooltip itself (**Hoverable**), close on `Escape`
+        without moving focus (**Dismissible**), and remain visible until the
+        user moves hover/focus away or dismisses it (**Persistent**).
+-   **Forced Colors, Dark Mode & Transparency
+    (`gar-web-run-through-forced-colors`, `gar-web-dark-mode`,
+    `gar-web-reduce-transparency`):**
+    -   **Forced Colors (`@media (forced-colors: active)`):** Because
+        `box-shadow` and background colors are stripped in Windows High Contrast
+        mode, cards, modals, and buttons must define explicit borders (e.g.,
+        `1px solid transparent` in default mode, or `CanvasText`/`ButtonBorder`
+        in `forced-colors: active`) and use `currentColor` for SVG fills.
 
-## 2. Text Spacing & Reflow
+## 2. Decision Matrix
 
--   **Flexible Layouts:** Content MUST NOT clip or overlap when spacing is
-    increased.
--   **Avoid Fixed Heights:** Use `min-height` instead of `height` on containers.
--   **Relative Units:** ALWAYS use `rem` or `em` for font-size, line-height, and
-    padding. `px` is prohibited for text containers.
+Visual Element / Mode                      | Minimum Threshold / CSS Rule                                                                         | GAR 2027 Criterion
+:----------------------------------------- | :--------------------------------------------------------------------------------------------------- | :-----------------
+**Normal Body Text (<18pt)**               | Contrast `>= 4.5:1` (or Material 3 HCT `ΔT >= 50`, e.g., Tone `40` on Tone `90`).                    | `gar-web-text-color`
+**Large Text (>=18pt) & UI Borders/Icons** | Contrast `>= 3.0:1` (or Material 3 HCT `ΔT >= 40`, e.g., Tone `50` on Tone `90`).                    | `gar-web-non-text-contrast`
+**Inline Links & Status Badges**           | Color + `text-decoration: underline` (links) or icon + text label (badges).                          | `gar-web-text-color`
+**Text Containers & Cards**                | `min-height` (never fixed `height` + `overflow: hidden`), `rem`/`em` sizing, flex/grid wrap.         | `gar-web-text-spacing`, `gar-web-responsive-design`
+**Forced Colors (High Contrast)**          | `border: 1px solid transparent` (or `@media (forced-colors: active) { border-color: CanvasText; }`). | `gar-web-run-through-forced-colors`
 
-## 3. Responsive Design & Orientation
+## 3. Implementation Patterns
 
--   **One-Dimensional Scrolling:** At 320px width (mobile), users MUST NOT need
-    to scroll horizontally to read text.
--   **Orientation:** Support both Portrait and Landscape. NEVER lock orientation
-    unless essential (e.g., a piano app).
--   **Hover Content:** Content triggered by hover (tooltips) MUST:
-    -   **Persist:** Stay visible while the mouse is over it.
-    -   **Dismissible:** Be closable via `Esc` or moving the mouse.
-    -   **Hoverable:** User can move the mouse *onto* the tooltip without it
-        disappearing.
-
-## 4. Forced Colors (High Contrast Mode)
-
--   **Standard:** Support `forced-colors: active` (Windows High Contrast).
--   **Visibility:** Pop-ups and cards MUST have a visible `border` (1px solid
-    ButtonBorder) as box-shadows are removed.
--   **System Colors:** Use system color keywords (e.g., `CanvasText`,
-    `Highlight`) for custom components.
-
-## 5. Implementation Patterns
-
-### Accessible Link
+### Contrast, Secondary Indicators & Flexible Reflow
 
 ```css
-/* Color + Underline (Secondary Indicator) */
-a {
-  color: #1a73e8;
+/* GOOD: High-contrast text, underlined inline links, and flexible container */
+.status-badge-error {
+  background-color: #fce8e6; /* M3 Tone 90 */
+  color: #8c1d18;            /* M3 Tone 30 (ΔT = 60 >= 50 -> passes 4.5:1) */
+  border: 1px solid #b3261e; /* M3 Tone 40 (ΔT = 50 >= 40 -> passes 3.0:1) */
+  min-height: 2rem;          /* Expands with text zoom; no fixed px height */
+  padding: 0.25rem 0.75rem;
+}
+
+p a {
+  color: #0b57d0;
   text-decoration: underline;
 }
 ```
 
-### Flexible Container
+### Forced Colors (High Contrast Mode) Support
 
 ```css
-.card {
-  min-height: 100px; /* Adapts to text growth */
-  padding: 1em;
+/* GOOD: Transparent border reserves space and becomes visible automatically in forced-colors mode */
+.card,
+.modal-dialog {
+  min-height: 6rem;
+  padding: 1rem;
   border: 1px solid transparent;
 }
 
 @media (forced-colors: active) {
-  .card { border-color: CanvasText; } /* Ensure visibility in HCM */
+  .card,
+  .modal-dialog {
+    border-color: CanvasText;
+  }
+  .custom-selected {
+    outline: 2px solid Highlight;
+  }
 }
 ```
 
-## 6. Blockers (Auto-Fail)
+## 4. Blockers (Auto-Fail)
 
-1.  **Low Contrast:** Light gray text on white background (e.g., `#ccc` on
-    `#fff`).
-2.  **Insufficient Tone Difference (Material 3):** Under-threshold delta Tone
-    (e.g., `ΔT < 50` for normal text, or `ΔT < 40` for UI components/large text
-    in an HCT/Material 3 color system).
-3.  **Fixed Pixel Containers:** `div { height: 20px; overflow: hidden; }`
-    containing text.
-4.  **Color-Only Status:** A red dot for "Error" without an "Error" icon or
-    label.
-5.  **Orientation Lock:** CSS `orientation: portrait` media queries that hide
-    content in landscape.
+1.  **Insufficient Text or UI Contrast (`color-contrast`):** Text below `4.5:1`
+    (M3 `ΔT < 50`) or interactive borders/icons below `3.0:1` (M3 `ΔT < 40`).
+2.  **Color-Only Meaning (`link-in-text-block`):** Conveying error/success
+    states or inline links by color alone without an icon, text label, or
+    underline.
+3.  **Fixed-Height Text Clipping & Disabled Zoom (`meta-viewport`):** Setting
+    `user-scalable=no` or `maximum-scale < 2` on `<meta name="viewport">`, or
+    applying fixed pixel `height` with `overflow: hidden` to text containers.
+4.  **Unreachable / Unclosable Hover Tooltips:** Tooltips that disappear when
+    the user moves the mouse pointer onto the tooltip or cannot be dismissed
+    with `Escape`.
+5.  **Invisible Boundaries in Forced Colors Mode:** Relying solely on
+    `box-shadow` for modal/card/button boundaries without a fallback border in
+    `@media (forced-colors: active)`.

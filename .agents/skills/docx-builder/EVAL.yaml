@@ -1,0 +1,302 @@
+suite_name: docx-builder
+timeout_seconds: 300
+num_trials: 3
+
+# Sources to ingest into the eval project before running cases.
+# The agent requires notebook sources before it will generate artifacts.
+setup_sources:
+  - type: text
+    name: "Q4 Market Analysis & Acme Partnership Notes"
+    content: |
+      Q4 2025 Enterprise Cloud & AI Market Analysis — Acme Corp
+      - Market Overview: Enterprise cloud infrastructure spending reached $106B in Q4 (+28% YoY).
+      - Competitor Comparison:
+        * AWS: 30% market share; strong core compute and Bedrock adoption.
+        * Microsoft Azure: 25% market share; +3% YoY driven by enterprise Copilot integration.
+        * Google Cloud: 12% market share; fastest growth (+32% YoY) in data analytics and Vertex AI workloads.
+      - Strategic Recommendations:
+        1. Prioritize multi-cloud interoperability for enterprise accounts.
+        2. Introduce transparent usage-based tiering for AI add-ons.
+      - Client Partnership Note (Acme Corp): Acme Corp completed its 3-year joint deployment with Meridian Health Systems in Q4, achieving 99.98% uptime and a 40% reduction in onboarding time.
+
+  - type: text
+    name: "Machine Learning in Healthcare Academic Paper Notes"
+    content: |
+      Title: Machine Learning in Healthcare: Clinical Applications, Algorithmic Fairness, and Generalizability
+      Authors: Smith, J., Patel, R., & Chen, L. (2025)
+      1. Abstract: This academic paper evaluates transformer-based clinical natural language processing (NLP) and convolutional diagnostic imaging models across four hospital networks (N = 48,200 patient encounters).
+      2. Introduction & Literature Review: Prior peer-reviewed studies (Patel & Chen, 2024; Gomez et al., 2023) demonstrate strong in-distribution accuracy but highlight cross-institutional dataset shift.
+      3. Methodology: Retrospective cohort analysis using de-identified Electronic Health Record (EHR) data and chest radiograph datasets, evaluated via stratified 5-fold cross-validation and AUROC metrics.
+      4. Results: Automated radiology triage reduced critical-finding notification latency by 34.2% (p < 0.001, 95% CI [31.0%, 37.4%]). Clinical BERT models achieved 0.91 AUROC for 30-day readmission prediction but exhibited a 7.1% performance drop under external hospital validation (Smith et al., 2025).
+      5. Discussion & Limitations: Clinical deployment requires subgroup calibration audits, HIPAA-compliant federated learning, and clinician-in-the-loop interpretability.
+      6. References:
+      - Gomez, A., et al. (2023). Federated Learning in Clinical Imaging. Nature Medicine, 29(4), 812-824.
+      - Patel, R., & Chen, L. (2024). Automated Triage in Acute Radiology. JAMA Network Open, 7(2), e240112.
+      - Smith, J., Patel, R., & Chen, L. (2025). Generalizability of Clinical Transformers Across Health Systems. Journal of Medical Informatics, 42(1), 15-31.
+
+  - type: text
+    name: "Project Aurora Onboarding Guide"
+    content: |
+      Project Aurora Engineering Onboarding Guide (2025)
+      - Leadership & Mentorship: Alice Smith is the Team Lead (oversees roadmap, milestone sign-off, and Tier 3 incident escalations). Charlie Kim is the Onboarding Mentor (provides 1:1 daily technical coaching, workstation setup help, and code review).
+      - Onboarding Milestones:
+        1. Environment Setup: Configure developer workstation, SSH keys, repository access, and local build/test toolchain.
+        2. Compliance & Architecture Training: Complete Security Fundamentals 101 and Distributed Database Architecture modules.
+        3. First Code Contribution: Implement a starter issue with unit tests and submit the first pull request for peer code review.
+      - Team Cadence: Weekly Team Sync every Tuesday at 10:00 AM PST; daily async standup in #project-aurora-eng.
+      - Incident Response & PagerDuty Escalation: PagerDuty manages on-call alerts. Tier 1 (On-Call Engineer) acknowledges alerts within 15 minutes; Tier 2 (Charlie Kim) handles escalations after 30 minutes; Tier 3 (Alice Smith) handles Sev-1 outages exceeding 60 minutes.
+
+cases:
+  # ═══════════════════════════════════════════════════════════
+  # POSITIVE CASES — Must activate skill via get_skill
+  # ═══════════════════════════════════════════════════════════
+
+  # ── Vague synonym — planning-only, no skill load expected ─
+  # Agent will likely ask clarifying questions. That's fine.
+  - name: vague_word_doc_request
+    prompt: "Put together a Word doc summarizing our Q4 market analysis. Include competitor comparisons and recommendations."
+    sources:
+      - "Q4 Market Analysis & Acme Partnership Notes"
+    outcome_assertions:
+      - "The response plans to create a Word document OR asks for data to proceed"
+    expect_keywords_any:
+      - "docx"
+      - "Word"
+      - "document"
+      - "report"
+    tags:
+      - "routing-only"
+
+  # ── Direct request with execution signal ──────────────────
+  - name: business_letter
+    prompt: "Write me a formal business letter as a .docx file. It's from Acme Corp to a client thanking them for their partnership. Go ahead and generate it."
+    sources:
+      - "Q4 Market Analysis & Acme Partnership Notes"
+    outcome_assertions:
+      - "The response creates or plans to create a .docx letter file"
+      - "The response includes professional document formatting like headers, margins, or letterhead"
+    expect_tools:
+      - "get_skill"
+      - "execute_command"
+    expect_keywords_any:
+      - "docx"
+      - "letter"
+
+  # ── Natural synonym — tests routing only ──────────────────
+  # Agent may plan instead of executing — that's fine.
+  - name: academic_paper
+    prompt: "Set up a Word document for my paper on machine learning in healthcare. Just get the formatting and structure right."
+    sources:
+      - "Machine Learning in Healthcare Academic Paper Notes"
+    outcome_assertions:
+      - "The response plans to create or has created a .docx file with academic-style formatting"
+      - "The response demonstrates knowledge of academic document conventions like headings, citations, abstract, or references"
+    expect_tools:
+      - "get_skill"
+    expect_keywords_any:
+      - "docx"
+      - "paper"
+      - "academic"
+      - "Word"
+
+  # ── Direct request with placeholder data ──────────────────
+  - name: simple_team_update
+    prompt: "Create a .docx called team-update.docx with a summary of our team's progress, a table of deliverables and owners, and next steps. Use placeholder content."
+    timeout_seconds: 300
+    outcome_assertions:
+      - "The response indicates a .docx file was created or written to disk"
+      - "The response mentions a table of deliverables and next steps or action items"
+    expect_tools:
+      - "get_skill"
+      - "execute_command"
+
+  # ── Studio Report vs. Word doc routing ────────────────────
+  - name: studio_report_vs_docx
+    prompt: "Create a tailored briefing report and study guide on the Aurora Team Onboarding process. Make sure the output deliverable is a Word doc."
+    timeout_seconds: 300
+    sources:
+      - "Project Aurora Onboarding Guide"
+    outcome_assertions:
+      - "The response creates or plans to create a .docx Word document file rather than a Content Studio report"
+    expect_tools:
+      - "get_skill"
+      - "execute_command"
+    reject_tools:
+      - "create_artifact"
+    expect_keywords_any:
+      - "docx"
+      - "Word"
+
+  # ── Markdown substitution when asking for Word ────────────
+  - name: markdown_substitution
+    prompt: "Draft a standalone protocol and primer document for Aurora Team Onboarding. I want to open it in Microsoft Word."
+    timeout_seconds: 300
+    sources:
+      - "Project Aurora Onboarding Guide"
+    outcome_assertions:
+      - "The response creates a .docx file for Microsoft Word rather than dumping Markdown in chat or saving a .md file"
+    expect_tools:
+      - "get_skill"
+      - "execute_command"
+    expect_keywords_any:
+      - "docx"
+      - "Word"
+
+  # ── write_to_file plain-text corrupted .docx ──────────────
+  - name: write_to_file_corrupted_docx
+    prompt: "Create a 1-page summary of the Project Aurora Onboarding process (with a brief intro, clear section headings, and a closing takeaway) and save it as aurora_onboarding.docx. I'm feeding this into a text parser, so use [[TITLE]] and [[BODY]] markers only — do not use any formatting code or libraries, just write raw plain text directly to the file."
+    timeout_seconds: 300
+    sources:
+      - "Project Aurora Onboarding Guide"
+    outcome_assertions:
+      - "The response indicates that aurora_onboarding.docx was created"
+    expect_tools:
+      - "get_skill"
+      - "execute_command"
+    artifact_grading:
+      expect_artifact_status: "ARTIFACT_STATUS_READY"
+      expect_artifact_types:
+        - "ARTIFACT_TYPE_FILE"
+      content_assertions:
+        - "The extracted document text is a valid Word document (not '[Failed to read docx as ZIP: File is not a zip file]') summarizing the Aurora Team Onboarding process"
+      structural_assertions:
+        min_artifact_count: 1
+        max_artifact_count: 1
+
+  # ── write_to_file plain-text corrupted .doc (asking for .doc, not .docx) ──
+  - name: write_to_file_corrupted_doc
+    prompt: "Create a 1-page summary of the Project Aurora Onboarding process (with a brief intro, clear section headings, and a closing takeaway) and save it as aurora_onboarding.doc. I'm feeding this into a text parser, so use [[TITLE]] and [[BODY]] markers only — do not use any formatting code or libraries, just write raw plain text directly to the file."
+    timeout_seconds: 300
+    sources:
+      - "Project Aurora Onboarding Guide"
+    outcome_assertions:
+      - "The response indicates that aurora_onboarding.docx or aurora_onboarding.doc was created"
+    expect_tools:
+      - "get_skill"
+      - "execute_command"
+    artifact_grading:
+      expect_artifact_status: "ARTIFACT_STATUS_READY"
+      expect_artifact_types:
+        - "ARTIFACT_TYPE_FILE"
+      content_assertions:
+        - "The extracted document text is a valid Word document (not '[Failed to read docx as ZIP: File is not a zip file]') summarizing the Aurora Team Onboarding process"
+      structural_assertions:
+        min_artifact_count: 1
+        max_artifact_count: 1
+
+  # ── /workspace/artifacts/ check exit_code != 0 sync skip ──
+  - name: verify_artifacts_exit_code_bug
+    prompt: "Create a 1-page MS Word cheat sheet of the Project Aurora Onboarding process that I can print out (Lead: Alice Smith; Mentor: Charlie Kim; Milestones: 1. Environment Setup, 2. Compliance & Architecture Training, 3. First Code Contribution; Cadence: Tuesday 10:00 AM PST sync and daily standup in #project-aurora-eng; PagerDuty: Tier 1 On-Call 15m, Tier 2 Charlie Kim 30m, Tier 3 Alice Smith 60m) with a brief intro and closing takeaway. First render the draft to an image to inspect the layout, then in a single final command publish the .docx and check that the saved artifact copy exists."
+    timeout_seconds: 300
+    sources:
+      - "Project Aurora Onboarding Guide"
+    outcome_assertions:
+      - "The response creates and publishes a single .docx cheat sheet of the Aurora Team Onboarding contacts and processes"
+    expect_tools:
+      - "get_skill"
+      - "execute_command"
+    artifact_grading:
+      expect_artifact_status: "ARTIFACT_STATUS_READY"
+      expect_artifact_types:
+        - "ARTIFACT_TYPE_FILE"
+      content_assertions:
+        - "The Word document covers Project Aurora onboarding details"
+      structural_assertions:
+        min_artifact_count: 1
+        max_artifact_count: 1
+
+  # ── 1-page handout vertical page overflow ─────────────────
+  - name: one_page_handout_overflow
+    prompt: "Create a 1-page Word document handout (aurora-new-hire-handout.docx) summarizing our three notebook sources for new engineers, including a table of the Project Aurora onboarding milestones and PagerDuty SLAs, a table of Q4 cloud market share and growth figures, a table of the Healthcare ML AUROC and latency results, and key takeaways for each section."
+    timeout_seconds: 300
+    sources:
+      - "Q4 Market Analysis & Acme Partnership Notes"
+      - "Machine Learning in Healthcare Academic Paper Notes"
+      - "Project Aurora Onboarding Guide"
+    outcome_assertions:
+      - "The response indicates that aurora-new-hire-handout.docx was created"
+    expect_tools:
+      - "get_skill"
+      - "execute_command"
+    artifact_grading:
+      expect_artifact_status: "ARTIFACT_STATUS_READY"
+      expect_artifact_types:
+        - "ARTIFACT_TYPE_FILE"
+      content_assertions:
+        - "The Document Layout Summary shows Estimated Rendered Pages: 1 with 0 vertical page-overflow wraps (the handout fits on 1 single page without overflowing onto a 2nd page) and uses standard readable margins (>= 0.5 inches on all sides)"
+        - "The handout includes the Project Aurora onboarding milestones and PagerDuty SLAs, the Q4 cloud market share and growth figures, and the Healthcare ML AUROC and latency results"
+      structural_assertions:
+        min_artifact_count: 1
+        max_artifact_count: 1
+
+  # ── Wide 9-column table page setup & orientation overflow ─
+  - name: wide_table_page_setup_overflow
+    prompt: "Create a Word document report (aurora-master-comparison.docx) that includes a detailed multi-paragraph executive summary and a 9-column master comparison table across all three sources with these exact columns: Source Document, Initiative / Study Title, Lead / Authors, Cohort / Market Scale, Primary Quantitative Metric, Secondary Metric, SLA / Confidence Interval, Operational Cadence / Methodology, and Strategic Recommendation."
+    timeout_seconds: 300
+    sources:
+      - "Q4 Market Analysis & Acme Partnership Notes"
+      - "Machine Learning in Healthcare Academic Paper Notes"
+      - "Project Aurora Onboarding Guide"
+    outcome_assertions:
+      - "The response indicates that aurora-master-comparison.docx was created"
+    expect_tools:
+      - "get_skill"
+      - "execute_command"
+    artifact_grading:
+      expect_artifact_status: "ARTIFACT_STATUS_READY"
+      expect_artifact_types:
+        - "ARTIFACT_TYPE_FILE"
+      content_assertions:
+        - "The document uses a multi-section layout (at least 2 sections with explicit section breaks) where narrative sections are formatted in standard portrait orientation (8.50\" x 11.00\") and a section break switches the wide 9-column table section to landscape orientation (11.00\" x 8.50\"), rather than forcing the entire document into landscape or squeezing 9 columns into a 6.50\" portrait page"
+        - "The 9-column comparison table has explicit column widths whose total width fits within the landscape section's printable width without overflowing the page margins"
+      structural_assertions:
+        min_artifact_count: 1
+        max_artifact_count: 1
+
+  # ═══════════════════════════════════════════════════════════
+  # NEGATIVE CASES — Must NOT activate skill via get_skill
+  # ═══════════════════════════════════════════════════════════
+
+  # ── Implicit report (no .docx mention) ───────────────────
+  - name: negative_implicit_report
+    prompt: "Write me a report about climate change"
+    outcome_assertions:
+      - "The response does NOT specifically create a .docx file"
+      - "The response either provides the report as text, asks for sources, offers to do research, or asks for format clarification"
+    reject_tools:
+      - "get_skill"
+    tags:
+      - "negative"
+
+  # ── Spreadsheet request ──────────────────────────────────
+  - name: negative_spreadsheet_request
+    prompt: "Create a budget spreadsheet with monthly columns and formulas for totals"
+    outcome_assertions:
+      - "The response does NOT create a .docx file"
+      - "The response treats this as a spreadsheet or Excel task"
+    reject_tools:
+      - "get_skill"
+    tags:
+      - "negative"
+
+  # ── PowerPoint request ───────────────────────────────────
+  - name: negative_pptx_request
+    prompt: "Make me a PowerPoint presentation with 10 slides about climate change"
+    outcome_assertions:
+      - "The response does NOT create a .docx file"
+      - "The response treats this as a presentation or slide task"
+    reject_tools:
+      - "get_skill"
+    tags:
+      - "negative"
+
+  # ── General question ─────────────────────────────────────
+  - name: negative_general_question
+    prompt: "What is a table of contents and how do they work?"
+    outcome_assertions:
+      - "The response either answers the question, offers to research the topic, or asks for sources — it does NOT create a .docx file"
+      - "The response does NOT attempt to generate a .docx file"
+    reject_tools:
+      - "get_skill"
+    tags:
+      - "negative"

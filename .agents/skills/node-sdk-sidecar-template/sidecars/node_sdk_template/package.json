@@ -1,0 +1,6 @@
+{
+  "name": "node_sdk_template",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Template sidecar using the Node.js Sidecar SDK"
+}

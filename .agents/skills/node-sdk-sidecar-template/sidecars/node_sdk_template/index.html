@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Node.js Template Sidecar</title>
+  <script src="/preload.js"></script>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="container">
+    <h3>Node.js Template Sidecar</h3>
+    <p>This sidecar is written in Node.js and uses the Node.js Sidecar SDK.</p>
+    
+    <div class="button-group">
+      <button id="btn-hello">Call Node.js Backend API (POST)</button>
+      <button id="btn-hello-get">Call Node.js Backend API (GET)</button>
+      <!-- These buttons require an active conversation, so they are only shown
+           when the conversationId query parameter is passed from the iframe. -->
+      <button id="btn-agent" class="conversation-btn">Send Message to Agent</button>
+      <button id="btn-new-conv" class="conversation-btn">Start New Conversation</button>
+    </div>
+    
+    <h4>Output:</h4>
+    <pre id="output">Click a button...</pre>
+  </div>
+
+  <script>
+    const output = document.getElementById('output');
+
+    // The Jetski host appends ?conversationId=<uuid> to the iframe URL when a
+    // conversation is active. The agent buttons require this ID, so only reveal
+    // them when it is present.
+    const conversationId =
+      new URLSearchParams(window.location.search).get('conversationId');
+    if (conversationId) {
+      document.querySelectorAll('.conversation-btn').forEach((btn) => {
+        btn.style.display = 'block';
+      });
+    }
+
+    document.getElementById('btn-hello').addEventListener('click', async () => {
+      try {
+        output.innerText = 'Calling Node.js backend (POST)...';
+        const res = await window.sidecar.fetch('/api/hello', {
+          method: 'POST',
+          body: JSON.stringify({ name: 'Node.js Developer' })
+        });
+        const data = await res.json();
+        output.innerText = JSON.stringify(data, null, 2);
+      } catch (err) {
+        output.innerText = 'Error: ' + err.message;
+      }
+    });
+
+    document.getElementById('btn-hello-get').addEventListener('click', async () => {
+      try {
+        output.innerText = 'Calling Node.js backend (GET)...';
+        const res = await window.sidecar.fetch('/api/hello_get?name=Node.js+GET+Developer', {
+          method: 'GET'
+        });
+        const data = await res.json();
+        output.innerText = JSON.stringify(data, null, 2);
+      } catch (err) {
+        output.innerText = 'Error: ' + err.message;
+      }
+    });
+
+    document.getElementById('btn-agent').addEventListener('click', async () => {
+      try {
+        output.innerText = 'Sending message to agent...';
+        const res = await window.sidecar.agent.sendMessage(
+          "Hello from the Node.js Template Sidecar frontend!"
+        );
+        output.innerText = "Agent Response: " + JSON.stringify(res, null, 2);
+      } catch (err) {
+        output.innerText = 'Error: ' + err.message;
+      }
+    });
+
+    document.getElementById('btn-new-conv').addEventListener('click', async () => {
+      try {
+        output.innerText = 'Starting new conversation...';
+        const res = await window.sidecar.agent.startConversation(
+          "Hello from the Node.js Template Sidecar! Testing project association."
+        );
+        output.innerText = "New Conversation Response: " + JSON.stringify(res, null, 2);
+      } catch (err) {
+        output.innerText = 'Error: ' + err.message;
+      }
+    });
+  </script>
+</body>
+</html>

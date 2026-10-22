@@ -1,0 +1,18 @@
+{
+  "display_name": "Interactive UI Canvas",
+  "description": "Interactive Generative UI canvas for displaying agent-generated HTML with button action actuation.",
+  "command": "node",
+  "args": ["server.mjs"],
+  "restart_policy": "always",
+  "has_web_ui": true,
+  "ui_config": {
+    "display_name": "Interactive UI",
+    "views": [
+      {
+        "path": "/",
+        "entrypoint": "SIDECAR_UI_ENTRYPOINT_AUX_PANE",
+        "title": "Canvas"
+      }
+    ]
+  }
+}

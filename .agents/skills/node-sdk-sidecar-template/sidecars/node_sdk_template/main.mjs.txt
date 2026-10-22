@@ -1,0 +1,41 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+import { SidecarApp, Response } from 'sidecar_sdk';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+const app = new SidecarApp();
+
+// Serve the index.html
+app.page('/', () => {
+  return readFileSync(join(__dirname, 'index.html'), 'utf-8');
+});
+
+// Serve styles.css
+app.api('/styles.css', () => {
+  try {
+    const css = readFileSync(join(__dirname, 'styles.css'), 'utf-8');
+    return new Response(css, { contentType: 'text/css' });
+  } catch (err) {
+    return new Response(`/* Error loading styles.css: ${err.message} */`, { contentType: 'text/css', status: 500 });
+  }
+}, 'GET');
+
+// Register a POST demo API
+app.api('/api/hello', (data) => {
+  const name = data.name || 'World';
+  return {
+    message: `Hello, ${name} from Node.js Sidecar (POST)!`,
+  };
+}, 'POST');
+
+// Register a GET demo API
+app.api('/api/hello_get', (data) => {
+  const name = data.name || 'World';
+  return {
+    message: `Hello, ${name} from Node.js Sidecar (GET)!`,
+  };
+}, 'GET');
+
+app.run();

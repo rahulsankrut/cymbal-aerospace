@@ -6,56 +6,90 @@ priority: MANDATORY_CRITICAL
 
 # AngularDart & ACX Framework Rules
 
-When fixing accessibility bugs in **AngularDart (`.dart` / `.acx.html`)**
-codebases, you MUST follow Google3 AngularDart type, internationalization, and
-lifecycle rules. Do NOT apply generic HTML-only fixes.
+Follow these type-safety, localization, and lifecycle rules when fixing or
+authoring accessibility in **AngularDart (`.dart`, `.acx.html`)** and **ACX**
+components.
 
-## 1. Accessible Names & Localization (`Intl.message`)
+## 1. Target File Extensions & Scope
 
--   **Mandatory Backing Property**: Never hardcode English strings directly into
-    `aria-label` or `[ariaLabel]` in `.html` templates.
--   **Internationalization Rule**: Always define a localized getter in the Dart
-    component class using `Intl.message`:
+-   Applies to `.acx.html` (and AngularDart `.html`) templates and `.dart`
+    component classes using `angular` / `angular_components` (ACX).
 
-    ```dart
-    String get learnMoreAriaLabel => Intl.message(
-          'Learn more about auto-apply recommendations',
-          name: 'learnMoreAriaLabel',
-          desc: 'Accessible label for the learn more link in the dialog.',
-        );
-    ```
--   **Template Binding**: Bind the component property in the template using
-    `[ariaLabel]="learnMoreAriaLabel"` (for ACX components) or
-    `[attr.aria-label]="learnMoreAriaLabel"` (for native HTML elements).
+## 2. Attribute Binding & Localization (`i18n`)
 
-## 2. Focus Management & Strict Type Rules
+-   **Mandatory `Intl.message` Backing Getter:** Never hardcode English strings
+    directly into `aria-label` or `[ariaLabel]` in `.acx.html` templates. Always
+    define a public getter in the `.dart` backing class using `Intl.message`:
 
--   **`@ViewChild` Type Safety**:
+```dart
+String get learnMoreAriaLabel => Intl.message(
+      'Learn more about auto-apply recommendations',
+      name: 'learnMoreAriaLabel',
+      desc: 'Accessible label for the learn more link in the dialog.',
+    );
+```
 
-    -   Native HTML elements (`<button>`, `<div>`, `<input>`) do **NOT**
-        implement the ACX `Focusable` interface. Typing a native element
-        reference as `Focusable?` will cause a runtime `TypeError` or compile
-        error. Use `HtmlElement?` or `ButtonElement?`.
-    -   When querying a custom ACX component (e.g. `<callout #callout>`) to
-        focus its underlying DOM node, you MUST specify `read: HtmlElement`:
+-   **Template Binding Syntax:**
+    -   On **ACX components** (`<material-button>`, `<material-input>`,
+        `<help-learn-more-link>`, `<material-select>`), bind the Dart property
+        via `[ariaLabel]="learnMoreAriaLabel"`.
+    -   On **native HTML elements** (`<button>`, `<a>`, `<input>`), bind via
+        `[attr.aria-label]="learnMoreAriaLabel"`.
 
-    ```dart
-    @ViewChild('callout', read: HtmlElement)
-    HtmlElement? calloutElement;
-    ```
--   **Asynchronous Focus Timing**:
+## 3. Component Library Gotchas & Container Traps
 
-    -   When restoring focus after a dialog/slidealog closes or after an async
-        state change, synchronous `.focus()` calls often fail because the DOM
-        has not updated yet.
-    -   Use `NgZone.runAfterChangesObserved(() { ... })`,
+-   **ACX Composite Component Inputs (`<material-chip>`, `<material-select>`):**
+    -   Placing raw `aria-label`, `aria-haspopup`, or `aria-expanded` on an ACX
+        composite host element attaches the attribute to the outer
+        non-interactive wrapper tag (`<material-chip>` / `<div>`), triggering
+        `aria-allowed-attr` violations or leaving the inner `<button>`
+        unlabeled.
+    -   Delegate to the component's dedicated inner-button input property (such
+        as `[buttonAriaLabel]="..."` on `<material-chip>`) or use an ACX
+        `<dropdown-button>` for popup triggers.
+
+```html
+<!-- GOOD: Delegates accessible name to the inner interactive button of <material-chip> -->
+<material-chip [buttonAriaLabel]="filterChipAriaLabel">
+  {{chipText}}
+</material-chip>
+
+<!-- BAD (Container Trap): Raw aria-label or aria-haspopup on the outer ACX host element -->
+<material-chip aria-haspopup="menu" aria-expanded="false">
+  {{chipText}}
+</material-chip>
+```
+
+-   **Table Selection Headers (`empty-table-header`):**
+    -   Never leave a leading row-selection `<th>` empty (`<th></th>`) or add
+        only `[attr.aria-label]` to an empty `<th></th>` tag (which still fails
+        ATF's `empty-table-header` check). Place discernible text (such as a
+        visually-hidden `<span>{{selectColumnHeaderLabel}}</span>` or visible
+        header text backed by `Intl.message`) or a labeled "Select all"
+        `<material-checkbox [ariaLabel]="selectAllLabel">` inside the `<th>`.
+
+## 4. Focus & Async Lifecycle Management
+
+-   **`@ViewChild` Strict Type Safety:**
+    -   Native HTML elements (`<button>`, `<div>`, `<input>`) do **not**
+        implement ACX's `Focusable` interface. Typing a native DOM element
+        reference as `Focusable?` causes a compile or runtime `TypeError`; type
+        it as `HtmlElement?` or `ButtonElement?` (`import 'dart:html';`).
+    -   When querying a custom ACX component (e.g., `<callout #callout>`) to
+        focus its underlying DOM node, specify `read: HtmlElement`:
+
+```dart
+@ViewChild('callout', read: HtmlElement)
+HtmlElement? calloutElement;
+```
+
+-   **Asynchronous Focus Scheduling & Imports:**
+    -   When restoring focus after a slidealog/modal closes or an async state
+        change updates `*ngIf`, schedule `.focus()` via
+        `NgZone.runAfterChangesObserved(() { ... })`,
         `DomService.scheduleWrite(() { ... })`, or `Timer.run(() { ... })`.
-    -   **Mandatory Import**: Whenever using `Timer.run()` or
-        `Future.microtask()`, verify that `import 'dart:async';` is present at
-        the top of the `.dart` file.
-
-## 3. Scope & Minimal Diff Discipline
-
--   **No Unrequested Audits**: Only fix the specific element and interaction
-    reported in the bug. Do NOT remove `*ngIf` directives or add focus handlers
-    to unrelated form inputs in the same component.
+    -   Whenever using `Timer.run()` or `Future.microtask()`, verify that
+        `import 'dart:async';` is present at the top of the `.dart` file.
+-   **Minimal Diff Discipline:** Only modify the specific element and
+    interaction reported in the bug. Never remove `*ngIf` directives or add
+    unrequested focus handlers to surrounding form fields.

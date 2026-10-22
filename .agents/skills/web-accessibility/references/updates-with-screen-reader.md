@@ -1,77 +1,78 @@
 ---
-title: Dynamic Updates (GAR Web 2.7)
-shortname: gar-web-updates
+title: Dynamic Updates & Screen Reader Announcements (gar-web-updates-with-screen-reader)
+shortname: gar-web-updates-with-screen-reader
 priority: HIGH
 ---
 
-# Dynamic Updates: Live Regions
+# Dynamic Updates: ARIA Live Regions & Announcements
 
-Communicate essential state changes without stealing focus.
+Communicate asynchronous state changes, search/filter counts, Toast
+notifications, and validation alerts to screen readers without unexpectedly
+stealing keyboard focus
+([go/gar-web-updates-with-screen-reader](http://go/gar-web-updates-with-screen-reader)).
 
-## 1. Live Region Rules (MANDATORY)
+## 1. GAR Checkpoints & Core Rules
 
--   **Don't Move Focus:** Updates should be announced, but focus should stay
-    where the user is typing/interacting.
--   **Relevance:** Only announce "Essential" changes (Errors, Success messages,
-    Status updates).
--   **Atomic Updates:** Use `aria-atomic="true"` to ensure the whole message is
-    read when only part of it changes.
+-   **Updates With Screen Reader (`gar-web-updates-with-screen-reader`):**
+    -   **Announce Without Moving Focus:** Asynchronous status changes (e.g.,
+        `"3 results found"`, `"File uploaded"`, `"Draft saved"`) must be
+        announced via an ARIA live region while keeping keyboard focus on the
+        user's active control.
+    -   **Pre-Mount Live Containers:** The live region element (`aria-live` or
+        `role="status"` / `role="alert"`) must exist in the DOM **before** text
+        is injected into it; dynamically inserting a new element together with
+        its text often fails to trigger an announcement.
+    -   **Polite vs. Assertive Priority:** Use `aria-live="polite"` (or
+        `role="status"`) for routine updates and progress milestones, and
+        reserve `role="alert"` (`aria-live="assertive"`) strictly for critical,
+        time-sensitive errors.
+    -   **Prevent Concurrent Focus/Click Swallowing (Android TalkBack):** On
+        Android TalkBack, synchronous announcements fired on the exact same tick
+        as a button click or layout shift can be swallowed; defer programmatic
+        announcer calls by ~500ms when needed (see
+        `references/frameworks/lit-polymer-wiz.md` for Closure/Wiz
+        `Timer.callOnce`).
 
-## 2. Notification Types
+## 2. Decision Matrix
 
-| Type               | ARIA Pattern            | Behavior                 |
-| :----------------- | :---------------------- | :----------------------- |
-| **Status/Info**    | `aria-live="polite"`    | Waits for silence before |
-:                    :                         : speaking.                :
-| **Critical/Error** | `role="alert"` or       | Interrupts immediately.  |
-:                    : `aria-live="assertive"` :                          :
-| **Progress**       | `role="status"`         | Periodic updates on      |
-:                    :                         : background tasks.        :
+Update Scenario                               | Required ARIA Pattern                                                                                | Screen Reader Behavior
+:-------------------------------------------- | :--------------------------------------------------------------------------------------------------- | :---------------------
+**Search / Filter Results Count, Toast Info** | `<div role="status" aria-live="polite" aria-atomic="true">`                                          | Waits until current speech finishes, then announces full updated text.
+**Critical Form / Network Error**             | `<div role="alert" aria-live="assertive">`                                                           | Interrupts current speech immediately to announce the error.
+**Background Upload / Job Progress**          | `<div role="status" aria-live="polite">` *(throttled to key milestones, e.g., Start, 50%, Complete)* | Announces milestone updates without continuous per-percent chatter.
 
-## 3. Code Patterns
+## 3. Implementation Patterns
 
-### Polite Status Update
+### Polite Status & Milestone Updates (`aria-live="polite"`)
 
 ```html
-<div id="status" aria-live="polite" aria-atomic="true"></div>
+<!-- GOOD: Live container is present in initial DOM; JS updates textContent at key milestones -->
+<div id="upload-status" role="status" aria-live="polite" aria-atomic="true" class="sr-only"></div>
+
 <script>
-  function notify(msg) { document.getElementById('status').textContent = msg; }
+  function updateUploadStatus(message) {
+    const statusEl = document.getElementById('upload-status');
+    if (statusEl) statusEl.textContent = message;
+  }
 </script>
 ```
 
-### Assertion (Errors)
+### Immediate Error Alert (`role="alert"`)
 
 ```html
-<div role="alert" aria-live="assertive">
-  Connection lost. Please check your internet.
+<!-- GOOD: Assertive alert for critical failure -->
+<div id="network-alert" role="alert" aria-live="assertive">
+  Connection lost. Changes could not be saved.
 </div>
 ```
 
 ## 4. Blockers (Auto-Fail)
 
-1.  **Silent Failures:** Form errors appearing visually but not announced to
-    screen readers.
-2.  **Chatter:** `aria-live` on a frequently updating element (e.g., a clock or
-    stock ticker).
-
-## 5. Known Workarounds (Android Talkback)
-
-### Synchronous Updates Being Swallowed
-
-When making dynamic ARIA updates (via `AriaAnnouncer` or direct DOM mutations),
-Android Talkback may swallow or cancel the announcement if a concurrent button
-click, focus change, or rapid layout shift occurs.
-
-**Workaround:** Defer the announcement by ~500ms using a timer and use
-`assertive` priority to guarantee the announcement isn't skipped. In the
-Wiz/Search Next codebase, use `Timer.callOnce` instead of `setTimeout` to comply
-with linters (`gts-no-timers`).
-
-```typescript
-import {Timer} from 'google3/third_party/javascript/closure/timer/timer';
-
-// Defer the announcement by 500ms to prevent Android Talkback from skipping it
-Timer.callOnce(() => {
-  announcer.say('The state has updated.', 'assertive');
-}, 500);
-```
+1.  **Silent Visual Status Changes:** Updating filter results, saving state, or
+    displaying visual toast/error banners without an `aria-live` region or
+    programmatic announcer call.
+2.  **Live Region Chatter:** Placing `aria-live` on rapidly mutating elements
+    (countdown timers ticking every second, continuous byte-progress counters,
+    or live stock tickers), which floods the screen reader queue.
+3.  **Unrequested Focus Stealing on Status Updates:** Calling `.focus()` on a
+    toast or status banner while the user is actively typing in an input field.

@@ -1,0 +1,9 @@
+{
+  "name": "python_sdk_plugin",
+  "description": "Template plugin demonstrating Python Sidecar SDK usage.",
+  "suggestedPrompts": [
+    "Open the Python sidecar UI and check connection status",
+    "Add a route in sidecar.py that summarizes recent commits",
+    "Trigger an agent task from the Python sidecar frontend"
+  ]
+}

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="referrer" content="no-referrer">
+<title>Interactive Explainer</title>
+<style>
+  :root {
+    --bg: var(--vscode-editor-background, #1e1e1e);
+    --fg: var(--vscode-editor-foreground, #ccc);
+    --border: var(--vscode-panel-border, #333);
+    --accent: var(--vscode-textLink-foreground, #3794ff);
+    --card-bg: var(--vscode-editorWidget-background, #252526);
+    --muted: var(--vscode-descriptionForeground, #888);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--vscode-font-family, 'Segoe UI', sans-serif);
+    font-size: 13px; color: var(--fg); background: var(--bg); padding: 16px;
+    line-height: 1.5;
+  }
+  h1 { font-size: 18px; font-weight: 600; margin-bottom: 12px; color: #fff; }
+  h2 { font-size: 15px; font-weight: 600; margin: 16px 0 8px 0; color: #fff; }
+  p { margin-bottom: 12px; color: var(--fg); }
+  .card {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px; margin-bottom: 16px;
+  }
+  .drive-container {
+    width: 100%; height: 400px; border: 1px solid var(--border);
+    border-radius: 8px; overflow: hidden; margin-top: 12px;
+  }
+  iframe { width: 100%; height: 100%; border: none; }
+</style>
+</head>
+<body>
+  <h1>Interactive Explainer & Dashboard</h1>
+  
+  <div class="card">
+    <h2>Overview</h2>
+    <p>This interactive explainer demonstrates how custom HTML artifacts render natively within the Jetski Web auxiliary pane. It provides a persistent, dedicated visual dashboard alongside your active conversation.</p>
+  </div>
+
+  <div class="card">
+    <h2>Google Drive Inline Rendering</h2>
+    <p>Jetski UI sidecars fully support inline rendering of Google Drive files (Docs, Sheets, Slides) directly inside the auxiliary pane. Below is an example embedded Google Doc:</p>
+    <div class="drive-container">
+      <!-- Replace the src with any viewable Google Drive file embed URL -->
+      <iframe src="https://docs.google.com/document/d/e/2PACX-1vT.../pub?embedded=true"></iframe>
+    </div>
+  </div>
+</body>
+</html>

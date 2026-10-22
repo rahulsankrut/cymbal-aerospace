@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1280">
+  <title><!-- SLOT: TITLE (e.g. Design System Name — Design System) --></title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    /* SLOT: PASTE tailwind.config.js THEME EXTENSION OBJECT HERE */
+    tailwind.config = {};
+  </script>
+  <!-- SLOT: GOOGLE FONTS & MATERIAL SYMBOLS LINK TAGS HERE -->
+</head>
+<body class="w-[1280px] min-h-screen mx-auto p-8 antialiased">
+  <!-- NOTE: Style this page and all containers using the design system's theme
+       tokens (backgrounds, text colors, font families, radii, borders, and elevation).
+       Keep layout skeleton intact. -->
+
+  <!-- ================================================================= -->
+  <!-- 1. ABOVE THE FOLD (Target: Fits within first 800px height)         -->
+  <!-- ================================================================= -->
+  <header class="mb-8 pb-6 border-b flex items-start justify-between">
+    <div>
+      <div class="flex items-center gap-3 mb-2">
+        <h1 class="text-3xl font-bold tracking-tight"><!-- SLOT: DESIGN SYSTEM NAME --></h1>
+        <span class="text-xs px-2.5 py-1 uppercase tracking-wider font-semibold"><!-- SLOT: BADGE (e.g. Mode • Version) --></span>
+      </div>
+      <p class="text-sm max-w-2xl"><!-- SLOT: DESIGN SYSTEM OVERVIEW STATEMENT --></p>
+    </div>
+    <div class="text-right text-xs space-y-1">
+      <div><!-- SLOT: FONT FAMILIES SUMMARY --></div>
+      <div><!-- SLOT: CORE METRICS (e.g., N Color Tokens • N Components) --></div>
+    </div>
+  </header>
+
+  <!-- Above the Fold 3-Column Highlights Grid -->
+  <section class="grid grid-cols-12 gap-6 mb-12" id="above-the-fold-summary">
+    <!-- Col 1: Core Color Swatches (Cols 1-4) -->
+    <div class="col-span-4 p-5">
+      <h2 class="text-sm font-semibold uppercase tracking-wider mb-4">Core Palette</h2>
+      <div class="space-y-3">
+        <!-- SLOT: Core Swatches (Primary, Secondary, and key neutral/accent tokens) -->
+      </div>
+    </div>
+
+    <!-- Col 2: Typography Snapshot (Cols 5-8) -->
+    <div class="col-span-4 p-5">
+      <h2 class="text-sm font-semibold uppercase tracking-wider mb-4">Typography Hierarchy</h2>
+      <div class="space-y-3">
+        <!-- SLOT: Key Typography Levels (Heading, Title, Body preview) -->
+      </div>
+    </div>
+
+    <!-- Col 3: Flagship Component Showcase (Cols 9-12) -->
+    <div class="col-span-4 p-5">
+      <h2 class="text-sm font-semibold uppercase tracking-wider mb-4">Flagship Components</h2>
+      <div class="space-y-4">
+        <!-- SLOT: 1-2 Flagship Components copied strictly from component files -->
+      </div>
+    </div>
+  </section>
+  <!-- ==================== END ABOVE THE FOLD (~800px) ==================== -->
+
+  <!-- ================================================================= -->
+  <!-- 2. BELOW THE FOLD: FULL SYSTEM SHOWCASE (Scrolling Permitted)     -->
+  <!-- ================================================================= -->
+
+  <!-- Full Color System -->
+  <section class="mb-12 p-6" id="colors-section">
+    <h2 class="text-xl font-bold mb-2">Color System</h2>
+    <p class="text-xs mb-6">Complete token mapping sourced from DESIGN.md</p>
+    <div class="grid grid-cols-6 gap-4">
+      <!-- SLOT: Full Color Tokens Grid -->
+    </div>
+  </section>
+
+  <!-- Complete Typography Scale -->
+  <section class="mb-12 p-6" id="typography-section">
+    <h2 class="text-xl font-bold mb-2">Typography Scale</h2>
+    <p class="text-xs mb-6">Complete hierarchy and font metrics sourced from DESIGN.md</p>
+    <div class="space-y-4">
+      <!-- SLOT: Typography Scale Rows (Level name, specs: size/weight/line-height, rendered sample) -->
+    </div>
+  </section>
+
+  <!-- Key Components & Salient Variants Showcase -->
+  <section class="space-y-10" id="components-section">
+    <div>
+      <h2 class="text-xl font-bold mb-2">Component Kit & Salient Variants</h2>
+      <p class="text-xs mb-6">Canonical components copied strictly from component HTML files</p>
+    </div>
+
+    <!-- Group 1: Actions & Buttons -->
+    <div class="p-6">
+      <h3 class="text-sm font-semibold uppercase tracking-wider mb-4">Buttons & Actions</h3>
+      <div class="flex flex-wrap items-center gap-4">
+        <!-- SLOT: salient button variants from button.html -->
+      </div>
+    </div>
+
+    <!-- Group 2: Form Inputs & Controls -->
+    <div class="p-6">
+      <h3 class="text-sm font-semibold uppercase tracking-wider mb-4">Form Inputs & Controls</h3>
+      <div class="grid grid-cols-3 gap-6">
+        <!-- SLOT: salient input/control variants from input.html, control.html -->
+      </div>
+    </div>
+
+    <!-- Group 3: Cards & Containers -->
+    <div class="p-6">
+      <h3 class="text-sm font-semibold uppercase tracking-wider mb-4">Cards & Containers</h3>
+      <div class="grid grid-cols-2 gap-6">
+        <!-- SLOT: salient card variants from card.html -->
+      </div>
+    </div>
+
+    <!-- Group 4: Chips, Badges & Indicators -->
+    <div class="p-6">
+      <h3 class="text-sm font-semibold uppercase tracking-wider mb-4">Chips & Badges</h3>
+      <div class="flex flex-wrap items-center gap-4">
+        <!-- SLOT: salient chip and badge variants from chip.html, badge.html -->
+      </div>
+    </div>
+
+    <!-- Group 5: Lists & Feedback -->
+    <div class="p-6">
+      <h3 class="text-sm font-semibold uppercase tracking-wider mb-4">Lists & Feedback</h3>
+      <div class="grid grid-cols-2 gap-6">
+        <!-- SLOT: salient list and modal/feedback variants from list.html, modal.html -->
+      </div>
+    </div>
+  </section>
+
+  <footer class="mt-16 pt-6 border-t text-xs flex justify-between">
+    <div><!-- SLOT: Design System Footer / Brand Metadata --></div>
+    <div>Generated by Stitch Design Agent</div>
+  </footer>
+</body>
+</html>

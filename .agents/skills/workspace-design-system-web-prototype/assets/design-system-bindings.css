@@ -1,0 +1,422 @@
+/* @imports */
+/* Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans&family=Google+Sans+Text&display=swap');
+/* Google Icons */
+@import url('https://fonts.googleapis.com/css2?family=Google+Symbols&display=block');
+/* gBreeze default values */
+@import url('https://unpkg.com/@material/web@nightly/labs/gb/styles/m3.css');
+
+/* Color */
+:root, :host {
+  color-scheme: light dark;
+  --ws-sys-color-divider: #c4c7c5;  /* Use for section and page layout dividers */
+  --ws-sys-color-extended-blue-fill: light-dark(#1157ce, #a1c9ff);
+  --ws-sys-color-extended-blue-outline: light-dark(#d0e4ff, #04409f);
+  --ws-sys-color-extended-blue-tonal: light-dark(#d0e4ff, #04409f);
+  --ws-sys-color-extended-cyan-fill: light-dark(#00687c, #acedff);
+  --ws-sys-color-extended-cyan-outline: light-dark(#acedff, #004e5d);
+  --ws-sys-color-extended-cyan-tonal: light-dark(#d8f6ff, #004e5d);
+  --ws-sys-color-extended-green-fill: light-dark(#006c35, #80da88);
+  --ws-sys-color-extended-green-outline: light-dark(#beefbb, #00522c);
+  --ws-sys-color-extended-green-tonal: light-dark(#beefbb, #00522c);
+  --ws-sys-color-extended-grey-fill: light-dark(#5e5e5e, #c7c7c7);
+  --ws-sys-color-extended-grey-outline: light-dark(#e3e3e3, #474747);
+  --ws-sys-color-extended-grey-tonal: light-dark(#e3e3e3, #474747);
+  --ws-sys-color-extended-on-blue-fill: light-dark(#ffffff, #012c6f);
+  --ws-sys-color-extended-on-blue-outline: light-dark(#1157ce, #a1c9ff);
+  --ws-sys-color-extended-on-blue-tonal: light-dark(#1157ce, #d0e4ff);
+  --ws-sys-color-extended-on-cyan-fill: light-dark(#ffffff, #003641);
+  --ws-sys-color-extended-on-cyan-outline: light-dark(#00687c, #acedff);
+  --ws-sys-color-extended-on-cyan-tonal: light-dark(#00687c, #acedff);
+  --ws-sys-color-extended-on-green-fill: light-dark(#ffffff, #00381f);
+  --ws-sys-color-extended-on-green-outline: light-dark(#006c35, #80da88);
+  --ws-sys-color-extended-on-green-tonal: light-dark(#006c35, #beefbb);
+  --ws-sys-color-extended-on-grey-fill: light-dark(#ffffff, #303030);
+  --ws-sys-color-extended-on-grey-outline: light-dark(#5e5e5e, #c7c7c7);
+  --ws-sys-color-extended-on-grey-tonal: light-dark(#5e5e5e, #e3e3e3);
+  --ws-sys-color-extended-on-orange-fill: #522302;
+  --ws-sys-color-extended-on-orange-outline: light-dark(#522302, #ffb683);
+  --ws-sys-color-extended-on-orange-tonal: light-dark(#522302, #ffdcc3);
+  --ws-sys-color-extended-on-pink-fill: light-dark(#ffffff, #620438);
+  --ws-sys-color-extended-on-pink-outline: light-dark(#b60d6e, #ffaee4);
+  --ws-sys-color-extended-on-pink-tonal: light-dark(#b60d6e, #ffd8ef);
+  --ws-sys-color-extended-on-purple-fill: light-dark(#ffffff, #400b84);
+  --ws-sys-color-extended-on-purple-outline: light-dark(#7438d2, #d9bafd);
+  --ws-sys-color-extended-on-purple-tonal: light-dark(#7438d2, #eedcfe);
+  --ws-sys-color-extended-on-red-fill: light-dark(#ffffff, #60150f);
+  --ws-sys-color-extended-on-red-outline: light-dark(#b3251e, #ffb3ae);
+  --ws-sys-color-extended-on-red-tonal: light-dark(#b3251e, #ffdadc);
+  --ws-sys-color-extended-on-yellow-fill: light-dark(#6d3a01, #4d2600);
+  --ws-sys-color-extended-on-yellow-outline: light-dark(#6d3a01, #ffe07c);
+  --ws-sys-color-extended-on-yellow-tonal: light-dark(#6d3a01, #ffe07c);
+  --ws-sys-color-extended-orange-fill: light-dark(#ff8d41, #ffb683);
+  --ws-sys-color-extended-orange-outline: light-dark(#ffdcc3, #753403);
+  --ws-sys-color-extended-orange-tonal: light-dark(#ffdcc3, #753403);
+  --ws-sys-color-extended-pink-fill: light-dark(#b60d6e, #ffaee4);
+  --ws-sys-color-extended-pink-outline: light-dark(#ffd8ef, #8d0053);
+  --ws-sys-color-extended-pink-tonal: light-dark(#ffd8ef, #8d0053);
+  --ws-sys-color-extended-purple-fill: light-dark(#7438d2, #d9bafd);
+  --ws-sys-color-extended-purple-outline: light-dark(#eedcfe, #5629a4);
+  --ws-sys-color-extended-purple-tonal: light-dark(#eedcfe, #5629a4);
+  --ws-sys-color-extended-red-fill: light-dark(#b3251e, #ffb3ae);
+  --ws-sys-color-extended-red-outline: light-dark(#ffdadc, #8a1a16);
+  --ws-sys-color-extended-red-tonal: light-dark(#ffdadc, #8a1a16);
+  --ws-sys-color-extended-yellow-fill: light-dark(#fcbd00, #ffe07c);
+  --ws-sys-color-extended-yellow-outline: light-dark(#ffe07c, #8f4e06);
+  --ws-sys-color-extended-yellow-tonal: light-dark(#fff2b4, #8f4e06);
+  --ws-sys-color-genai-bold-gradient01: #346bf1;  /* Aurora bold gradient stop 1 */
+  --ws-sys-color-genai-bold-gradient02: #3186ff;  /* Aurora bold gradient stop 2 */
+  --ws-sys-color-genai-bold-gradient03: #a9a8ff;  /* Aurora bold gradient stop 3 */
+  --ws-sys-color-genai-gems-blue: light-dark(#bedcff, #003d64);  /* Gemini gems blue for surfaces */
+  --ws-sys-color-genai-gems-cyan: light-dark(#92e5ff, #00404e);  /* Gemini gems cyan for surfaces */
+  --ws-sys-color-genai-gems-grey: light-dark(#d9d9d9, #3a3a3a);  /* Gemini gems grey for surfaces */
+  --ws-sys-color-genai-gems-orange: light-dark(#ffcfb4, #612b00);  /* Gemini gems orange for surfaces */
+  --ws-sys-color-genai-gems-pink: light-dark(#ffcbda, #60263d);  /* Gemini gems pink for surfaces */
+  --ws-sys-color-genai-gems-purple: light-dark(#f2ccff, #55226e);  /* Gemini gems purple for surfaces */
+  --ws-sys-color-genai-gems-teal: light-dark(#93e7eb, #004144);  /* Gemini gems teal for surfaces */
+  --ws-sys-color-genai-gems-violet: light-dark(#d9d4ff, #372d80);  /* Gemini gems violet for surfaces */
+  --ws-sys-color-genai-gems-yellow: light-dark(#ffd289, #4f3500);  /* Gemini gems yellow for surfaces */
+  --ws-sys-color-genai-muted-gradient01: light-dark(#e9eef6, #2a2a2a);  /* Aurora muted gradient stop 1 */
+  --ws-sys-color-genai-muted-gradient02: light-dark(#bbe2ff, #243385);  /* Aurora muted gradient stop 2 */
+  --ws-sys-color-genai-muted-gradient03: light-dark(#d0d9ff, #50469f);  /* Aurora muted gradient stop 3 */
+  --ws-sys-color-genai-on-bold-gradient: #000000;  /* Text on bold gradient */
+  --ws-sys-color-genai-on-gems-blue: light-dark(#00629e, #60a9ed);  /* Gemini gems blue for text & icons */
+  --ws-sys-color-genai-on-gems-cyan: light-dark(#00677d, #25b2d4);  /* Gemini gems cyan for text & icons */
+  --ws-sys-color-genai-on-gems-grey: light-dark(#5e5e5e, #a4a4a4);  /* Gemini gems grey for text & icons */
+  --ws-sys-color-genai-on-gems-orange: light-dark(#96490a, #ec8c4c);  /* Gemini gems orange for text & icons */
+  --ws-sys-color-genai-on-gems-pink: light-dark(#984062, #db8da7);  /* Gemini gems pink for text & icons */
+  --ws-sys-color-genai-on-gems-purple: light-dark(#9700d2, #c88ee1);  /* Gemini gems purple for text & icons */
+  --ws-sys-color-genai-on-gems-teal: light-dark(#00696d, #00b6bc);  /* Gemini gems teal for text & icons */
+  --ws-sys-color-genai-on-gems-violet: light-dark(#5132ff, #a299f3);  /* Gemini gems violet for text & icons */
+  --ws-sys-color-genai-on-gems-yellow: light-dark(#7e5700, #d89800);  /* Gemini gems yellow for text & icons */
+  --ws-sys-color-genai-on-muted-gradient: light-dark(#1f1f1f, #e3e3e3);  /* Text on muted gradient */
+  --ws-sys-color-genai-text-gradient01: #3186ff;  /* Aurora text gradient 01 */
+  --ws-sys-color-genai-text-gradient02: #346bf1;  /* Aurora text gradient 02 */
+  --ws-sys-color-genai-text-gradient03: #4fa0ff;  /* Aurora text gradient */
+  --ws-sys-color-illus-blue-purple-contrast-stroke: light-dark(#1f1f1f, #8387ff);  /* Blue purple theme - Contrast stroke */
+  --ws-sys-color-illus-blue-purple-energy-gradient: #b8c0ff;  /* Blue purple theme - Energy gradient */
+  --ws-sys-color-illus-blue-purple-energy-stroke: light-dark(#1f1f1f, #d0d9ff);  /* Blue purple theme - Energy stroke */
+  --ws-sys-color-illus-blue-purple-neutral-fill: light-dark(#ffffff, #1f1f1f);  /* Blue purple theme - Neutral fill */
+  --ws-sys-color-illus-blue-purple-neutral-stroke: #1f1f1f;  /* Blue purple theme - Neutral strooke */
+  --ws-sys-color-illus-blue-purple-primary-fill: #4fa0ff;  /* Blue purple theme - Primary fill */
+  --ws-sys-color-illus-blue-purple-primary-gradient: #76bbff;  /* Blue purple theme - Primary gradient */
+  --ws-sys-color-illus-blue-purple-primary-stroke: light-dark(#1f1f1f, #4fa0ff);  /* Blue purple theme - Primary strooke */
+  --ws-sys-color-illus-blue-purple-secondary-fill: #9dd2ff;  /* Blue purple theme - Secondary fill */
+  --ws-sys-color-illus-blue-purple-shadow: light-dark(#1f1f1f, #3c4043);  /* Blue purple theme - Shadow */
+  --ws-sys-color-illus-blue-purple-tertiary-fill: #b8c0ff;  /* Blue purple theme - Tertiary fill */
+  --ws-sys-color-illus-blue-purple-white-fill: #ffffff;  /* Blue purple theme - White fill */
+  --ws-sys-color-illus-brand-blue: #3c90ff;  /* Brand blue */
+  --ws-sys-color-illus-brand-blue-alt: #76bbff;  /* Alternative brand blue */
+  --ws-sys-color-illus-brand-green: #0ebc5f;  /* Brand green */
+  --ws-sys-color-illus-brand-green-alt: #60d673;  /* Alternative brand green */
+  --ws-sys-color-illus-brand-red: #ff4641;  /* Brand red */
+  --ws-sys-color-illus-brand-red-alt: #ff7985;  /* Alternative brand red */
+  --ws-sys-color-illus-brand-yellow: #ffcf03;  /* Brand yellow */
+  --ws-sys-color-illus-brand-yellow-alt: #ffe921;  /* Alternative brand yellow */
+  --ws-sys-color-illus-green2-blue3-contrast-stroke: light-dark(#1f1f1f, #8387ff);  /* Green blue theme - Contrast stroke */
+  --ws-sys-color-illus-green2-blue3-energy-gradient: #9dd2ff;  /* Green blue theme - Energy gradient */
+  --ws-sys-color-illus-green2-blue3-energy-stroke: light-dark(#1f1f1f, #d0d9ff);  /* Green blue theme - Energy stroke */
+  --ws-sys-color-illus-green2-blue3-neutral-fill: light-dark(#ffffff, #1f1f1f);  /* Green blue theme - Neutral fill */
+  --ws-sys-color-illus-green2-blue3-neutral-stroke: #1f1f1f;  /* Green blue theme - Neutral stroke */
+  --ws-sys-color-illus-green2-blue3-primary-fill: #60d673;  /* Green blue theme - Primary fill */
+  --ws-sys-color-illus-green2-blue3-primary-gradient: #60d673;  /* Green blue theme - Primary gradient */
+  --ws-sys-color-illus-green2-blue3-primary-stroke: light-dark(#1f1f1f, #42c868);  /* Green blue theme - Primary stroke */
+  --ws-sys-color-illus-green2-blue3-secondary-fill: #9dd2ff;  /* Green blue theme - Secondary fill */
+  --ws-sys-color-illus-green2-blue3-shadow: light-dark(#1f1f1f, #3c4043);  /* Green blue theme - Shadow */
+  --ws-sys-color-illus-green2-blue3-tertiary-fill: #b8c0ff;  /* Green blue theme - Tertiary fill */
+  --ws-sys-color-illus-green2-blue3-white-fill: #ffffff;  /* Green blue theme - White fill */
+  --ws-sys-color-illus-green3-blue3-contrast-stroke: light-dark(#1f1f1f, #76bbff);  /* Green blue 2 theme - Contrast stroke */
+  --ws-sys-color-illus-green3-blue3-energy-gradient: #9dd2ff;  /* Green blue 2 theme - Energy gradient */
+  --ws-sys-color-illus-green3-blue3-energy-stroke: light-dark(#1f1f1f, #dcf1ff);  /* Green blue 2 theme - Energy stroke */
+  --ws-sys-color-illus-green3-blue3-neutral-fill: light-dark(#ffffff, #1f1f1f);  /* Green blue 2 theme - Neutral fill */
+  --ws-sys-color-illus-green3-blue3-neutral-stroke: #1f1f1f;  /* Green blue 2 theme - Neutral stroke */
+  --ws-sys-color-illus-green3-blue3-primary-fill: #60d673;  /* Green blue 2 theme - Primary fill */
+  --ws-sys-color-illus-green3-blue3-primary-gradient: #60d673;  /* Green blue 2 theme - Primary gradient */
+  --ws-sys-color-illus-green3-blue3-primary-stroke: light-dark(#1f1f1f, #42c868);  /* Green blue 2 theme - Primary stroke */
+  --ws-sys-color-illus-green3-blue3-secondary-fill: #9dd2ff;  /* Green blue 2 theme - Secondary fill */
+  --ws-sys-color-illus-green3-blue3-shadow: light-dark(#1f1f1f, #3c4043);  /* Green blue 2 theme - Shadow */
+  --ws-sys-color-illus-green3-blue3-tertiary-fill: #bbe2ff;  /* Green blue 2 theme - Tertiary fill */
+  --ws-sys-color-illus-green3-blue3-white-fill: #ffffff;  /* Green blue 2 theme - White fill */
+  --ws-sys-color-illus-hair-black: light-dark(#3c4043, #5f6166);
+  --ws-sys-color-illus-hair-blonde: #febb00;
+  --ws-sys-color-illus-hair-blonde2: #ffdb0f;
+  --ws-sys-color-illus-hair-blonde3: #fcffad;
+  --ws-sys-color-illus-hair-dark-brown: #814f2b;
+  --ws-sys-color-illus-hair-dark-red: #923222;
+  --ws-sys-color-illus-hair-light-brown: #c88f69;
+  --ws-sys-color-illus-hair-light-red: #e54335;
+  --ws-sys-color-illus-hair-peach: #ff8a69;
+  --ws-sys-color-illus-hair-white: #ffffff;
+  --ws-sys-color-illus-plants-plant0: #00af57;
+  --ws-sys-color-illus-plants-plant1: #60d673;
+  --ws-sys-color-illus-plants-plant2: #bff2b9;
+  --ws-sys-color-illus-purple-blue-contrast-stroke: light-dark(#1f1f1f, #76bbff);  /* Purple blue theme - Contrast stroke */
+  --ws-sys-color-illus-purple-blue-energy-gradient: #9dd2ff;  /* Purple blue theme - Energy gradient */
+  --ws-sys-color-illus-purple-blue-energy-stroke: light-dark(#1f1f1f, #bbe2ff);  /* Purple blue theme - Energy stroke */
+  --ws-sys-color-illus-purple-blue-neutral-fill: light-dark(#ffffff, #1f1f1f);  /* Purple blue theme - Neutral fill */
+  --ws-sys-color-illus-purple-blue-neutral-stroke: #1f1f1f;  /* Purple blue theme - Neutral stroke */
+  --ws-sys-color-illus-purple-blue-primary-fill: #969dff;  /* Purple blue theme - Primary fill */
+  --ws-sys-color-illus-purple-blue-primary-gradient: #969dff;  /* Purple blue theme - Primary gradient */
+  --ws-sys-color-illus-purple-blue-primary-stroke: light-dark(#1f1f1f, #8387ff);  /* Purple blue theme - Primary stroke */
+  --ws-sys-color-illus-purple-blue-secondary-fill: #b8c0ff;  /* Purple blue theme - Secondary fill */
+  --ws-sys-color-illus-purple-blue-shadow: light-dark(#1f1f1f, #3c4043);  /* Purple blue theme - Shadow */
+  --ws-sys-color-illus-purple-blue-tertiary-fill: #bbe2ff;  /* Purple blue theme - Tertiary fill */
+  --ws-sys-color-illus-purple-blue-white-fill: #ffffff;  /* Purple blue theme - White fill */
+  --ws-sys-color-illus-red-pink-contrast-stroke: light-dark(#1f1f1f, #8387ff);  /* Red pink theme - Contrast stroke */
+  --ws-sys-color-illus-red-pink-energy-gradient: #ff96da;  /* Red pink theme - Energy gradient */
+  --ws-sys-color-illus-red-pink-energy-stroke: light-dark(#1f1f1f, #d0d9ff);  /* Red pink theme - Energy stroke */
+  --ws-sys-color-illus-red-pink-neutral-fill: light-dark(#ffffff, #1f1f1f);  /* Red pink theme - Neutral fill */
+  --ws-sys-color-illus-red-pink-neutral-stroke: #1f1f1f;  /* Red pink theme - Neutral stroke */
+  --ws-sys-color-illus-red-pink-primary-fill: #ff5a59;  /* Red pink theme - Primary Fill */
+  --ws-sys-color-illus-red-pink-primary-gradient: #ff5a59;  /* Red pink theme - Primary gradient */
+  --ws-sys-color-illus-red-pink-primary-stroke: light-dark(#1f1f1f, #ff5a59);  /* Red pink theme - Primary stroke */
+  --ws-sys-color-illus-red-pink-secondary-fill: #ffc6ef;  /* Red pink theme - Secondary fill */
+  --ws-sys-color-illus-red-pink-shadow: light-dark(#1f1f1f, #3c4043);  /* Red pink theme - Shadow */
+  --ws-sys-color-illus-red-pink-tertiary-fill: #b8c0ff;  /* Red pink theme - Tertiary fill */
+  --ws-sys-color-illus-red-pink-white-fill: #ffffff;  /* Red pink theme - White fill */
+  --ws-sys-color-illus-red2-pink4-contrast-stroke: light-dark(#1f1f1f, #ff96da);  /* Red 2 pink 4 theme - Contrast stroke */
+  --ws-sys-color-illus-red2-pink4-energy-gradient: #ffc6ef;  /* Red 2 pink 4 theme - Energy gradient */
+  --ws-sys-color-illus-red2-pink4-energy-stroke: light-dark(#1f1f1f, #ffeff9);  /* Red 2 pink 4 theme - Energy stroke */
+  --ws-sys-color-illus-red2-pink4-neutral-fill: light-dark(#ffffff, #1f1f1f);  /* Red 2 pink 4 theme - Neutral fill */
+  --ws-sys-color-illus-red2-pink4-neutral-stroke: #1f1f1f;  /* Red 2 pink 4 theme - Neutral stroke */
+  --ws-sys-color-illus-red2-pink4-primary-fill: #ff7985;  /* Red 2 pink 4 theme - Primary fill */
+  --ws-sys-color-illus-red2-pink4-primary-gradient: #ff7985;  /* Red 2 pink 4 theme - Primary gradient */
+  --ws-sys-color-illus-red2-pink4-primary-stroke: light-dark(#1f1f1f, #ff5a59);  /* Red 2 pink 4 theme - Primary stroke */
+  --ws-sys-color-illus-red2-pink4-secondary-fill: #ffacc2;  /* Red 2 pink 4 theme - Secondary fill */
+  --ws-sys-color-illus-red2-pink4-shadow: light-dark(#1f1f1f, #3c4043);  /* Red 2 pink 4 theme - Shadow */
+  --ws-sys-color-illus-red2-pink4-tertiary-fill: #ffdbf5;  /* Red 2 pink 4 theme - Tertiary fill */
+  --ws-sys-color-illus-red2-pink4-white-fill: #ffffff;  /* Red 2 pink 4 theme - White fill */
+  --ws-sys-color-illus-skin-tone0: #923222;  /* Skin tone 0 */
+  --ws-sys-color-illus-skin-tone1: #8b4819;  /* Skin tone 1 */
+  --ws-sys-color-illus-skin-tone2: #bb7b40;  /* Skin tone 2 */
+  --ws-sys-color-illus-skin-tone3: #c88f69;  /* Skin tone 3 */
+  --ws-sys-color-illus-skin-tone4: #daa67f;  /* Skin tone 4 */
+  --ws-sys-color-illus-skin-tone5: #f2a070;  /* Skin tone 5 */
+  --ws-sys-color-illus-skin-tone6: #e5bfa5;  /* Skin tone 6 */
+  --ws-sys-color-illus-skin-tone7: #f1d8c3;  /* Skin tone 7 */
+  --ws-sys-color-illus-yellow-pink-contrast-stroke: light-dark(#1f1f1f, #ff96da);  /* Yellow pink theme - Contrast stroke */
+  --ws-sys-color-illus-yellow-pink-energy-gradient: #ffc6ef;  /* Yellow pink theme - Energy gradient */
+  --ws-sys-color-illus-yellow-pink-energy-stroke: light-dark(#1f1f1f, #ffeff9);  /* Yellow pink theme - Energy stroke */
+  --ws-sys-color-illus-yellow-pink-neutral-fill: light-dark(#ffffff, #1f1f1f);  /* Yellow pink theme - Neutral fill */
+  --ws-sys-color-illus-yellow-pink-neutral-stroke: #1f1f1f;  /* Yellow pink theme - Neutral stroke */
+  --ws-sys-color-illus-yellow-pink-primary-fill: #fec700;  /* Yellow pink theme - Primary fill */
+  --ws-sys-color-illus-yellow-pink-primary-gradient: #ffdb0f;  /* Yellow pink theme - Primary gradient */
+  --ws-sys-color-illus-yellow-pink-primary-stroke: light-dark(#1f1f1f, #fec700);  /* Yellow pink theme - Primary stroke */
+  --ws-sys-color-illus-yellow-pink-secondary-fill: #fff350;  /* Yellow pink theme - Secondary fill */
+  --ws-sys-color-illus-yellow-pink-shadow: light-dark(#1f1f1f, #3c4043);  /* Yellow pink theme - Shadow */
+  --ws-sys-color-illus-yellow-pink-tertiary-fill: #ffc6ef;  /* Yellow pink theme - Tertiary fill */
+  --ws-sys-color-illus-yellow-pink-white-fill: #ffffff;  /* Yellow pink theme - White fill */
+  --ws-sys-color-illus-yellow-yellow-contrast-stroke: light-dark(#1f1f1f, #76bbff);  /* Yellow yellow theme - Contrast stroke */
+  --ws-sys-color-illus-yellow-yellow-energy-gradient: #fcffad;  /* Yellow yellow theme - Energy gradient */
+  --ws-sys-color-illus-yellow-yellow-energy-stroke: light-dark(#1f1f1f, #feffe1);  /* Yellow yellow theme - Energy stroke */
+  --ws-sys-color-illus-yellow-yellow-neutral-fill: light-dark(#ffffff, #1f1f1f);  /* Yellow yellow theme - Neutral fill */
+  --ws-sys-color-illus-yellow-yellow-neutral-stroke: #1f1f1f;  /* Yellow pink theme - Neutral stroke */
+  --ws-sys-color-illus-yellow-yellow-primary-fill: #ffdb0f;  /* Yellow yellow theme - Primary fill */
+  --ws-sys-color-illus-yellow-yellow-primary-gradient: #ffe921;  /* Yellow yellow theme - Primary gradient */
+  --ws-sys-color-illus-yellow-yellow-primary-stroke: light-dark(#1f1f1f, #fec700);  /* Yellow yellow theme - Primary stroke */
+  --ws-sys-color-illus-yellow-yellow-secondary-fill: #fdfd6d;  /* Yellow pink theme - Secondary fill */
+  --ws-sys-color-illus-yellow-yellow-shadow: light-dark(#1f1f1f, #3c4043);  /* Yellow yellow theme - Shadow */
+  --ws-sys-color-illus-yellow-yellow-tertiary-fill: #bbe2ff;  /* Yellow pink theme - Tertiary fill */
+  --ws-sys-color-illus-yellow-yellow-white-fill: #ffffff;  /* Yellow yellow theme - White fill */
+  --ws-sys-color-inverse-primary: light-dark(#a8c7fa, #0b57d0);  /* Displays opposite of the primary color */
+  --ws-sys-color-on-primary: light-dark(#ffffff, #062e6f);  /* Text and icons shown against the primary color */
+  --ws-sys-color-on-primary-container: light-dark(#041e49, #d3e3fd);  /* Contrast-passing color shown against the primary container */
+  --ws-sys-color-on-secondary: light-dark(#ffffff, #003355);  /* Text and icons shown against the secondary color */
+  --ws-sys-color-on-secondary-container: light-dark(#001d35, #c2e7ff);  /* Contrast-passing color shown against the secondary container */
+  --ws-sys-color-on-selected-container: light-dark(#041e49, #d3e3fd);  /* Sits on selected container */
+  --ws-sys-color-on-tertiary: light-dark(#ffffff, #0a3818);
+  --ws-sys-color-on-tertiary-container: light-dark(#072711, #c4eed0);  /* Contrast-passing color shown against the tertiary container */
+  --ws-sys-color-outline: light-dark(#747775, #8e918f);  /* Used for stronger emphasis and interactive items (chips, buttons, text fields) */
+  --ws-sys-color-premium-surface-container-accent01: light-dark(#8cd1ff, #196fcf);  /* Premium theme accent color 1 for surface-container background */
+  --ws-sys-color-premium-surface-container-accent02: light-dark(#7aadf7, #5f90f8);  /* Premium theme accent color 2 for surface-container background */
+  --ws-sys-color-premium-surface-accent01: light-dark(#a8dbff, #0f6bcb);  /* Premium theme accent color 1 for surface background */
+  --ws-sys-color-premium-surface-accent02: light-dark(#89b8ff, #5f90f8);  /* Premium theme accent color 2 for surface background */
+  --ws-sys-color-premium-text-gradient01: light-dark(#1f1f1f, #e3e3e3);  /* Premium theme lockup gradient stop 01 */
+  --ws-sys-color-premium-text-gradient02: light-dark(#6286ff, #86a4ff);  /* Premium theme lockup gradient stop 02 */
+  --ws-sys-color-primary: light-dark(#0b57d0, #a8c7fa);  /* Main color used across screens and components */
+  --ws-sys-color-primary-container: light-dark(#d3e3fd, #0842a0);  /* Standout container color for key components */
+  --ws-sys-color-primary-text: light-dark(#1f1f1f, #e3e3e3);  /* Default text color */
+  --ws-sys-color-secondary: light-dark(#00639b, #7fcfff);  /* Accent color used across screens and components */
+  --ws-sys-color-secondary-container: light-dark(#c2e7ff, #004a77);  /* Less prominent container color, for components like tonal buttons */
+  --ws-sys-color-secondary-text: light-dark(#ffffff, #003355);  /* Used for text with less emphasis */
+  --ws-sys-color-selected-container: light-dark(#d3e3fd, #0842a0);  /* Default selected container */
+  --ws-sys-color-selected-container-variant: light-dark(#0b57d0, #a8c7fa);  /* Use for less emphasis select states, Surface 1 */
+  --ws-sys-color-tertiary: light-dark(#146c2e, #6dd58c);
+  --ws-sys-color-tertiary-container: light-dark(#c4eed0, #0f5223);  /* Contrasting container color, for components like input fields */
+}
+
+/* Typography */
+:root, :host {
+  --ws-sys-typescale-body-large: 1rem/1.5rem 'Google Sans Text';
+  --ws-sys-typescale-body-medium: 0.875rem/1.25rem 'Google Sans Text';
+  --ws-sys-typescale-body-small: 0.75rem/1rem 'Google Sans Text';
+  --ws-sys-typescale-body-small-tracking: 0.00625rem;
+  --ws-sys-typescale-display-large: 3.5625rem/4rem 'Google Sans';
+  --ws-sys-typescale-display-medium: 2.8125rem/3.25rem 'Google Sans';
+  --ws-sys-typescale-display-small: 2.25rem/2.75rem 'Google Sans';
+  --ws-sys-typescale-headline-large: 2rem/2.5rem 'Google Sans';
+  --ws-sys-typescale-headline-medium: 1.75rem/2.25rem 'Google Sans';
+  --ws-sys-typescale-headline-small: 1.5rem/2rem 'Google Sans';
+  --ws-sys-typescale-label-large: 500 0.875rem/1.25rem 'Google Sans Text';
+  --ws-sys-typescale-label-medium: 500 0.75rem/1rem 'Google Sans Text';
+  --ws-sys-typescale-label-medium-tracking: 0.00625rem;
+  --ws-sys-typescale-label-small: 500 0.6875rem/1rem 'Google Sans Text';
+  --ws-sys-typescale-label-small-tracking: 0.00625rem;
+  --ws-sys-typescale-title-large: 1.375rem/1.75rem 'Google Sans';
+  --ws-sys-typescale-title-medium: 500 1rem/1.5rem 'Google Sans Text';
+  --ws-sys-typescale-title-small: 500 0.875rem/1.25rem 'Google Sans Text';
+}
+
+/* Icons */
+:root, :host {
+  --md-icon-font: 'Google Symbols';  /* The font family to use for icons. */
+}
+
+/* Shape */
+:root, :host {
+  --ws-sys-shape-corner-extra-large: 28px;
+  --ws-sys-shape-corner-extra-large-top: 28px 28px 0 0;
+  --ws-sys-shape-corner-extra-small: 4px;
+  --ws-sys-shape-corner-extra-small-top: 4px 4px 0 0;
+  --ws-sys-shape-corner-full: max(50cqw, 50cqh);  /* Use for: Badge, Buttons, Icon buttons, Sliders, Switches, Search bar */
+  --ws-sys-shape-corner-large: 16px;
+  --ws-sys-shape-corner-large-end: 0 16px 16px 0;
+  --ws-sys-shape-corner-large-top: 16px 16px 0 0;
+  --ws-sys-shape-corner-medium: 12px;
+  --ws-sys-shape-corner-none: 0;
+  --ws-sys-shape-corner-small: 8px;
+}
+
+/* Elevation */
+:root, :host {
+  --ws-sys-elevation-level0: 0;
+  --ws-sys-elevation-level1: 1px;
+  --ws-sys-elevation-level2: 3px;
+  --ws-sys-elevation-level3: 6px;
+  --ws-sys-elevation-level4: 8px;
+  --ws-sys-elevation-level5: 12px;
+}
+
+/* Motion */
+:root, :host {
+  --ws-sys-motion-duration-extra-long1: 700ms;
+  --ws-sys-motion-duration-extra-long2: 800ms;
+  --ws-sys-motion-duration-extra-long3: 900ms;
+  --ws-sys-motion-duration-extra-long4: 1000ms;
+  --ws-sys-motion-duration-long1: 450ms;
+  --ws-sys-motion-duration-long2: 500ms;
+  --ws-sys-motion-duration-long3: 550ms;
+  --ws-sys-motion-duration-long4: 600ms;
+  --ws-sys-motion-duration-medium1: 250ms;
+  --ws-sys-motion-duration-medium2: 300ms;
+  --ws-sys-motion-duration-medium3: 350ms;
+  --ws-sys-motion-duration-medium4: 400ms;
+  --ws-sys-motion-duration-short1: 50ms;
+  --ws-sys-motion-duration-short2: 100ms;
+  --ws-sys-motion-duration-short3: 150ms;
+  --ws-sys-motion-duration-short4: 200ms;
+  --ws-sys-motion-easing-emphasized-accelerate: cubic-bezier(0.3, 0.0, 0.8, 0.15);
+  --ws-sys-motion-easing-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1.0);
+  --ws-sys-motion-easing-legacy: cubic-bezier(0.4, 0.0, 0.2, 1.0);
+  --ws-sys-motion-easing-legacy-accelerate: cubic-bezier(0.4, 0.0, 1.0, 1.0);
+  --ws-sys-motion-easing-legacy-decelerate: cubic-bezier(0.0, 0.0, 0.2, 1.0);
+  --ws-sys-motion-easing-linear: cubic-bezier(0.0, 0.0, 1.0, 1.0);
+  --ws-sys-motion-easing-standard: cubic-bezier(0.2, 0.0, 0.0, 1.0);
+  --ws-sys-motion-easing-standard-accelerate: cubic-bezier(0.3, 0.0, 1.0, 1.0);
+  --ws-sys-motion-easing-standard-decelerate: cubic-bezier(0.0, 0.0, 0.0, 1.0);
+  --ws-sys-motion-emphasized: "M 0,0 C 0.05, 0, 0.133333, 0.06, 0.166666, 0.4 C 0.208333, 0.82, 0.25, 1, 1, 1";
+}
+
+/* gbreeze Color bindings */
+:root, :host {
+  --md-sys-color-outline-variant: var(--ws-sys-color-divider);
+  --md-sys-color-on-error: var(--ws-sys-color-extended-on-red-fill);
+  --md-sys-color-on-error-container: var(--ws-sys-color-extended-on-red-tonal);
+  --md-sys-color-error: var(--ws-sys-color-extended-red-fill);
+  --md-sys-color-error-container: var(--ws-sys-color-extended-red-tonal);
+  --md-sys-color-inverse-primary: var(--ws-sys-color-inverse-primary);
+  --md-sys-color-on-primary: var(--ws-sys-color-on-primary);
+  --md-sys-color-on-primary-container: var(--ws-sys-color-on-primary-container);
+  --md-sys-color-on-secondary: var(--ws-sys-color-on-secondary);
+  --md-sys-color-on-secondary-container: var(--ws-sys-color-on-secondary-container);
+  --md-sys-color-on-tertiary: var(--ws-sys-color-on-tertiary);
+  --md-sys-color-on-tertiary-container: var(--ws-sys-color-on-tertiary-container);
+  --md-sys-color-outline: var(--ws-sys-color-outline);
+  --md-sys-color-primary: var(--ws-sys-color-primary);
+  --md-sys-color-primary-container: var(--ws-sys-color-primary-container);
+  --md-sys-color-on-surface: var(--ws-sys-color-primary-text);
+  --md-sys-color-secondary: var(--ws-sys-color-secondary);
+  --md-sys-color-secondary-container: var(--ws-sys-color-secondary-container);
+  --md-sys-color-tertiary: var(--ws-sys-color-tertiary);
+  --md-sys-color-tertiary-container: var(--ws-sys-color-tertiary-container);
+}
+
+/* gbreeze Typography bindings */
+:root, :host {
+  --md-sys-typescale-body-lg: var(--ws-sys-typescale-body-large);
+  --md-sys-typescale-body-md: var(--ws-sys-typescale-body-medium);
+  --md-sys-typescale-body-sm: var(--ws-sys-typescale-body-small);
+  --md-sys-typescale-body-sm-tracking: var(--ws-sys-typescale-body-small-tracking);
+  --md-sys-typescale-display-lg: var(--ws-sys-typescale-display-large);
+  --md-sys-typescale-display-md: var(--ws-sys-typescale-display-medium);
+  --md-sys-typescale-display-sm: var(--ws-sys-typescale-display-small);
+  --md-sys-typescale-headline-lg: var(--ws-sys-typescale-headline-large);
+  --md-sys-typescale-headline-md: var(--ws-sys-typescale-headline-medium);
+  --md-sys-typescale-headline-sm: var(--ws-sys-typescale-headline-small);
+  --md-sys-typescale-label-lg: var(--ws-sys-typescale-label-large);
+  --md-sys-typescale-label-md: var(--ws-sys-typescale-label-medium);
+  --md-sys-typescale-label-md-tracking: var(--ws-sys-typescale-label-medium-tracking);
+  --md-sys-typescale-label-sm: var(--ws-sys-typescale-label-small);
+  --md-sys-typescale-label-sm-tracking: var(--ws-sys-typescale-label-small-tracking);
+  --md-sys-typescale-title-lg: var(--ws-sys-typescale-title-large);
+  --md-sys-typescale-title-md: var(--ws-sys-typescale-title-medium);
+  --md-sys-typescale-title-sm: var(--ws-sys-typescale-title-small);
+}
+
+/* gbreeze Shape bindings */
+:root, :host {
+  --md-sys-shape-corner-xl: var(--ws-sys-shape-corner-extra-large);
+  --md-sys-shape-corner-xs: var(--ws-sys-shape-corner-extra-small);
+  --md-sys-shape-corner-full: var(--ws-sys-shape-corner-full);
+  --md-sys-shape-corner-lg: var(--ws-sys-shape-corner-large);
+  --md-sys-shape-corner-md: var(--ws-sys-shape-corner-medium);
+  --md-sys-shape-corner-none: var(--ws-sys-shape-corner-none);
+  --md-sys-shape-corner-sm: var(--ws-sys-shape-corner-small);
+}
+
+/* gbreeze Elevation bindings */
+:root, :host {
+  --md-sys-elevation-shadow-0: var(--ws-sys-elevation-level0);
+  --md-sys-elevation-shadow-1: var(--ws-sys-elevation-level1);
+  --md-sys-elevation-shadow-2: var(--ws-sys-elevation-level2);
+  --md-sys-elevation-shadow-3: var(--ws-sys-elevation-level3);
+  --md-sys-elevation-shadow-4: var(--ws-sys-elevation-level4);
+  --md-sys-elevation-shadow-5: var(--ws-sys-elevation-level5);
+}
+
+/* gbreeze Motion bindings */
+:root, :host {
+  --md-sys-motion-duration-extra-long1: var(--ws-sys-motion-duration-extra-long1);
+  --md-sys-motion-duration-extra-long2: var(--ws-sys-motion-duration-extra-long2);
+  --md-sys-motion-duration-extra-long3: var(--ws-sys-motion-duration-extra-long3);
+  --md-sys-motion-duration-extra-long4: var(--ws-sys-motion-duration-extra-long4);
+  --md-sys-motion-duration-long1: var(--ws-sys-motion-duration-long1);
+  --md-sys-motion-duration-long2: var(--ws-sys-motion-duration-long2);
+  --md-sys-motion-duration-long3: var(--ws-sys-motion-duration-long3);
+  --md-sys-motion-duration-long4: var(--ws-sys-motion-duration-long4);
+  --md-sys-motion-duration-medium1: var(--ws-sys-motion-duration-medium1);
+  --md-sys-motion-duration-medium2: var(--ws-sys-motion-duration-medium2);
+  --md-sys-motion-duration-medium3: var(--ws-sys-motion-duration-medium3);
+  --md-sys-motion-duration-medium4: var(--ws-sys-motion-duration-medium4);
+  --md-sys-motion-duration-short1: var(--ws-sys-motion-duration-short1);
+  --md-sys-motion-duration-short2: var(--ws-sys-motion-duration-short2);
+  --md-sys-motion-duration-short3: var(--ws-sys-motion-duration-short3);
+  --md-sys-motion-duration-short4: var(--ws-sys-motion-duration-short4);
+  --md-sys-motion-easing-emphasized-accelerate: var(--ws-sys-motion-easing-emphasized-accelerate);
+  --md-sys-motion-easing-emphasized-decelerate: var(--ws-sys-motion-easing-emphasized-decelerate);
+  --md-sys-motion-easing-standard: var(--ws-sys-motion-easing-standard);
+  --md-sys-motion-easing-standard-accelerate: var(--ws-sys-motion-easing-standard-accelerate);
+  --md-sys-motion-easing-standard-decelerate: var(--ws-sys-motion-easing-standard-decelerate);
+  --md-sys-motion-easing-emphasized: var(--ws-sys-motion-emphasized);
+}
+

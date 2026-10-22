@@ -1,0 +1,6 @@
+{
+  "name": "interactive-gen-ui",
+  "displayName": "Interactive Generative UI",
+  "description": "Live interactive Generative UI canvas in the Auxiliary Pane. Automatically renders agent-generated HTML files and routes button click actions directly back to the active agent conversation.",
+  "version": "1.0.0"
+}

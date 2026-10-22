@@ -1,0 +1,106 @@
+#!/usr/bin/env node
+
+const fs = require('node:fs');
+const path = require('node:path');
+
+const HEX_COLOR_REGEX =
+    /#(?:[0-9A-Fa-f]{3,4}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})\b/g;
+const PROPS_DECLARATION_REGEX =
+    /\b(?:interface\s+[A-Za-z0-9_]+Props\b|type\s+[A-Za-z0-9_]+Props\s*=\s*Readonly\s*<)/;
+const READONLY_PROPS_REGEX =
+    /\breadonly\s+[A-Za-z0-9_]+\??\s*:|\bReadonly\s*<\s*[A-Za-z0-9_]+Props\s*>|\btype\s+[A-Za-z0-9_]+Props\s*=\s*Readonly\s*</;
+const PLACEHOLDER_REGEX = /\bStitchComponent\b|\bStitchComponentProps\b/;
+
+/**
+ * Scans JSX source lines for hardcoded hex color literals inside className or
+ * style attributes.
+ *
+ * @param {string} code The component source code to inspect.
+ * @return {!Array<string>} List of formatted hex color findings.
+ */
+function findHardcodedHexInJsx(code) {
+  const issues = [];
+  const lines = code.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (/\b(?:className|style)\s*=/.test(line) ||
+        /\b(?:bg|text|border|ring|from|via|to)-\[#/.test(line)) {
+      const matches = line.match(HEX_COLOR_REGEX);
+      if (matches) {
+        for (const hex of matches) {
+          issues.push(`line ${i + 1}: ${hex} (${line.trim()})`);
+        }
+      }
+    }
+  }
+  return issues;
+}
+
+/**
+ * Validates a generated React component file for readonly Props interface
+ * declarations, replaced template placeholders, and absence of hardcoded hex
+ * color codes.
+ *
+ * @param {string|undefined} filePath Path to the component file to validate.
+ */
+function validateComponent(filePath) {
+  if (!filePath) {
+    console.error('Usage: node validate.js <path-to-component.tsx>');
+    process.exit(1);
+  }
+
+  const resolvedPath = path.resolve(filePath);
+  if (!fs.existsSync(resolvedPath)) {
+    console.error(`❌ FILE NOT FOUND: ${resolvedPath}`);
+    process.exit(1);
+  }
+
+  const code = fs.readFileSync(resolvedPath, 'utf-8');
+  const filename = path.basename(resolvedPath);
+
+  const hasPropsInterface = PROPS_DECLARATION_REGEX.test(code);
+  const hasReadonlyProps = READONLY_PROPS_REGEX.test(code);
+  const hasUnreplacedPlaceholder =
+      filename !== 'component-template.tsx' && PLACEHOLDER_REGEX.test(code);
+  const tailwindHexIssues = findHardcodedHexInJsx(code);
+
+  console.log(`--- Validation for: ${filename} ---`);
+
+  if (hasPropsInterface && hasReadonlyProps) {
+    console.log('✅ Readonly Props interface found.');
+  } else if (!hasPropsInterface) {
+    console.error(
+        '❌ MISSING: Props declaration (must declare \'[ComponentName]Props\').');
+  } else {
+    console.error(
+        '❌ MISSING: Props properties must use \'readonly\' modifiers or \'Readonly<...Props>\'.');
+  }
+
+  if (!hasUnreplacedPlaceholder) {
+    console.log('✅ Template placeholders replaced.');
+  } else {
+    console.error(
+        '❌ PLACEHOLDER: Found unreplaced \'StitchComponent\' / \'StitchComponentProps\' identifier.');
+  }
+
+  if (tailwindHexIssues.length === 0) {
+    console.log('✅ No hardcoded hex values found.');
+  } else {
+    console.error(
+        `❌ STYLE: Found ${tailwindHexIssues.length} hardcoded hex code(s):`);
+    for (const issue of tailwindHexIssues) {
+      console.error(`   - ${issue}`);
+    }
+  }
+
+  if (hasPropsInterface && hasReadonlyProps && !hasUnreplacedPlaceholder &&
+      tailwindHexIssues.length === 0) {
+    console.log('\n✨ COMPONENT VALID.');
+    process.exit(0);
+  } else {
+    console.error('\n🚫 VALIDATION FAILED.');
+    process.exit(1);
+  }
+}
+
+validateComponent(process.argv[2]);

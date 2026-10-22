@@ -1,0 +1,196 @@
+suite_name: data-craft
+timeout_seconds: 300
+num_trials: 3
+
+setup_sources:
+  - type: text
+    name: "Q4 Business Review Data.txt"
+    content: |
+      TechVenture AI — Q4 2025 Business Review
+
+      Financial Summary:
+      - Revenue: $12.4M (up 18% YoY)
+      - EBITDA: $3.1M (margin 25%)
+      - Headcount: 142 employees (up from 120 in Q3)
+      - Q4 Churn: 2.1%
+
+      Product Highlights:
+      - Launched AI Dashboard v2.0 with real-time analytics
+      - NPS improved from 42 to 61
+      - Widget A revenue: Q1=$2.1M, Q2=$2.8M, Q3=$3.5M, Q4=$4.1M
+      - Widget B revenue: Q1=$1.5M, Q2=$1.4M, Q3=$1.3M, Q4=$1.1M
+
+      Marketing Performance:
+      - Marketing spend vs. customer acquisition:
+        $5K→120, $10K→250, $15K→310, $20K→480, $25K→520, $30K→700, $35K→690, $40K→830
+      - Customer deal sizes (in $K): 5, 8, 12, 15, 18, 22, 25, 28, 35, 42, 45, 48, 55, 62, 78, 95, 120, 150, 210, 350
+
+      Product Line Performance (4 Quarters):
+      Revenue: Alpha ($5M,$8M,$12M,$15M), Beta ($3M,$3.2M,$3.1M,$2.8M), Gamma ($1M,$2M,$4M,$8M)
+      Margins: Alpha (60%,55%,45%,38%), Beta (70%,72%,73%,75%), Gamma (20%,18%,15%,12%)
+
+      Board Metrics (Quarterly):
+      - Revenue: $5M, $8M, $12M, $15M
+      - Employee count: 50, 80, 120, 200
+      - Customer NPS: 42, 48, 55, 61
+
+      Weekly Active Users (12 weeks):
+      W1=10K, W2=10.5K, W3=10.2K, W4=9.8K, W5=9.5K, W6=15K, W7=18K, W8=22K, W9=25K, W10=24K, W11=23.5K, W12=23K
+      Note: v2.0 launched at week 6; marketing campaign ran weeks 6-8.
+
+      Monthly Revenue (2024-2025):
+      2024: $5M, $5.2M, $5.1M, $5.5M, $6M, $6.2M, $5.8M, $6.5M, $7M, $7.2M, $7.5M, $8M
+      2025: $8.5M, $9M, $8.8M, $10M, $11M, $12M, $11.5M, $13M, $14M, $14.5M, $15M, $16M
+
+      Global Comparison:
+      US: GDP $25T, GDP per capita $76K
+      China: GDP $18T, GDP per capita $13K
+      Japan: GDP $4.2T, GDP per capita $34K
+      Germany: GDP $4.1T, GDP per capita $49K
+      India: GDP $3.5T, GDP per capita $2.5K
+      UK: GDP $3.1T, GDP per capita $46K
+
+cases:
+  # Routing: multi-variable chart with comparison — requires layout judgment
+  - name: basic_chart_request
+    prompt: "I have revenue by product line over 4 quarters: Widget A (Q1=$2.1M, Q2=$2.8M, Q3=$3.5M, Q4=$4.1M), Widget B (Q1=$1.5M, Q2=$1.4M, Q3=$1.3M, Q4=$1.1M). Visualize both trends together and tell me which product is driving growth. Save the chart."
+    timeout_seconds: 600
+    outcome_assertions:
+      - "The response creates a chart showing both product lines"
+      - "The response identifies Widget A as the growth driver and Widget B as declining"
+      - "The chart title is NOT a generic label like 'Revenue by Product' — it states an insight"
+    expect_keywords_any:
+      - "chart"
+      - "visualization"
+      - "plot"
+    expect_tools:
+      - "get_skill"
+      - "execute_command"
+
+  # Routing: analysis with statistical depth — needs more than bar chart
+  - name: written_analysis
+    prompt: "Here's our monthly revenue for 2 years: 2024 ($5M, $5.2M, $5.1M, $5.5M, $6M, $6.2M, $5.8M, $6.5M, $7M, $7.2M, $7.5M, $8M) and 2025 ($8.5M, $9M, $8.8M, $10M, $11M, $12M, $11.5M, $13M, $14M, $14.5M, $15M, $16M). Analyze the growth trajectory — is it accelerating, decelerating, or linear? Calculate the key metrics."
+    timeout_seconds: 300
+    outcome_assertions:
+      - "The response identifies the growth pattern and provides specific analysis"
+      - "The response calculates at least one metric (CAGR, growth rate, YoY change, or acceleration)"
+    expect_keywords_any:
+      - "growth"
+      - "trend"
+      - "accelerat"
+      - "%"
+    expect_tools:
+      - "get_skill"
+
+  # Routing: picks scatter plot from paired continuous data (no chart type hint)
+  - name: scatter_correlation
+    prompt: "I want to understand how marketing spend affects customer acquisition. Here's the data: ($5K, 120), ($10K, 250), ($15K, 310), ($20K, 480), ($25K, 520), ($30K, 700), ($35K, 690), ($40K, 830). Chart this and tell me what you see. Save it."
+    timeout_seconds: 600
+    outcome_assertions:
+      - "The response selects a scatter plot or correlation chart, NOT a bar or line chart"
+      - "The response does NOT default to a bar chart"
+      - "The response mentions correlation, trend line, or relationship between the two variables"
+    expect_tools:
+      - "get_skill"
+      - "execute_command"
+
+  # Quality: title-as-takeaway with non-obvious insight
+  - name: insight_title
+    prompt: "Plot this monthly data and give each chart an insight-driven title. Revenue: Jan=$10K, Feb=$12K, Mar=$15K, Apr=$22K, May=$35K, Jun=$50K. Costs: Jan=$8K, Feb=$9K, Mar=$11K, Apr=$18K, May=$30K, Jun=$42K. Save the charts and tell me the titles you chose."
+    timeout_seconds: 600
+    outcome_assertions:
+      - "The response text explicitly states the chart titles"
+      - "At least one chart title contains a verb or specific metric (grew, surged, doubled, 5x, 400%, outpaced)"
+      - "The chart titles are NOT generic labels like 'Revenue and Costs' or 'Monthly Data'"
+    expect_tools:
+      - "get_skill"
+      - "execute_command"
+
+  # Pipeline: multi-step analysis with chart + written insight
+  - name: generates_png
+    prompt: "Compare these 6 countries on both GDP and GDP per capita: US ($25T, $76K), China ($18T, $13K), Japan ($4.2T, $34K), Germany ($4.1T, $49K), India ($3.5T, $2.5K), UK ($3.1T, $46K). I need charts that show why total GDP rankings are misleading without per-capita context. Save them."
+    timeout_seconds: 600
+    outcome_assertions:
+      - "The response indicates image files were created and saved"
+      - "The response contrasts total GDP with per-capita GDP (e.g., China vs Germany reversal)"
+    expect_tools:
+      - "get_skill"
+      - "execute_command"
+
+  # Quality: distribution analysis — requires histogram + statistical insight
+  - name: distribution_analysis
+    prompt: "Here are customer deal sizes from last quarter (in $K): 5, 8, 12, 15, 18, 22, 25, 28, 35, 42, 45, 48, 55, 62, 78, 95, 120, 150, 210, 350. Visualize the distribution and tell me if we have a 'whale' problem — are a few large deals skewing our average? What's the median vs mean? Save the chart."
+    timeout_seconds: 600
+    outcome_assertions:
+      - "The response creates a histogram, box plot, or distribution chart"
+      - "The response compares mean and median to identify skew"
+      - "The response discusses the concentration risk from large deals (whales)"
+    expect_keywords_any:
+      - "median"
+      - "mean"
+      - "skew"
+      - "distribution"
+    expect_tools:
+      - "get_skill"
+      - "execute_command"
+
+  # Quality: multi-dimension divergent trends
+  - name: multi_dimension_analysis
+    prompt: "Our 3 product lines over 4 quarters — Revenue: Alpha ($5M,$8M,$12M,$15M), Beta ($3M,$3.2M,$3.1M,$2.8M), Gamma ($1M,$2M,$4M,$8M). Margins: Alpha (60%,55%,45%,38%), Beta (70%,72%,73%,75%), Gamma (20%,18%,15%,12%). Visualize this and tell me which product is actually the healthiest business. Save the charts."
+    timeout_seconds: 600
+    outcome_assertions:
+      - "The response identifies that Alpha has margin compression despite revenue growth"
+      - "The response discusses Beta's stability or Gamma's unsustainable growth"
+    expect_keywords_any:
+      - "margin"
+      - "revenue"
+      - "decline"
+      - "compression"
+    expect_tools:
+      - "get_skill"
+      - "execute_command"
+
+  # Quality: avoids dual-axis trap with disparate scales
+  - name: dual_axis_trap
+    prompt: "I need a professional chart combining these metrics: Quarterly revenue ($5M, $8M, $12M, $15M), employee count (50, 80, 120, 200), and customer NPS score (42, 48, 55, 61). These are for a board presentation — make it publication quality. Save it."
+    timeout_seconds: 600
+    outcome_assertions:
+      - "The response either uses separate charts OR clearly labeled multiple axes"
+      - "The response does NOT put revenue dollars, headcount, and NPS on the same scale"
+    expect_tools:
+      - "get_skill"
+      - "execute_command"
+
+  # Quality: event annotation with before/after analysis
+  - name: annotation_callout
+    prompt: "Plot our daily active users for the past 12 weeks: W1=10K, W2=10.5K, W3=10.2K, W4=9.8K, W5=9.5K, W6=15K, W7=18K, W8=22K, W9=25K, W10=24K, W11=23.5K, W12=23K. We launched v2.0 at week 6 and ran a marketing campaign weeks 6-8. I need the chart to clearly show the before/after impact and whether the gains are holding. Save it."
+    timeout_seconds: 600
+    outcome_assertions:
+      - "The response marks the v2.0 launch or campaign period on the chart"
+      - "The response analyzes whether the post-campaign growth is sustainable or plateauing"
+    expect_tools:
+      - "get_skill"
+      - "execute_command"
+
+  # Quality: crowded scatter with many direct point labels (adjustText / A.label_points)
+  - name: crowded_scatter_labels
+    prompt: "Plot a scatter chart of customer acquisition spend ($K) vs annual recurring revenue ($K) across these 12 metro markets and label EVERY city directly on the chart without overlapping text: Austin ($55K, $34K), Boston ($57K, $36K), Chicago ($58K, $35K), Dallas ($56K, $33K), Denver ($59K, $37K), Miami ($80K, $49K), New York ($83K, $52K), Seattle ($81K, $51K), Atlanta ($79K, $48K), Toronto ($82K, $50K), San Francisco ($115K, $85K), Washington DC ($128K, $97K). Highlight the top-performing outlier markets and save the chart."
+    timeout_seconds: 600
+    outcome_assertions:
+      - "The response creates a scatter chart labeling all 12 cities without overlapping text"
+      - "The response identifies San Francisco and Washington DC as top-performing outlier markets"
+    expect_tools:
+      - "get_skill"
+      - "execute_command"
+
+  # Negative: non-visualization request (should not generate a chart)
+  - name: negative_text_only
+    prompt: "Summarize the key differences between bar charts and line charts. When should I use each one?"
+    timeout_seconds: 300
+    outcome_assertions:
+      - "The response does NOT attempt to generate an image or chart file"
+      - "The response does NOT call execute_command to run a Python script that creates a PNG"
+    tags:
+      - "negative"
+    reject_tools:
+      - "get_skill"

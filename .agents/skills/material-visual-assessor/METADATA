@@ -1,0 +1,12 @@
+# go/google3metadata
+# proto-file: devtools/metadata/metadata.proto
+# proto-message: MetaData
+
+presubmit: {
+  path_expression: "//depot/google3/ux/gdp/ai/skills/material_visual_assessor/..."
+
+  check_presubmit_build_target: {
+    test_target: "//ux/material/ui_assessor/agents/material_adherence_agent:agent_build_test"
+    failure_status: ERROR
+  }
+}
