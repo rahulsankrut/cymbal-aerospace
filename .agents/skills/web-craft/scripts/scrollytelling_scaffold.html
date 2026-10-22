@@ -1,0 +1,179 @@
+<!--
+  SCROLLYTELLING SCAFFOLD
+  =====================================================
+  THIS IS A SKELETON, NOT A DELIVERABLE. Do not ship it as-is.
+  It hands you ONLY the part that is easy to get wrong — the pin mechanic — so
+  you can spend all of your effort on an ambitious, content-specific visual.
+
+  ── KEEP VERBATIM ────────────────────────────────────────────────────────────
+  The "PIN CORE" CSS block and the "ENGINE" <script> block. Together they encode
+  the four things that silently break sticky scrollers:
+    1. position:sticky on the GRAPHIC <figure>, never on a <header>.
+    2. NO block-axis overflow on ANY ancestor of the figure. The scroll root
+       (html,body) uses overflow-x:clip (safe); never overflow:hidden/auto/scroll.
+    3. render(0) runs on load, so a CDN/library hiccup degrades to a real first
+       frame instead of a blank column.
+    4. scrollama drives it when present; a native IntersectionObserver is the
+       zero-dependency fallback (also what lets you film/verify it offline).
+
+  ── REPLACE (three TODO zones, marked below) ─────────────────────────────────
+    [1] STEPS ......... your 5–9 real beats (the placeholder has 3 dummy ones).
+    [2] GRAPHIC ....... ★ THIS IS WHERE THE AMBITION LIVES. ★ The placeholder is
+                        a grey box ON PURPOSE — replace the whole block with ONE
+                        persistent visual that changes across beats, e.g.:
+                          · a map with a route that draws segment-by-segment
+                          · a timeline whose playhead descends a dated axis
+                          · a chart that accumulates series / annotations per beat
+                          · a tree or network that grows new nodes each beat
+                          · a diagram that morphs between labelled states
+                        The rule: ONE visual that evolves — not a new picture per
+                        beat. Reach for real SVG/Canvas, thoughtful color, motion.
+    [3] renderGraphic(i)  mutate that visual for beat i (draw the next segment,
+                        advance the playhead, append the next series…) and animate
+                        the transition. The placeholder just updates a label+bar.
+
+  ── VERIFY before shipping ───────────────────────────────────────────────────
+  The figure's getBoundingClientRect().top must stay ~0 while pinned (use the
+  probe in scripts/), and inspect a multi-frame filmstrip — never a single
+  screenshot. Full recipe + build patterns: references/scrollytelling.md.
+-->
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none';script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net/npm/;style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;font-src 'self' data: https://*.gstatic.com;img-src 'self' data:;connect-src 'self';base-uri 'none';form-action 'none'">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scrollytelling Scaffold — replace this title</title>
+  <!-- Optional progressive enhancement: you MAY add a <script> here loading the
+       scrollama library (npm package "scrollama", available from the jsDelivr npm
+       mirror already on the CDN allowlist) for smoother step detection.
+       This scaffold runs on the native IntersectionObserver fallback below when
+       scrollama is absent, so it works with or without it. -->
+  <style>
+    /* ══ PIN CORE — keep this block verbatim ══════════════════════════════════
+       This is the mechanism. Restyle colors/spacing via the tokens, but do not
+       change the sticky/overflow/height rules — they are what make the pin work. */
+    :root{
+      /* Placeholder values so the scaffold renders on its own. Replace this
+         block with the chosen style's :root plus the design_foundation.md tokens;
+         the names below are the style token names, so the rules keep working. */
+      --background:oklch(0.97 0.006 260); --surface-container-low:oklch(0.99 0.004 260);
+      --surface-container:oklch(0.94 0.006 260);
+      --outline-variant:oklch(0.88 0.01 260); --on-surface:oklch(0.22 0.02 260);
+      --on-surface-variant:oklch(0.48 0.02 260); --primary:oklch(0.55 0.16 250);
+      --font-body:system-ui,sans-serif; --font-label:ui-monospace,monospace;
+      --space-md:1rem; --space-lg:1.5rem; --space-xl:2.5rem;
+      --dur-long:420ms; --ease-out:cubic-bezier(0.16,1,0.3,1);
+    }
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{overflow-x:clip;margin:0;background:var(--background);color:var(--on-surface);font-family:var(--font-body);scroll-behavior:smooth}
+    .wrap{max-width:1180px;margin:0 auto;padding:0 var(--space-lg);overflow-x:clip}
+    .scrolly{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-xl);align-items:start}
+    .scrolly-graphic{position:sticky;top:0;height:100vh;display:grid;place-items:center;margin:0}  /* the pin */
+    .steps{padding:40vh 0}
+    .step{min-height:80vh;display:grid;align-content:center}
+    @media (max-width:820px){.scrolly{grid-template-columns:1fr}.scrolly-graphic{height:56vh}.steps{padding:12vh 0}.step{min-height:64vh}}
+    @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+    /* ══ end PIN CORE ═════════════════════════════════════════════════════════ */
+
+    /* ── your styles below (the placeholder's own look — replace freely) ── */
+    h1,h2,h3{font-weight:650;line-height:1.15;margin:0 0 .4em}
+    p{line-height:1.7;font-size:1.05rem}
+    .hero{min-height:70vh;display:grid;align-content:center;gap:var(--space-md);padding:var(--space-xl) 0;border-bottom:1px solid var(--outline-variant)}
+    .kicker{font-family:var(--font-label);font-size:.78rem;letter-spacing:.18em;text-transform:uppercase;color:var(--primary)}
+    .hero h1{font-size:clamp(2.2rem,5vw,3.6rem)}
+    .hero p{max-width:60ch;color:var(--on-surface-variant)}
+    .cue{font-family:var(--font-label);font-size:.76rem;color:var(--on-surface-variant);letter-spacing:.1em;margin-top:var(--space-lg)}
+    .step-card{background:var(--surface-container-low);border:1px solid var(--outline-variant);border-radius:10px;padding:var(--space-lg);
+      opacity:.45;transform:translateY(8px);transition:opacity var(--dur-long) var(--ease-out),transform var(--dur-long) var(--ease-out)}
+    .step.is-active .step-card{opacity:1;transform:none}
+    .step .idx{font-family:var(--font-label);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--on-surface-variant)}
+    .step h2{font-size:1.6rem;margin:.2rem 0}
+    /* ── PLACEHOLDER graphic look — DELETE all of this when you build [2] ── */
+    .ph{width:100%;background:repeating-linear-gradient(45deg,var(--surface-container-low),var(--surface-container-low) 12px,var(--surface-container) 12px,var(--surface-container) 24px);
+      border:2px dashed var(--outline-variant);border-radius:14px;padding:var(--space-xl);text-align:center;min-height:400px;display:grid;place-content:center;gap:var(--space-md)}
+    .ph .tag{font-family:var(--font-label);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--on-surface-variant)}
+    .ph .big{font-size:clamp(3rem,8vw,5rem);font-weight:800;color:var(--primary);transition:all var(--dur-long) var(--ease-out)}
+    .ph .cap{color:var(--on-surface-variant);max-width:34ch;margin:0 auto}
+    .ph .bar{height:10px;border-radius:999px;background:var(--outline-variant);overflow:hidden}
+    .ph .bar>i{display:block;height:100%;width:0;background:var(--primary);transition:width var(--dur-long) var(--ease-out)}
+  </style>
+ </head>
+ <body>
+  <div class="wrap">
+   <!-- Replace this hero with your own framing. -->
+   <header class="hero">
+     <span class="kicker">TODO · kicker</span>
+     <h1>Your scrollytelling title</h1>
+     <p>One or two sentences that set up the single evolving visual the reader is about to scroll through.</p>
+     <span class="cue">↓ scroll — the visual advances</span>
+   </header>
+
+   <section class="scrolly">
+     <!-- ═══ [2] GRAPHIC — replace this entire <figure> with your ambitious,
+              content-specific visual (SVG map / timeline / growing chart / tree).
+              Keep the class="scrolly-graphic" figure wrapper (that is the pin). ═══ -->
+     <figure class="scrolly-graphic">
+       <div class="ph" id="graphic">
+         <div class="tag">placeholder visual — replace me (zone&nbsp;[2])</div>
+         <div class="big" id="phBig">1</div>
+         <p class="cap" id="phCap">This grey box is a stand-in. Build one persistent visual that evolves as the reader scrolls.</p>
+         <div class="bar"><i id="phBar"></i></div>
+       </div>
+     </figure>
+     <div class="steps" id="steps"></div>
+   </section>
+  </div>
+
+  <script>
+    // ═══ [1] STEPS — replace with your 5–9 real beats ═══════════════════════════
+    // Each beat is one scroll stop. Give it enough substance to stand alone; the
+    // graphic (zone [3]) reacts to the beat index. These 3 are dummies.
+    const STEPS = [
+      {title:"First beat",  body:"Replace me. Introduce the visual's starting state."},
+      {title:"Second beat", body:"Replace me. The visual changes — a segment draws, a series appears, the playhead moves."},
+      {title:"Third beat",  body:"Replace me. The change builds toward the final state."},
+    ];
+
+    // ═══ [2]/[3] GRAPHIC — build once, then mutate per beat ══════════════════════
+    // buildGraphic(): construct your persistent visual ONCE (draw the axis, the
+    //   empty map, the chart frame). The placeholder builds nothing (static box).
+    // renderGraphic(i): advance the visual to beat i. THIS is where the scrollytelling
+    //   happens — animate the transition, don't redraw from scratch.
+    const phBig = document.getElementById('phBig');
+    const phCap = document.getElementById('phCap');
+    const phBar = document.getElementById('phBar');
+    function buildGraphic(){ /* TODO: create your SVG/Canvas visual here (once). */ }
+    function renderGraphic(i){
+      // TODO: replace this placeholder mutation with a real change to your visual.
+      const s = STEPS[i];
+      phBig.textContent = i + 1;
+      phCap.textContent = s.body;
+      phBar.style.width = ((i + 1) / STEPS.length * 100) + '%';
+    }
+
+    // ═══ ENGINE — keep this block verbatim ══════════════════════════════════════
+    const stepsEl = document.getElementById('steps');
+    STEPS.forEach((s,i)=>stepsEl.insertAdjacentHTML('beforeend',
+      `<div class="step" data-step="${i}"><div class="step-card">`+
+      `<div class="idx">Beat ${i+1} / ${STEPS.length}</div>`+
+      `<h2>${s.title}</h2><p>${s.body}</p></div></div>`));
+
+    buildGraphic();
+    renderGraphic(0);   // valid initial frame — safe even if scrollama never loads
+
+    const nodes = document.querySelectorAll('.scrolly .step');
+    function activate(i){nodes.forEach(n=>n.classList.remove('is-active'));nodes[i].classList.add('is-active');renderGraphic(i);}
+    if(window.scrollama){
+      const sc = scrollama();
+      sc.setup({step:'.scrolly .step',offset:0.55}).onStepEnter(({index})=>activate(index));
+      window.addEventListener('resize',sc.resize);
+    }else{
+      const io = new IntersectionObserver((es)=>es.forEach(e=>{if(e.isIntersecting)activate(+e.target.dataset.step);}),
+        {rootMargin:'-45% 0px -45% 0px',threshold:0});
+      nodes.forEach(n=>io.observe(n));
+    }
+    // ═══ end ENGINE ═════════════════════════════════════════════════════════════
+  </script>
+ </body>
+</html>

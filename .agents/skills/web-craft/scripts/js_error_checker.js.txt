@@ -1,0 +1,1000 @@
+#!/usr/bin/env node
+/**
+ * js_error_checker.js — JavaScript error detection for generated HTML apps.
+ *
+ * Uses jsdom to parse HTML and execute <script> blocks in a V8 runtime,
+ * capturing SyntaxErrors, ReferenceErrors, TypeErrors, and other JS errors
+ * that static analysis cannot detect.
+ *
+ * Usage:  node js_error_checker.js <path-to-html-file>
+ * Output: JSON to stdout with structured findings.
+ * Exit:   Always 0 — errors are reported in the JSON, not via exit code.
+ *
+ * Requires: jsdom (npm install jsdom)
+ */
+
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+
+// Try to load jsdom from several possible locations.
+let JSDOM, VirtualConsole, ResourceLoader;
+try {
+  ({JSDOM, VirtualConsole, ResourceLoader} = require('jsdom'));
+} catch (_) {
+  try {
+    ({JSDOM, VirtualConsole, ResourceLoader} =
+         require('/usr/lib/node_modules/jsdom'));
+  } catch (__) {
+    try {
+      // Global install fallback (npm install -g jsdom).
+      const globalRoot = require('child_process')
+                             .execSync('npm root -g', {
+                               encoding: 'utf8',
+                               stdio: ['pipe', 'pipe', 'ignore'],
+                             })
+                             .trim();
+      ({JSDOM, VirtualConsole, ResourceLoader} =
+           require(path.join(globalRoot, 'jsdom')));
+    } catch (___) {
+      try {
+        // Local test fallback.
+        ({JSDOM, VirtualConsole, ResourceLoader} =
+             require('/tmp/jsdom_test/node_modules/jsdom'));
+      } catch (____) {
+        // jsdom is completely missing.
+      }
+    }
+  }
+}
+
+if (!JSDOM) {
+  process.stdout.write(
+      JSON.stringify(
+          {
+            findings: [{
+              category: 'VALIDATOR_ENVIRONMENT_WARNING',
+              message:
+                  'jsdom is not installed. Dynamic JS error checking is disabled.',
+              line: null,
+              column: null,
+              script_index: null,
+              severity: 'WARNING',
+            }],
+            total_errors: 0,
+            execution_time_ms: 0,
+          },
+          null, 2) +
+      '\n');
+  process.exit(0);
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Locate all <script> blocks in the raw HTML and record their start-line
+ * offsets so we can map V8 in-script line numbers back to HTML line numbers.
+ * @param {string} html Raw HTML content.
+ * @return {!Array<!Object>} Array of script block metadata objects.
+ */
+function indexScriptBlocks(html) {
+  const blocks = [];
+  const openTagRe = /<script\b[^>]*>/gi;
+  const closeTag = '</script>';
+  let match;
+
+  while ((match = openTagRe.exec(html)) !== null) {
+    const openTagEnd = match.index + match[0].length;
+    const closeIdx = html.indexOf(closeTag, openTagEnd);
+    if (closeIdx === -1) continue;
+
+    // Count newlines before openTagEnd to get the 1-based HTML line where
+    // the inline JS content starts.
+    const preamble = html.slice(0, openTagEnd);
+    const startLine = preamble.split('\n').length;
+
+    const scriptBody = html.slice(openTagEnd, closeIdx);
+    blocks.push({
+      index: blocks.length,
+      htmlStartLine: startLine,
+      body: scriptBody,
+      charOffset: openTagEnd,
+    });
+  }
+  return blocks;
+}
+
+/**
+ * Given a V8 stack trace string, try to extract a line number from user
+ * script frames. We skip jsdom internal frames and only look for user frames.
+ * @param {?string} stack V8 error stack trace.
+ * @return {{line: ?number, column: ?number}} 1-based line and column or nulls.
+ */
+function extractLineCol(stack) {
+  if (!stack) return {line: null, column: null};
+
+  const lines = stack.split('\n');
+  for (const frame of lines) {
+    // Skip frames from jsdom internals or node_modules.
+    if (frame.includes('node_modules/') || frame.includes('node:')) continue;
+
+    // Look for frames like:  at <anonymous>:5:10  or  at about:blank:5:10
+    // or  at eval (eval at ...):5:10  or  :5:10)
+    const m = frame.match(/(?:about:blank|<anonymous>|eval)[^:]*:(\d+):(\d+)/);
+    if (m) return {line: parseInt(m[1], 10), column: parseInt(m[2], 10)};
+  }
+
+  // Fallback: try the inner error message for SyntaxErrors.
+  return {line: null, column: null};
+}
+
+/**
+ * Classify an error message into a category.
+ * @param {string} msg Error message.
+ * @return {string} Category string ('JS_SYNTAX_ERROR' or 'JS_RUNTIME_ERROR').
+ */
+function categorise(msg) {
+  if (/SyntaxError|Unexpected token|Unterminated|Invalid or unexpected/i.test(
+          msg)) {
+    return 'JS_SYNTAX_ERROR';
+  }
+  return 'JS_RUNTIME_ERROR';
+}
+
+/**
+ * Given a script body and a 1-based line number within that script,
+ * return the offending source line (trimmed, max 120 chars).
+ * @param {?string} scriptBody Content of the <script> block.
+ * @param {?number} lineInScript 1-based line number inside the script.
+ * @return {?string} Truncated source line snippet or null.
+ */
+function snippetAt(scriptBody, lineInScript) {
+  if (!scriptBody || !lineInScript) return null;
+  const lines = scriptBody.split('\n');
+  const idx = lineInScript - 1;
+  if (idx < 0 || idx >= lines.length) return null;
+  const raw = lines[idx].trimEnd();
+  return raw.length > 120 ? raw.slice(0, 117) + '...' : raw;
+}
+
+/**
+ * Build a user-friendly message from an error.
+ * @param {string} errMsg Raw error message.
+ * @param {?string} snippet Code snippet near the error.
+ * @return {string} Formatted user-facing error message.
+ */
+function friendlyMessage(errMsg, snippet) {
+  let msg = errMsg || 'Unknown error';
+  // Remove "Uncaught " prefix that jsdom often prepends.
+  msg = msg.replace(/^Uncaught\s+/i, '');
+  if (snippet) {
+    msg += ` | near: ${snippet}`;
+  }
+  return msg;
+}
+
+/**
+ * Pre-scan for unterminated string literals inside <script> blocks.
+ * jsdom/V8 sometimes swallows these into a generic error or silently
+ * skips the block. We do a quick heuristic check to surface them.
+ * @param {!Array<!Object>} scriptBlocks Array of indexed script blocks.
+ * @return {!Array<!Object>} Array of pre-scan validation findings.
+ */
+function prescanUnterminatedStrings(scriptBlocks) {
+  const findings = [];
+
+  for (const block of scriptBlocks) {
+    const lines = block.body.split('\n');
+    let inBlockComment = false;
+    let carriedString =
+        null;  // Carry string state across backslash-continuation lines.
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+
+      // Track block comments across lines.
+      if (inBlockComment) {
+        if (trimmed.includes('*/')) {
+          inBlockComment = false;
+        }
+        continue;
+      }
+
+      // If we're carrying a string from a backslash continuation,
+      // start this line already inside a string.
+      let inString = carriedString;
+      carriedString = null;
+
+      // Skip pure single-line comment lines (only if not inside a continued
+      // string).
+      if (inString === null && trimmed.startsWith('//')) continue;
+
+      // Walk character by character to detect unterminated strings.
+      let inTemplate = false;
+      let backslashContinuation = false;
+      let j = 0;
+      while (j < line.length) {
+        const ch = line[j];
+        const next = j + 1 < line.length ? line[j + 1] : '';
+
+        if (inString === null && !inTemplate) {
+          if (ch === '/' && next === '/') break;  // rest of line is comment
+          if (ch === '/' && next === '*') {
+            // Check if block comment closes on this same line.
+            const closeIdx = line.indexOf('*/', j + 2);
+            if (closeIdx !== -1) {
+              j = closeIdx + 2;
+              continue;
+            }
+            inBlockComment = true;
+            break;
+          }
+          if (ch === '`') {
+            inTemplate = true;
+            j++;
+            continue;
+          }
+          if (ch === '"' || ch === '\'') {
+            inString = ch;
+          }
+        } else if (inTemplate) {
+          if (ch === '\\') {
+            j += 2;
+            continue;
+          }
+          if (ch === '`') {
+            inTemplate = false;
+          }
+        } else {
+          // Inside a regular string.
+          if (ch === '\\') {
+            // Backslash at end of line = line continuation (valid JS).
+            if (j === line.length - 1) {
+              backslashContinuation = true;
+              break;
+            }
+            j += 2;  // skip escaped char
+            continue;
+          }
+          if (ch === inString) {
+            inString = null;  // string closed
+          }
+        }
+        j++;
+      }
+
+      if (backslashContinuation) {
+        // String continues to next line via backslash — carry the state.
+        carriedString = inString;
+        continue;  // Not an error.
+      }
+
+      if (inString !== null) {
+        // The line ends with an open string literal (unescaped newline).
+        const htmlLine = block.htmlStartLine + i;
+        const snippet = line.trim();
+        const previewSnippet =
+            snippet.length > 100 ? snippet.slice(0, 97) + '...' : snippet;
+        findings.push({
+          category: 'JS_SYNTAX_ERROR',
+          message: `Unterminated string literal (${
+              inString === '"' ?
+                  'double' :
+                  'single'}-quoted string continues past end of line) | near: ${
+              previewSnippet}`,
+          line: htmlLine,
+          column: null,
+          script_index: block.index,
+          severity: 'ERROR',
+          source: 'prescan',
+        });
+      }
+    }
+  }
+  return findings;
+}
+
+/**
+ * Creates a recursive, chained auto-proxy for external CDN libraries
+ * (e.g. Chart.js, D3, Plotly, Lucide) that cannot be fetched over network
+ * in the offline sandbox.
+ * @param {string=} name Library identifier.
+ * @return {!Function} Chained proxy function.
+ */
+function createAutoProxy(name = 'MockProxy') {
+  const fn = function() {
+    return createAutoProxy(name);
+  };
+  return new Proxy(fn, {
+    get(target, prop) {
+      if (prop === Symbol.toPrimitive) return () => `[${name}]`;
+      if (prop === Symbol.iterator) return undefined;
+      if (prop === 'then') {
+        return (onFulfilled) => {
+          if (typeof onFulfilled === 'function') {
+            return Promise.resolve(createAutoProxy(name)).then(onFulfilled);
+          }
+          return Promise.resolve(createAutoProxy(name));
+        };
+      }
+      if (prop === 'catch') {
+        return () => Promise.resolve(createAutoProxy(name));
+      }
+      if (prop === 'toJSON') return () => ({});
+      return createAutoProxy(`${name}.${String(prop)}`);
+    },
+    apply() {
+      return createAutoProxy(name);
+    },
+    construct() {
+      return createAutoProxy(name);
+    },
+  });
+}
+
+/**
+ * Inspects HTML <script src="..."> tags to detect which CDN libraries
+ * were declared by the author. Uses a two-tier approach:
+ * 1. Explicit alias mappings for libraries whose global variable name differs
+ *    from their URL (e.g. Leaflet -> L, SheetJS -> XLSX, Lodash -> _).
+ * 2. Automatic heuristic extraction for ANY allowed CDN package URL (extracting
+ *    package name, camelCase, PascalCase, and lowercase variants).
+ * @param {string} html Raw HTML content.
+ * @return {!Set<string>} Set of global variable names to shim.
+ */
+function detectDeclaredCdnLibraries(html) {
+  const declared = new Set();
+  const scriptSrcRe = /<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi;
+  let match;
+
+  // Tier 1: Explicit aliases where URL filename does NOT match the global name.
+  const EXPLICIT_ALIASES = [
+    {match: /leaflet/i, globals: ['L']},
+    {match: /plotly/i, globals: ['Plotly']},
+    {match: /chart(?:\.js|\/|\.min)/i, globals: ['Chart']},
+    {match: /(?:\/d3|d3js|d3\.v|d3\.min)/i, globals: ['d3']},
+    {match: /echarts/i, globals: ['echarts']},
+    {match: /katex/i, globals: ['katex']},
+    {match: /three/i, globals: ['THREE']},
+    {match: /tone/i, globals: ['Tone']},
+    {match: /matter/i, globals: ['Matter']},
+    {match: /mermaid/i, globals: ['mermaid']},
+    {match: /cytoscape/i, globals: ['cytoscape']},
+    {match: /lucide/i, globals: ['lucide']},
+    {match: /marked/i, globals: ['marked']},
+    {match: /(?:papaparse|papa)/i, globals: ['Papa', 'PapaParse']},
+    {match: /gsap/i, globals: ['gsap']},
+    {match: /anime/i, globals: ['anime']},
+    {match: /(?:mathjs|math\.js)/i, globals: ['math']},
+    {match: /(?:highlight|hljs)/i, globals: ['hljs']},
+    {match: /prism/i, globals: ['Prism']},
+    {match: /(?:canvas-confetti|confetti)/i, globals: ['confetti']},
+    {match: /tailwind/i, globals: ['tailwind']},
+    {match: /(?:sheetjs|xlsx)/i, globals: ['XLSX']},
+    {match: /lodash/i, globals: ['_']},
+    {match: /jspdf/i, globals: ['jspdf', 'jsPDF']},
+    {match: /(?:sweetalert|swal)/i, globals: ['Swal', 'swal']},
+    {match: /howler/i, globals: ['Howl', 'Howler']},
+    {match: /mathjax/i, globals: ['MathJax']},
+    {match: /apexcharts/i, globals: ['ApexCharts']},
+  ];
+
+  while ((match = scriptSrcRe.exec(html)) !== null) {
+    const src = match[1];
+
+    // Tier 1: Check explicit aliases
+    for (const alias of EXPLICIT_ALIASES) {
+      if (alias.match.test(src)) {
+        for (const g of alias.globals) declared.add(g);
+      }
+    }
+
+    // Tier 2: General heuristic extractor from CDN URLs
+    // Matches patterns like /npm/pkg@version, /libs/pkg/version, unpkg.com/pkg,
+    // or filename.js
+    const pkgMatch = src.match(
+        /(?:npm\/|ajax\/libs\/|libs\/|\.com\/|unpkg\.com\/)(@?[\w.-]+)(?:@|\/|\.min|\.js|$)/i);
+    if (pkgMatch && pkgMatch[1]) {
+      const rawPkg = pkgMatch[1]
+                         .replace(/[-_.](js|min|dist)$/i, '')
+                         .replace(/^@[\w-]+\//, '');
+      if (rawPkg.length > 1) {
+        const camel = rawPkg.replace(/[-_](\w)/g, (_, c) => c.toUpperCase());
+        const pascal = camel.charAt(0).toUpperCase() + camel.slice(1);
+        declared.add(rawPkg.toLowerCase());
+        declared.add(camel);
+        declared.add(pascal);
+      }
+    }
+  }
+  return declared;
+}
+
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
+
+/**
+ * Main CLI entry point.
+ */
+function main() {
+  const startTime = Date.now();
+
+  const htmlPath = process.argv[2];
+  if (!htmlPath) {
+    process.stdout.write(
+        JSON.stringify(
+            {
+              findings: [{
+                category: 'JS_RUNTIME_ERROR',
+                message: 'Usage: node js_error_checker.js <path.html>',
+                line: null,
+                column: null,
+                script_index: null,
+                severity: 'ERROR',
+              }],
+              total_errors: 1,
+              execution_time_ms: Date.now() - startTime,
+            },
+            null, 2) +
+        '\n');
+    process.exit(0);
+  }
+
+  let html;
+  try {
+    html = fs.readFileSync(htmlPath, 'utf8');
+  } catch (e) {
+    process.stdout.write(
+        JSON.stringify(
+            {
+              findings: [{
+                category: 'JS_RUNTIME_ERROR',
+                message: `Cannot read file: ${e.message}`,
+                line: null,
+                column: null,
+                script_index: null,
+                severity: 'ERROR',
+              }],
+              total_errors: 1,
+              execution_time_ms: Date.now() - startTime,
+            },
+            null, 2) +
+        '\n');
+    process.exit(0);
+  }
+
+  // Index script blocks for line-mapping.
+  const scriptBlocks = indexScriptBlocks(html);
+  const declaredCdns = detectDeclaredCdnLibraries(html);
+  const allFindings = [];
+  const seenMessages = new Set();
+
+  // ---- Phase 1: Pre-scan for unterminated strings --------------------------
+  const prescanFindings = prescanUnterminatedStrings(scriptBlocks);
+  for (const f of prescanFindings) {
+    const key = `${f.line}:${f.message.slice(0, 60)}`;
+    if (!seenMessages.has(key)) {
+      seenMessages.add(key);
+      allFindings.push(f);
+    }
+  }
+
+  // ---- Phase 2: jsdom execution --------------------------------------------
+  // Set up VirtualConsole instance to capture runtime script errors.
+  const virtualConsole = new VirtualConsole();
+
+  virtualConsole.on('jsdomError', (err) => {
+    // jsdom wraps the original error; try to unwrap.
+    const innerErr = err.detail || err.cause || err;
+    const innerMsg = (innerErr && innerErr.message) ?
+        innerErr.message :
+        (err.message || String(err));
+
+    const lower = innerMsg.toLowerCase();
+    // Ignore benign headless artifacts in the offline sandbox
+    if (lower.includes('not implemented') ||
+        lower.includes('could not parse css stylesheet') ||
+        lower.includes('could not load script') ||
+        lower.includes('econnrefused') ||
+        lower.includes('navigation to external url')) {
+      return;
+    }
+
+    // Try inner error stack first, then outer.
+    let {line: rawLine, column} =
+        extractLineCol((innerErr && innerErr.stack) || err.stack || '');
+
+    // Also try the outer error stack if inner didn't yield anything.
+    if (!rawLine) {
+      ({line: rawLine, column} = extractLineCol(err.stack || ''));
+    }
+
+    // Try to map to an HTML line.
+    let htmlLine = rawLine;
+    let scriptIdx = null;
+    let snippet = null;
+
+    // jsdom evaluates each <script> independently; V8 line numbers are
+    // relative to the script block content. Map to HTML lines.
+    if (rawLine && scriptBlocks.length > 0) {
+      for (const block of scriptBlocks) {
+        const blockLines = block.body.split('\n').length;
+        if (rawLine <= blockLines) {
+          htmlLine = block.htmlStartLine + rawLine - 1;
+          scriptIdx = block.index;
+          snippet = snippetAt(block.body, rawLine);
+          break;
+        }
+      }
+    }
+
+    const category = categorise(innerMsg);
+    const friendly = friendlyMessage(innerMsg, snippet);
+    const key = `${htmlLine}:${friendly.slice(0, 60)}`;
+    if (!seenMessages.has(key)) {
+      seenMessages.add(key);
+      allFindings.push({
+        category,
+        message: friendly,
+        line: htmlLine || null,
+        column: column || null,
+        script_index: scriptIdx,
+        severity: 'ERROR',
+      });
+    }
+  });
+
+  // Suppress standard log output from evaluated scripts.
+  virtualConsole.on('error', () => {});
+  virtualConsole.on('warn', () => {});
+  virtualConsole.on('info', () => {});
+  virtualConsole.on('log', () => {});
+
+  try {
+    const dom = new JSDOM(html, {
+      runScripts: 'dangerously',
+      virtualConsole,
+      pretendToBeVisual: true,
+      url: 'https://localhost/',
+      beforeParse(win) {
+        // Mock declared CDN libraries so offline execution doesn't
+        // ReferenceError
+        for (const lib of declaredCdns) {
+          win[lib] = createAutoProxy(lib);
+        }
+
+        // Common Browser APIs missing in jsdom
+        if (typeof win.URL !== 'undefined') {
+          win.URL.createObjectURL = win.URL.createObjectURL ||
+              (() => 'blob:https://localhost/mock-blob-url');
+          win.URL.revokeObjectURL = win.URL.revokeObjectURL || (() => {});
+        }
+
+        if (win.navigator) {
+          win.navigator.clipboard = win.navigator.clipboard || {
+            writeText: () => Promise.resolve(),
+            readText: () => Promise.resolve(''),
+          };
+        }
+
+        if (!win.crypto) win.crypto = {};
+        if (!win.crypto.randomUUID) {
+          win.crypto.randomUUID = () =>
+              '00000000-0000-4000-8000-000000000000'.replace(
+                  /0/g, () => (Math.random() * 16 | 0).toString(16));
+        }
+
+        if (win.SVGElement && !win.SVGElement.prototype.click) {
+          win.SVGElement.prototype.click = function() {
+            this.dispatchEvent(
+                new win.MouseEvent('click', {bubbles: true, cancelable: true}));
+          };
+        }
+
+        if (win.HTMLMediaElement && win.HTMLMediaElement.prototype) {
+          win.HTMLMediaElement.prototype.play =
+              win.HTMLMediaElement.prototype.play || (() => Promise.resolve());
+          win.HTMLMediaElement.prototype.pause =
+              win.HTMLMediaElement.prototype.pause || (() => {});
+          win.HTMLMediaElement.prototype.load =
+              win.HTMLMediaElement.prototype.load || (() => {});
+        }
+
+        win.fetch = win.fetch || (() => Promise.resolve({
+                      ok: true,
+                      status: 200,
+                      json: () => Promise.resolve({}),
+                      text: () => Promise.resolve(''),
+                      blob: () => Promise.resolve(new win.Blob([])),
+                    }));
+
+        // Mock NotebookLM App Platform API (notebookAppApi)
+        let _appStateMock = null;
+        win.notebookAppApi = {
+          API_VERSION: '1.0',
+          clientType: 'notebooklm-web',
+          getAppState: () => Promise.resolve(
+              _appStateMock ? JSON.parse(JSON.stringify(_appStateMock)) : null),
+          setAppState: (s) => {
+            _appStateMock = s ? JSON.parse(JSON.stringify(s)) : null;
+            return Promise.resolve();
+          },
+          getArtifactUserState: () =>
+              Promise.resolve(_appStateMock ? {appState: _appStateMock} : null),
+          getSessionIntent: () => Promise.resolve(null),
+          addThemeChangeListener: (cb, init) => {
+            if (init && typeof cb === 'function') {
+              try {
+                cb('light');
+              } catch (_) {
+              }
+            }
+          },
+          notifyAppReady: () => {
+            if (win.document && win.document.documentElement) {
+              win.document.documentElement.setAttribute(
+                  'data-app-ready', 'true');
+            }
+          },
+          notifyAppError: () => {},
+          triggerFileDownload: () => {},
+          dispatchLogEvent: () => {},
+          callModel: () => Promise.resolve(''),
+          askQuestion: () => {},
+          updateAppData: () => Promise.resolve(),
+        };
+
+        win.Notification = win.Notification || class {
+          static get permission() {
+            return 'granted';
+          }
+          static requestPermission() {
+            return Promise.resolve('granted');
+          }
+        };
+
+        win.matchMedia = win.matchMedia || function(query) {
+          return {
+            matches: false,
+            media: String(query),
+            onchange: null,
+            addListener: () => {},
+            removeListener: () => {},
+            addEventListener: () => {},
+            removeEventListener: () => {},
+            dispatchEvent: () => false,
+          };
+        };
+
+        win.ResizeObserver = win.ResizeObserver || class {
+          observe() {}
+          unobserve() {}
+          disconnect() {}
+        };
+        win.IntersectionObserver = win.IntersectionObserver || class {
+          observe() {}
+          unobserve() {}
+          disconnect() {}
+        };
+
+        win.scrollTo = win.scrollTo || (() => {});
+        win.scrollBy = win.scrollBy || (() => {});
+        if (win.Element && win.Element.prototype) {
+          win.Element.prototype.scrollIntoView =
+              win.Element.prototype.scrollIntoView || (() => {});
+        }
+
+        win.alert = win.alert || (() => {});
+        win.confirm = win.confirm || (() => true);
+        win.prompt = win.prompt || (() => '');
+
+        win.requestAnimationFrame = win.requestAnimationFrame ||
+            ((cb) => setTimeout(() => cb(Date.now()), 16));
+        win.cancelAnimationFrame =
+            win.cancelAnimationFrame || ((id) => clearTimeout(id));
+
+        const MockAudioContext = class {
+          constructor() {
+            this.destination = {};
+            this.currentTime = 0;
+            this.state = 'running';
+          }
+          createOscillator() {
+            return {
+              connect: () => {},
+              start: () => {},
+              stop: () => {},
+              frequency: {value: 440}
+            };
+          }
+          createGain() {
+            return {
+              connect: () => {},
+              gain: {
+                value: 1,
+                linearRampToValueAtTime: () => {},
+                exponentialRampToValueAtTime: () => {}
+              }
+            };
+          }
+          close() {
+            return Promise.resolve();
+          }
+        };
+        win.AudioContext = win.AudioContext || MockAudioContext;
+        win.webkitAudioContext = win.webkitAudioContext || MockAudioContext;
+
+        // Canvas 2D context mock to support Chart.js and custom canvas drawing.
+        function assertNonNegativeRadius(method, ...radii) {
+          for (const r of radii) {
+            if (typeof r === 'number' && r < 0) {
+              throw new Error(`IndexSizeError: Failed to execute '${
+                  method}' on 'CanvasRenderingContext2D': The radius provided (${
+                  r}) is negative.`);
+            }
+          }
+        }
+
+        const universalCanvasProxy = new Proxy(function() {}, {
+          get(target, prop) {
+            if (prop === Symbol.toPrimitive) return () => '[CanvasMock]';
+            if (prop === Symbol.iterator) return undefined;
+            if (prop === 'canvas') return win.HTMLCanvasElement.prototype;
+
+            // Explicitly validate negative radius / dimensions for spec
+            // methods:
+            if (prop === 'arc') {
+              return (x, y, radius) => {
+                assertNonNegativeRadius('arc', radius);
+                return universalCanvasProxy;
+              };
+            }
+            if (prop === 'arcTo') {
+              return (x1, y1, x2, y2, radius) => {
+                assertNonNegativeRadius('arcTo', radius);
+                return universalCanvasProxy;
+              };
+            }
+            if (prop === 'ellipse') {
+              return (x, y, radiusX, radiusY) => {
+                assertNonNegativeRadius('ellipse', radiusX, radiusY);
+                return universalCanvasProxy;
+              };
+            }
+            if (prop === 'createRadialGradient') {
+              return (x0, y0, r0, x1, y1, r1) => {
+                assertNonNegativeRadius('createRadialGradient', r0, r1);
+                return {addColorStop: () => {}};
+              };
+            }
+            if (prop === 'createLinearGradient') {
+              return () => ({addColorStop: () => {}});
+            }
+            if (prop === 'measureText') {
+              return () => ({
+                       width: 100,
+                       actualBoundingBoxAscent: 10,
+                       actualBoundingBoxDescent: 3,
+                     });
+            }
+            if (prop === 'getImageData') {
+              return () => ({data: new Uint8ClampedArray(400)});
+            }
+
+            // Universal fallback: return callable proxy that never throws
+            // "is not a function"
+            return universalCanvasProxy;
+          },
+          apply() {
+            return universalCanvasProxy;
+          },
+        });
+        win.HTMLCanvasElement.prototype.getContext = function(type) {
+          if (type === '2d') return universalCanvasProxy;
+          if (type === 'webgl' || type === 'experimental-webgl' ||
+              type === 'webgl2') {
+            return {
+              canvas: this,
+              getExtension: () => null,
+              getParameter: () => 0,
+              createShader: () => ({}),
+              shaderSource: () => {},
+              compileShader: () => {},
+              createProgram: () => ({}),
+              attachShader: () => {},
+              linkProgram: () => {},
+              useProgram: () => {},
+              createBuffer: () => ({}),
+              bindBuffer: () => {},
+              bufferData: () => {},
+              enable: () => {},
+              disable: () => {},
+              clearColor: () => {},
+              clear: () => {},
+              viewport: () => {},
+              drawArrays: () => {},
+              drawElements: () => {},
+            };
+          }
+          return null;
+        };
+      },
+    });
+
+    // Give scripts a moment to execute (for async code).
+    // Then capture window.onerror as a fallback.
+    const window = dom.window;
+
+    // Intercept uncaught errors via window.onerror.
+    const originalOnerror = window.onerror;
+    window.onerror = (msg, source, lineno, colno, error) => {
+      const category = categorise(String(msg));
+      let htmlLine = lineno || null;
+      let scriptIdx = null;
+      let snippet = null;
+
+      if (lineno && scriptBlocks.length > 0) {
+        for (const block of scriptBlocks) {
+          const blockLines = block.body.split('\n').length;
+          if (lineno <= blockLines) {
+            htmlLine = block.htmlStartLine + lineno - 1;
+            scriptIdx = block.index;
+            snippet = snippetAt(block.body, lineno);
+            break;
+          }
+        }
+      }
+
+      const friendly = friendlyMessage(String(msg), snippet);
+      const key = `${htmlLine}:${friendly.slice(0, 60)}`;
+      if (!seenMessages.has(key)) {
+        seenMessages.add(key);
+        allFindings.push({
+          category,
+          message: friendly,
+          line: htmlLine || null,
+          column: colno || null,
+          script_index: scriptIdx,
+          severity: 'ERROR',
+        });
+      }
+
+      if (originalOnerror) originalOnerror(msg, source, lineno, colno, error);
+    };
+
+    // ---- Phase 3: Interactive Simulation ------------------------------------
+    // Simulate user interaction on buttons, tabs, and sliders to catch runtime
+    // errors in event handlers (e.g. broken switchTab or inverted slider sync).
+    if (window.document) {
+      // 1. Simulate button & tab clicks
+      const clickables = window.document.querySelectorAll(
+          'button, [onclick], .tab-btn, [role="tab"]');
+      for (const el of clickables) {
+        try {
+          if (typeof el.click === 'function') {
+            el.click();
+          } else if (typeof el.dispatchEvent === 'function') {
+            el.dispatchEvent(new window.MouseEvent(
+                'click', {bubbles: true, cancelable: true}));
+          }
+        } catch (clickErr) {
+          const innerMsg = clickErr.message || String(clickErr);
+          const category = categorise(innerMsg);
+          const {line: rawLine, column} = extractLineCol(clickErr.stack || '');
+          let htmlLine = rawLine;
+          if (rawLine && scriptBlocks.length > 0) {
+            for (const block of scriptBlocks) {
+              const blockLines = block.body.split('\n').length;
+              if (rawLine <= blockLines) {
+                htmlLine = block.htmlStartLine + rawLine - 1;
+                break;
+              }
+            }
+          }
+          const desc = el.id ? `#${el.id}` : `<${el.tagName.toLowerCase()}>`;
+          const friendly =
+              `During click on ${desc}: ${friendlyMessage(innerMsg, null)}`;
+          const key = `${htmlLine}:${friendly.slice(0, 60)}`;
+          if (!seenMessages.has(key)) {
+            seenMessages.add(key);
+            allFindings.push({
+              category,
+              message: friendly,
+              line: htmlLine || null,
+              column: column || null,
+              script_index: null,
+              severity: 'ERROR',
+            });
+          }
+        }
+      }
+
+      // 2. Simulate range slider drags to detect frozen/inverted sync handlers
+      const sliders = window.document.querySelectorAll('input[type="range"]');
+      for (const slider of sliders) {
+        const initialVal = slider.value;
+        const min = parseFloat(slider.min) || 0;
+        const max = parseFloat(slider.max) || 100;
+        const step = parseFloat(slider.step) || 1;
+        let testVal = min + (max - min) * 0.75;
+        if (Math.abs(testVal - parseFloat(initialVal)) < step) {
+          testVal = min + (max - min) * 0.25;
+        }
+        const testValStr = String(testVal);
+        try {
+          slider.value = testValStr;
+          slider.dispatchEvent(new window.Event('input', {bubbles: true}));
+          slider.dispatchEvent(new window.Event('change', {bubbles: true}));
+          if (slider.value === initialVal && testValStr !== initialVal) {
+            const idStr = slider.id ? `#${slider.id}` : '<input type="range">';
+            const msg = `Range slider ${idStr} is frozen: moving slider to "${
+                testValStr}" immediately snapped back to "${
+                initialVal}" (check for inverted sync handler reading from static number box).`;
+            const key = `${idStr}:${msg}`;
+            if (!seenMessages.has(key)) {
+              seenMessages.add(key);
+              allFindings.push({
+                category: 'JS_RUNTIME_ERROR',
+                message: msg,
+                line: null,
+                column: null,
+                script_index: null,
+                severity: 'ERROR',
+              });
+            }
+          }
+        } catch (sliderErr) {
+          const innerMsg = sliderErr.message || String(sliderErr);
+          const category = categorise(innerMsg);
+          const idStr = slider.id ? `#${slider.id}` : '<input type="range">';
+          allFindings.push({
+            category,
+            message: `During input on range slider ${idStr}: ${innerMsg}`,
+            line: null,
+            column: null,
+            script_index: null,
+            severity: 'ERROR',
+          });
+        }
+      }
+    }
+
+    try {
+      window.close();
+    } catch (_) {
+      // ignore
+    }
+  } catch (err) {
+    // Catastrophic jsdom failure — still report it.
+    const msg = err.message || String(err);
+    const category = categorise(msg);
+    const {line, column} = extractLineCol(err.stack || '');
+    allFindings.push({
+      category,
+      message: friendlyMessage(msg, null),
+      line: line || null,
+      column: column || null,
+      script_index: null,
+      severity: 'ERROR',
+    });
+  }
+
+  // Remove the 'source' field from prescan findings (internal use only).
+  const findings = allFindings.map(({source, ...rest}) => rest);
+
+  const result = {
+    findings,
+    total_errors: findings.length,
+    execution_time_ms: Date.now() - startTime,
+  };
+
+  process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+  process.exit(0);
+}
+
+main();
