@@ -22,22 +22,32 @@ from setup_bigquery import verify_seed
 @pytest.fixture(scope="module")
 def repo() -> BigQueryCLMRepository:
     repository = BigQueryCLMRepository()
-    repository.reset_deal_workbench(deal_id=DEFAULT_DEAL_ID, source_surface="EXPERIENCE_LAYER_UI")
+    for deal_id in ("BA-2026-AV-8921", "BA-2026-TR-5510", "BA-2026-LG-7740"):
+        repository.reset_deal_workbench(
+            deal_id=deal_id,
+            source_surface="EXPERIENCE_LAYER_UI",
+            include_precedents=False,
+        )
     yield repository
-    # Ensure canonical initial workbench state is restored after tests complete
-    repository.reset_deal_workbench(deal_id=DEFAULT_DEAL_ID, source_surface="EXPERIENCE_LAYER_UI")
+    # Ensure canonical initial workbench state is restored across all 3 portfolio deals after tests complete
+    for deal_id in ("BA-2026-AV-8921", "BA-2026-TR-5510", "BA-2026-LG-7740"):
+        repository.reset_deal_workbench(
+            deal_id=deal_id,
+            source_surface="EXPERIENCE_LAYER_UI",
+            include_precedents=False,
+        )
 
 
 def test_bigquery_seeded_tables_and_768_dim_embeddings(repo: BigQueryCLMRepository) -> None:
-    """Verify all 6 tables and 768-dimensional embeddings exist in live BigQuery."""
+    """Verify all 6 tables, 3 portfolio deals, 4 conflict rules, and 768-dimensional embeddings exist in live BigQuery."""
     summary = verify_seed(repo.client, repo.project_id, repo.dataset)
     assert summary["proforma_count"] == 12
     assert summary["proforma_embedded_count"] == 12
     assert summary["precedent_count"] == 64
     assert summary["precedent_embedded_count"] == 64
-    assert summary["conflict_rules_count"] == 3
-    assert summary["active_deals_count"] == 1
-    assert summary["deviations_count"] == 12
+    assert summary["conflict_rules_count"] == 4
+    assert summary["active_deals_count"] == 3
+    assert summary["deviations_count"] == 36
 
 
 @pytest.mark.parametrize(
@@ -184,3 +194,87 @@ def test_save_extracted_clauses_and_reset_workbench(repo: BigQueryCLMRepository)
     assert reset_state.status == "CONFLICT_DETECTED"
     assert len(reset_state.active_conflicts) == 1
     assert reset_state.active_conflicts[0].rule_id == "CONFLICT-SP3-04-GP1-03"
+
+
+def test_all_three_portfolio_deals_and_tr5510_finance_legal_harmonization(
+    repo: BigQueryCLMRepository,
+) -> None:
+    """
+    Verify:
+    1. `get_deal_workbench_state` and `reset_deal_workbench` work for all 3 portfolio deals:
+       - `BA-2026-AV-8921` (Apex AeroSystems Inc., $45M, 8 untouched / 4 redlined, SP3-04 vs GP1-03 conflict)
+       - `BA-2026-TR-5510` (Vanguard Thrust Systems Corp., $38M, 7 untouched / 5 redlined, GP1-19 vs GP1-03 conflict)
+       - `BA-2026-LG-7740` (Meridian Landing Gear Corp., $52M, 8 untouched / 4 redlined, IN_SME_REVIEW, 2 approved / 2 pending)
+    2. `harmonize_clause_conflict` resolves `CONFLICT-GP1-19-GP1-03-FINANCE-LEGAL` on `BA-2026-TR-5510`
+       to `READY_FOR_DISPATCH`, and `reset_deal_workbench("BA-2026-TR-5510")` restores its initial conflict state.
+    """
+    # 1. Verify active_deals list in BigQuery
+    deals = repo.list_active_deals()
+    deals_by_id = {d["deal_id"]: d for d in deals}
+    assert set(deals_by_id.keys()) == {"BA-2026-AV-8921", "BA-2026-TR-5510", "BA-2026-LG-7740"}
+    assert deals_by_id["BA-2026-AV-8921"]["status"] == "INGESTED"
+    assert deals_by_id["BA-2026-TR-5510"]["status"] == "CONFLICT_DETECTED"
+    assert deals_by_id["BA-2026-LG-7740"]["status"] == "IN_SME_REVIEW"
+
+    # 2. Verify Deal 2 (BA-2026-TR-5510) initial conflict state
+    tr_state = repo.get_deal_workbench_state(deal_id="BA-2026-TR-5510", include_precedents=True)
+    assert tr_state.deal_id == "BA-2026-TR-5510"
+    assert tr_state.vendor_name == "Vanguard Thrust Systems Corp."
+    assert tr_state.contract_value_usd == 38000000.0
+    assert tr_state.total_clauses_parsed == 12
+    assert tr_state.untouched_clauses_count == 7
+    assert tr_state.redlined_clauses_count == 5
+    assert tr_state.status == "CONFLICT_DETECTED"
+    assert len(tr_state.active_conflicts) == 1
+
+    tr_conflict = tr_state.active_conflicts[0]
+    assert tr_conflict.rule_id == "CONFLICT-GP1-19-GP1-03-FINANCE-LEGAL"
+    assert tr_conflict.rule_type == "CROSS_CLAUSE_CONFLICT"
+    assert tr_conflict.source_clause_id == "GP1-19"
+    assert tr_conflict.target_clause_id == "GP1-03"
+    assert tr_conflict.source_sme_team == "LEGAL"
+    assert tr_conflict.target_sme_team == "PROCUREMENT"
+
+    tr_clauses = {c.clause_id: c for c in tr_state.clauses}
+    assert tr_clauses["GP1-19"].sme_status == "CONFLICT"
+    assert tr_clauses["GP1-03"].sme_status == "CONFLICT"
+    assert tr_clauses["GP1-12"].sme_status == "APPROVED"
+    assert tr_clauses["SP3-04"].sme_status == "APPROVED"
+    assert tr_clauses["SP5-03"].sme_status == "APPROVED"
+
+    # 3. Harmonize CONFLICT-GP1-19-GP1-03-FINANCE-LEGAL on BA-2026-TR-5510
+    tr_harmonized = repo.harmonize_clause_conflict(
+        deal_id="BA-2026-TR-5510",
+        rule_id="CONFLICT-GP1-19-GP1-03-FINANCE-LEGAL",
+        actor="Elena Rostova, J.D. & Sloane Mercer, MBA",
+    )
+    assert tr_harmonized.status == "READY_FOR_DISPATCH"
+    assert len(tr_harmonized.active_conflicts) == 0
+    tr_h_clauses = {c.clause_id: c for c in tr_harmonized.clauses}
+    assert tr_h_clauses["GP1-19"].sme_status == "APPROVED"
+    assert tr_h_clauses["GP1-19"].selected_option_key == "custom_harmonized"
+    assert "150% / 1.5x" in tr_h_clauses["GP1-19"].selected_counter_text
+    assert tr_h_clauses["GP1-03"].sme_status == "APPROVED"
+
+    # 4. Reset BA-2026-TR-5510 back to its initial conflict state
+    tr_reset = repo.reset_deal_workbench(deal_id="BA-2026-TR-5510", source_surface="EXPERIENCE_LAYER_UI")
+    assert tr_reset.status == "CONFLICT_DETECTED"
+    assert len(tr_reset.active_conflicts) == 1
+    assert tr_reset.active_conflicts[0].rule_id == "CONFLICT-GP1-19-GP1-03-FINANCE-LEGAL"
+
+    # 5. Verify Deal 3 (BA-2026-LG-7740) initial IN_SME_REVIEW state
+    lg_state = repo.get_deal_workbench_state(deal_id="BA-2026-LG-7740", include_precedents=True)
+    assert lg_state.deal_id == "BA-2026-LG-7740"
+    assert lg_state.vendor_name == "Meridian Landing Gear Corp."
+    assert lg_state.contract_value_usd == 52000000.0
+    assert lg_state.total_clauses_parsed == 12
+    assert lg_state.untouched_clauses_count == 8
+    assert lg_state.redlined_clauses_count == 4
+    assert lg_state.status == "IN_SME_REVIEW"
+    assert len(lg_state.active_conflicts) == 0
+
+    lg_clauses = {c.clause_id: c for c in lg_state.clauses}
+    assert lg_clauses["GP1-12"].sme_status == "APPROVED"
+    assert lg_clauses["SP3-04"].sme_status == "APPROVED"
+    assert lg_clauses["GP1-19"].sme_status == "PENDING"
+    assert lg_clauses["SP5-03"].sme_status == "PENDING"

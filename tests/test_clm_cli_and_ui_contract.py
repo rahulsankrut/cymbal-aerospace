@@ -9,7 +9,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import zipfile
+import pytest
 
+import skills.clm_cli as _clm_cli_mod
 from boeing_clm.models import (
     DealWorkbenchState,
     PrecedentSearchResult,
@@ -27,6 +29,15 @@ from skills.clm_cli import (
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.fixture(autouse=True)
+def _isolate_clm_state_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Prevent pytest from overwriting the live Spark demo state files in ~/ge_spark_workspace/skills."""
+    state_dir = tmp_path / "_test_skills_state"
+    state_dir.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(_clm_cli_mod, "SHARED_SKILLS_DIR", state_dir)
+    monkeypatch.setattr(_clm_cli_mod, "STATE_FILE", state_dir / "cymbal_clm_state.json")
 
 
 def test_four_focused_clm_skills_exist() -> None:
@@ -348,6 +359,36 @@ def test_three_deal_portfolio_stages_and_finance_legal_conflict_resolution(tmp_p
     assert resolve_deal_id("doc3") == "BA-2026-LG-7740"
     assert resolve_deal_id("meridian") == "BA-2026-LG-7740"
 
+    # 1b. Verify Deal 1 (`BA-2026-AV-8921`) Stage 1 Fresh Vendor Redline Intake has 0 pre-approved clauses and 0 SME comments
+    state_d1 = DealWorkbenchState.model_validate(build_deal_initial_state("BA-2026-AV-8921")).model_dump(mode="json")
+    redlined_d1 = {c["clause_id"]: c["sme_status"] for c in state_d1["clauses"] if c["has_redline"]}
+    assert redlined_d1 == {
+        "GP1-12": "PENDING",
+        "GP1-19": "PENDING",
+        "SP3-04": "CONFLICT",
+        "SP5-03": "PENDING",
+    }
+    for c in state_d1["clauses"]:
+        if c["has_redline"]:
+            assert c["sme_reviewer"] == ""
+            assert c["sme_rationale"] == ""
+
+    build_fresh_docx_and_xlsx(state_d1, tmp_path)
+    working_d1 = tmp_path / "BA-2026-AV-8921_Working_Review.docx"
+    assert working_d1.exists()
+    with zipfile.ZipFile(working_d1, "r") as zf:
+        doc_xml_d1 = zf.read("word/document.xml").decode("utf-8")
+        comments_d1 = zf.read("word/comments.xml").decode("utf-8")
+    assert "[PENDING SME REVIEW — ENGINEERING]" in doc_xml_d1
+    assert "[PENDING SME REVIEW — LEGAL]" in doc_xml_d1
+    assert "[⚡ SOW CONFLICT — PENDING TAX SME REVIEW]" in doc_xml_d1
+    assert "[PENDING SME REVIEW — CYBER]" in doc_xml_d1
+    assert "ACCEPTED BY" not in doc_xml_d1
+    assert "Megan Bowen" not in comments_d1
+    assert "Pradeep Gupta" not in comments_d1
+    assert "Alex Wilber" not in comments_d1
+    assert "Apex AeroSystems" in comments_d1
+
     # 2. Verify Deal 2 (`BA-2026-TR-5510`) Stage 2 Finance vs. Legal conflict state, .docx, UI & resolution
     state_d2 = DealWorkbenchState.model_validate(build_deal_initial_state("BA-2026-TR-5510")).model_dump(mode="json")
     assert state_d2["deal_id"] == "BA-2026-TR-5510"
@@ -408,38 +449,37 @@ def test_three_deal_portfolio_stages_and_finance_legal_conflict_resolution(tmp_p
     assert counter_d3.exists() and xlsx_d3.exists()
 
 
-def test_generative_ui_inline_widget_and_sidecar_embedded_chat(
+def test_progressive_disclosure_options_and_sidecar_embedded_chat(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Verify Short-Form Inline Triage Widget, Sidecar Embedded Agent Chat Bar, and preload.js SDK."""
+    """Verify the 4 Progressive-Disclosure UI Options, Sidecar Embedded Agent Chat Bar, and preload.js SDK."""
+    import skills.clm_cli as clm_cli
     from skills.clm_cli import (
         SIDECAR_PRELOAD_JS_SCRIPT,
         build_deal_initial_state,
         fetch_live_precedents_map,
         generate_canvas_workbench_html,
-        generate_inline_triage_widget_html,
         generate_tax_reviewer_workbench_html,
     )
 
     monkeypatch.chdir(tmp_path)
+    assert not hasattr(clm_cli, "generate_inline_triage_widget_html")
     state = DealWorkbenchState.model_validate(build_deal_initial_state("BA-2026-AV-8921")).model_dump(mode="json")
 
-    # 1. Verify Short-Form Inline Triage Widget (<agent-embed>)
-    widget_path = generate_inline_triage_widget_html(state)
-    assert widget_path.exists()
-    widget_html = widget_path.read_text(encoding="utf-8")
-    assert "https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js" in widget_html
-    assert "Expand Full Sidecar" in widget_html
-    assert "toggleAuxPane" in widget_html
-    assert "Send to Main Agent" in widget_html
-    assert "h-screen" not in widget_html and "100vh" not in widget_html
-
-    # 2. Verify Sidecar Embedded Agent Chat Bar in Main Workbench & Tax Workbench
+    # 1. Verify 4 Progressive-Disclosure Options & Sidecar Embedded Agent Chat Bar in Main Workbench
     wb_html = generate_canvas_workbench_html(state).read_text(encoding="utf-8")
+    assert "PROG_OPT_A" in wb_html
+    assert "PROG_OPT_B" in wb_html
+    assert "PROG_OPT_C" in wb_html
+    assert "PROG_OPT_D" in wb_html
+    assert "toggleClauseAspect" in wb_html
+    assert "openSlideOverAspect" in wb_html
+    assert "renderProgressiveOptionD" in wb_html
     assert "Embedded Sidecar Agent Chat" in wb_html
     assert "sendEmbeddedAgentPrompt" in wb_html
     assert "window.sidecar.agent.sendMessage" in wb_html
 
+    # 2. Verify Tax Workbench
     prec_map = fetch_live_precedents_map(state)
     tax_html = generate_tax_reviewer_workbench_html(state, prec_map.get("SP3-04", {})).read_text(encoding="utf-8")
     assert "Embedded Sidecar Agent Chat" in tax_html
@@ -451,6 +491,7 @@ def test_generative_ui_inline_widget_and_sidecar_embedded_chat(
     assert "sendMessage(message, convId)" in SIDECAR_PRELOAD_JS_SCRIPT
     assert "toggleAuxPane(request)" in SIDECAR_PRELOAD_JS_SCRIPT
     assert "window.__sparkCanvasMode" in SIDECAR_PRELOAD_JS_SCRIPT
+
 
 
 

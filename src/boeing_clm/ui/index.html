@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="artifact-type" content="tool">
+  <meta name="design-style" content="carbon">
   <title>Cymbal Aerospace CLM — Gemini Agent (Spark) Live Experience Layer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -80,7 +82,7 @@
     <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-[#090f1d] border border-[var(--border)] text-xs">
       <div class="flex flex-wrap items-center gap-2.5">
         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-mono font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
           <span id="bq-dataset-pill">vertex-ai-demos-468803.boeing_clm • text-embedding-005</span>
         </span>
         <span id="sse-status-pill" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-mono text-[var(--muted-foreground)] bg-[var(--secondary)] border border-[var(--border)]">
@@ -230,7 +232,18 @@
 
         <!-- Right Column: Precedent Analytics & Position Picker -->
         <div class="lg:col-span-8 bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 shadow-lg space-y-5">
-          <div id="workbench-detail-pane"></div>
+          <div id="workbench-detail-pane">
+            <!-- Initial static DOM skeleton replaced on first renderWorkbench() pass -->
+            <div id="precedent-bar" class="w-full h-3.5 rounded-full overflow-hidden flex bg-[var(--card)] border border-[var(--border)]"></div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <input id="sme-reviewer-input" type="text" value="M. Vance (SME Lead)" class="w-full px-3 py-2 rounded-lg bg-[var(--background)] border border-[var(--border)] text-xs text-white font-mono" />
+              <input id="sme-option-key-input" type="text" readonly value="hold_firm" class="w-full px-3 py-2 rounded-lg bg-[var(--background)] border border-[var(--border)] text-xs text-blue-400 font-mono" />
+            </div>
+            <textarea id="sme-counter-textarea" rows="3" class="w-full p-3 rounded-lg bg-[var(--background)] border border-[var(--border)] text-xs text-white leading-relaxed"></textarea>
+            <textarea id="custom-counter-textarea" rows="2" class="hidden w-full p-3 rounded-lg bg-[var(--background)] border border-[var(--border)] text-xs text-white leading-relaxed"></textarea>
+            <input id="sme-rationale-input" type="text" value="Backed by BigQuery VECTOR_SEARCH precedent analysis and Cymbal Playbook guardrails." class="w-full px-3 py-2 rounded-lg bg-[var(--background)] border border-[var(--border)] text-xs text-white" />
+            <button id="btn-commit-sme" type="button" class="px-4 py-2.5 rounded-lg text-xs font-semibold bg-blue-600 text-white">Commit SME Position to BigQuery</button>
+          </div>
         </div>
       </div>
     </div>
@@ -244,7 +257,11 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3" id="sme-readiness-grid"></div>
 
       <!-- Cross-Team Conflict Alert Banner -->
-      <div id="conflict-banner"></div>
+      <div id="conflict-banner">
+        <button id="resolve-conflict-btn" type="button" class="hidden px-4 py-2.5 rounded-lg text-xs font-semibold bg-amber-500 text-black">
+          Apply Harmonized Cap in BigQuery
+        </button>
+      </div>
 
       <!-- Consolidated Position Matrix & Artifact Exporters -->
       <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 shadow-lg space-y-4">
@@ -743,7 +760,7 @@
             <span class="font-semibold">BigQuery Historical Resolution Distribution (n=${dist.total_matches} Executed Tier-1 Deals)</span>
             <span class="text-[var(--muted-foreground)] font-mono">boeing_clm.historical_clause_exceptions</span>
           </div>
-          <div class="w-full h-3.5 rounded-full overflow-hidden flex bg-[var(--card)] border border-[var(--border)]">
+          <div id="precedent-bar" class="w-full h-3.5 rounded-full overflow-hidden flex bg-[var(--card)] border border-[var(--border)]">
             <div style="width: ${dist.held_firm_pct}%" class="bg-blue-500" title="Held Firm: ${dist.held_firm_pct}% (${dist.held_firm_count})"></div>
             <div style="width: ${dist.compromise_tier_1_pct}%" class="bg-emerald-500" title="Compromise Tier-1: ${dist.compromise_tier_1_pct}% (${dist.compromise_tier_1_count})"></div>
             <div style="width: ${dist.accepted_vendor_pct}%" class="bg-amber-500" title="Accepted Vendor Ask: ${dist.accepted_vendor_pct}% (${dist.accepted_vendor_count})"></div>
@@ -832,13 +849,20 @@
 
     async function commitSmePosition(clauseId, smeTeam) {
       const btn = document.getElementById('btn-commit-sme');
-      const optionKey = document.getElementById('sme-option-key-input').value;
-      const counterText = document.getElementById('sme-counter-textarea').value;
-      const reviewer = document.getElementById('sme-reviewer-input').value;
-      const rationale = document.getElementById('sme-rationale-input').value;
+      const optEl = document.getElementById('sme-option-key-input');
+      const counterEl = document.getElementById('sme-counter-textarea') || document.getElementById('custom-counter-textarea');
+      const reviewerEl = document.getElementById('sme-reviewer-input');
+      const rationaleEl = document.getElementById('sme-rationale-input');
+      if (!optEl || !counterEl || !reviewerEl || !rationaleEl) return;
+      const optionKey = optEl.value;
+      const counterText = counterEl.value;
+      const reviewer = reviewerEl.value;
+      const rationale = rationaleEl.value;
 
-      btn.disabled = true;
-      btn.textContent = 'Committing to BigQuery...';
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Committing to BigQuery...';
+      }
       try {
         const res = await fetch(`/api/deals/${encodeURIComponent(DEAL_ID)}/clauses/${encodeURIComponent(clauseId)}/position`, {
           method: 'POST',
@@ -864,8 +888,10 @@
       } catch (err) {
         showToast('Commit Failed', err.message, 'red');
       } finally {
-        btn.disabled = false;
-        btn.textContent = 'Commit SME Position to BigQuery';
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Commit SME Position to BigQuery';
+        }
       }
     }
 

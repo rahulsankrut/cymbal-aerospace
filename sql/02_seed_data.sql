@@ -503,9 +503,25 @@ VALUES
     'DoD DFARS 252.204-7012 mandatory 72-hour cyber incident reporting window cannot be extended to 10 business days.',
     'hold_firm',
     '3.2 (a) CUI Safeguards & NIST SP 800-171 Rev 2 Compliance: Seller shall maintain an accredited Cybersecurity Maturity Model Certification (`CMMC 2.0 Level 2`) posture and implement all 110 security controls in `NIST SP 800-171 Rev 2` across all engineering networks storing or processing Cymbal Aerospace Covered Defense Information (`CDI`), Controlled Unclassified Information (`CUI`), or `FCC-900` flight control source code. (b) Mandatory Cyber Incident Reporting & Forensics: Pursuant to `DoD DFARS 252.204-7012`, Seller shall report any cybersecurity incident affecting Cymbal Aerospace CDI or technical data to Buyer\'s Cyber Security Operations Center (`CSOC`) and the DoD DIBNet portal within seventy-two (72) hours of discovery, preserve affected system media for ninety (90) days, and provide raw forensic log images and malware telemetry upon request.'
+  ),
+  (
+    'CONFLICT-GP1-19-GP1-03-FINANCE-LEGAL',
+    'CROSS_CLAUSE_CONFLICT',
+    'GP1-19',
+    'GP1-03',
+    'LEGAL',
+    'PROCUREMENT',
+    ['accept_vendor'],
+    ['per gp1 §3.1 commercial discount', 'commercial cap trade-off discount', 'conditioned upon buyer accepting seller\'s 1.0x'],
+    ['no commercial unit-price discount under gp1 §3.1 shall reduce seller\'s liability cap'],
+    'CRITICAL_CONFLICT',
+    'Cross-Clause Conflict: GP1 §19 1.0x Liability Cap Trade-Off Violates GP1 §3.1 FFP Pricing & Legal 2x Super-Cap Floor',
+    'Procurement / Finance granted a 2.5% ($950,000) commercial discount under GP1 §3.1 conditioned on accepting a 1.0x ($38,000,000) Liability Cap in GP1 §19, which directly violates Corporate Legal\'s mandatory 2.0x ($76,000,000) Super-Cap floor for flight-critical propulsion actuators.',
+    'custom_harmonized',
+    '19.1 Seller\'s aggregate liability for general direct commercial damages arising out of or related to this Contract shall not exceed one hundred fifty percent (150% / 1.5x) of total Purchase Order value ($57,000,000), with a 2.5x ($95,000,000) Super-Cap and uncapped carveouts for IP indemnification (§24), flight-safety Airworthiness Directives, and DFARS cybersecurity obligations. No commercial unit-price discount under GP1 §3.1 shall reduce Seller\'s liability cap below 1.5x PO value.'
   );
 
--- 5. Seed Active Deal (BA-2026-AV-8921)
+-- 5. Seed Active Portfolio Deals (BA-2026-AV-8921, BA-2026-TR-5510, BA-2026-LG-7740)
 TRUNCATE TABLE `vertex-ai-demos-468803.boeing_clm.active_deals`;
 
 INSERT INTO `vertex-ai-demos-468803.boeing_clm.active_deals` (
@@ -514,23 +530,58 @@ INSERT INTO `vertex-ai-demos-468803.boeing_clm.active_deals` (
   deviation_matrix_xlsx, total_clauses_parsed, untouched_clauses_count,
   redlined_clauses_count, status, updated_at
 )
-VALUES (
-  'BA-2026-AV-8921',
-  'Apex AeroSystems Inc.',
-  'Tier-1 Avionics',
-  'Cymbal C780 / C730-MAX Flight Control Electronics (FCC-900)',
-  45000000.0,
-  'Cymbal GP1 (General Provisions) + SP3 (International/Tax) + SP5 (Cyber/DFARS)',
-  'Firm-Fixed-Price (FFP) — $45,000,000 Ceiling',
-  'GP1 §3.1',
-  'https://36zrbd.sharepoint.com/sites/CymbalAerospace/Shared%20Documents/BA-2026-AV-8921',
-  'BA-2026-AV-8921_SharePoint_Deviation_Matrix.xlsx',
-  12,
-  8,
-  4,
-  'CONFLICT_DETECTED',
-  CURRENT_TIMESTAMP()
-);
+VALUES
+  (
+    'BA-2026-AV-8921',
+    'Apex AeroSystems Inc.',
+    'Tier-1 Avionics',
+    '787 / 737-MAX Flight Control Display Units (FCC-900)',
+    45000000.0,
+    'Cymbal GP1 (General Provisions) + SP3 (International/Tax) + SP5 (Cyber/DFARS)',
+    'Firm-Fixed-Price (FFP) — $45,000,000 Ceiling',
+    'GP1 §3.1',
+    'https://36zrbd.sharepoint.com/sites/CymbalAerospace/Shared%20Documents/BA-2026-AV-8921',
+    'BA-2026-AV-8921_SharePoint_Deviation_Matrix.xlsx',
+    12,
+    8,
+    4,
+    'INGESTED',
+    CURRENT_TIMESTAMP()
+  ),
+  (
+    'BA-2026-TR-5510',
+    'Vanguard Thrust Systems Corp.',
+    'Tier-1 Propulsion & Actuation',
+    '777X / 787 Thrust Reverser Actuators (TRA-500)',
+    38000000.0,
+    'Cymbal GP1 (General Provisions) + SP3 (International/Tax) + SP5 (Cyber/DFARS)',
+    'Firm-Fixed-Price (FFP) — $38,000,000 Ceiling',
+    'GP1 §3.1',
+    'https://36zrbd.sharepoint.com/sites/CymbalAerospace/Shared%20Documents/BA-2026-TR-5510',
+    'BA-2026-TR-5510_SharePoint_Deviation_Matrix.xlsx',
+    12,
+    7,
+    5,
+    'CONFLICT_DETECTED',
+    CURRENT_TIMESTAMP()
+  ),
+  (
+    'BA-2026-LG-7740',
+    'Meridian Landing Gear Corp.',
+    'Tier-1 Structural & Landing Gear',
+    '787-10 Titanium Main Landing Gear Assemblies (TLG-800)',
+    52000000.0,
+    'Cymbal GP1 (General Provisions) + SP3 (International/Tax) + SP5 (Cyber/DFARS)',
+    'Firm-Fixed-Price (FFP) — $52,000,000 Ceiling',
+    'GP1 §3.1',
+    'https://36zrbd.sharepoint.com/sites/CymbalAerospace/Shared%20Documents/BA-2026-LG-7740',
+    'BA-2026-LG-7740_SharePoint_Deviation_Matrix.xlsx',
+    12,
+    8,
+    4,
+    'IN_SME_REVIEW',
+    CURRENT_TIMESTAMP()
+  );
 
 -- 6. Seed Deal Clause Deviations (12 Clauses: 8 Untouched, 4 Redlined with Initial Conflict on SP3-04)
 TRUNCATE TABLE `vertex-ai-demos-468803.boeing_clm.deal_clause_deviations`;

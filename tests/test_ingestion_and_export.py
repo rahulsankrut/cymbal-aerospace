@@ -1,21 +1,25 @@
 """
-Verification suite for Boeing CLM OOXML .docx ingestion, diff engine, and .docx/.xlsx exporters.
-Validates 100% conformance against specs/04_golden_fixtures/* and specs/02_domain_models.py.
+Verification suite for Cymbal Aerospace CLM OOXML .docx ingestion, diff engine, and .docx/.xlsx exporters.
+Validates 100% conformance against specs/04_golden_fixtures/*, specs/02_domain_models.py,
+and the docx / xlsx / tabular-review / explanations-for-redlines / playbook-sanitization skills.
 """
 from __future__ import annotations
 
+import importlib.util
 import json
 from pathlib import Path
+import re
 import zipfile
 
 from docx import Document
 from lxml import etree
 from openpyxl import load_workbook
-import pytest
 
 from boeing_clm.export import (
+    COUNTER_PROPOSAL_AUTHOR,
     generate_counter_proposal_docx,
     generate_deviation_matrix_xlsx,
+    sanitize_counterparty_comment,
 )
 from boeing_clm.ingestion import (
     compute_untracked_diff,
@@ -39,7 +43,18 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 GOLDEN_DIR = REPO_ROOT / "specs" / "04_golden_fixtures"
 BASELINE_DOCX = GOLDEN_DIR / "Boeing_GP1_Standard.docx"
 VENDOR_REDLINED_DOCX = GOLDEN_DIR / "Vendor_Redlined_GP1.docx"
+VANGUARD_TR5510_DOCX = GOLDEN_DIR / "Vanguard_Working_Review_TR5510.docx"
+MERIDIAN_LG7740_DOCX = GOLDEN_DIR / "Meridian_Working_Review_LG7740.docx"
 EXPECTED_DIFFS_JSON = GOLDEN_DIR / "expected_extracted_diffs.json"
+
+
+def _load_skill_script(rel_path: str):
+    script_path = REPO_ROOT / rel_path
+    spec = importlib.util.spec_from_file_location(script_path.stem, script_path)
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 
 def _build_sample_workbench_state(
@@ -153,8 +168,13 @@ def _build_sample_workbench_state(
                     selected_option_key="compromise_tier_1",
                     selected_counter_text=counter_19,
                     sme_status="APPROVED",
-                    sme_reviewer="R. Vance (Corporate Legal)",
-                    sme_rationale="Applied 80% Tier-1 Avionics precedent (2x PO $90M cap on general damages; uncapped recall & IP).",
+                    sme_reviewer="Miriam Graham (Corporate Legal)",
+                    sme_rationale=(
+                        "Miriam Graham (VP Legal & IP): Applied 80% Tier-1 Avionics precedent "
+                        "(11 of 16 deals) and 1.5x ($67.5M) walk-away floor on CONFLICT-GP1-19: "
+                        "2x PO $90M cap on general damages with uncapped recall & IP indemnity "
+                        "(https://36zrbd.sharepoint.com/sites/CymbalAerospace / boeing_clm)."
+                    ),
                     precedent_analysis=sample_precedent,
                 )
             )
@@ -164,10 +184,10 @@ def _build_sample_workbench_state(
                     clause_id=item.clause_id,
                     proforma_doc=item.proforma_doc,
                     clause_ref=item.clause_ref,
-                    clause_title=item.clause_title,
+                    clause_title=f"✅ {item.clause_title}",
                     has_redline=True,
                     sme_team=item.sme_team,
-                    sme_owner_label=item.sme_owner_label,
+                    sme_owner_label=f"{item.sme_owner_label} (Pradeep Gupta)",
                     risk_level=item.risk_level,
                     regulatory_flag=item.regulatory_flag,
                     boeing_baseline_text=item.boeing_baseline_text,
@@ -179,8 +199,11 @@ def _build_sample_workbench_state(
                     selected_option_key="hold_firm",
                     selected_counter_text=item.boeing_baseline_text,
                     sme_status="APPROVED",
-                    sme_reviewer=f"{item.sme_team.title()} Lead Reviewer",
-                    sme_rationale=f"Mandatory regulatory and commercial hold-firm on {item.clause_ref} ({item.regulatory_flag}).",
+                    sme_reviewer="Megan Bowen",
+                    sme_rationale=(
+                        f"Megan Bowen: Mandatory regulatory and commercial hold-firm on {item.clause_ref} "
+                        f"per LOCKOUT-{item.clause_id} and 88% precedent (14 of 16 deals)."
+                    ),
                     precedent_analysis=None,
                 )
             )
@@ -263,6 +286,37 @@ def test_parse_vendor_redlined_docx_matches_golden_snapshot_100_percent() -> Non
     assert actual_raw == expected_raw
 
 
+def test_parse_all_three_golden_fixtures_zero_fcc900_contamination() -> None:
+    """
+    Verify parse_redlined_docx parses all 3 golden fixtures:
+    - Vendor_Redlined_GP1.docx (Deal 1: BA-2026-AV-8921)
+    - Vanguard_Working_Review_TR5510.docx (Deal 2: BA-2026-TR-5510, TRA-500 Thrust Reversers)
+    - Meridian_Working_Review_LG7740.docx (Deal 3: BA-2026-LG-7740, TLG-800 Landing Gear)
+    with 12 clauses each and zero 'FCC-900' contamination in TR5510 or LG7740.
+    """
+    parsed_av = parse_redlined_docx(VENDOR_REDLINED_DOCX)
+    parsed_tr = parse_redlined_docx(VANGUARD_TR5510_DOCX)
+    parsed_lg = parse_redlined_docx(MERIDIAN_LG7740_DOCX)
+
+    assert len(parsed_av) == 12
+    assert len(parsed_tr) == 12
+    assert len(parsed_lg) == 12
+
+    # Deal 2 (TR5510) has 5 redlined clauses (GP1-03 Finance discount + GP1-12, GP1-19, SP3-04, SP5-03)
+    tr_redlined = [d.clause_id for d in parsed_tr if d.has_redline]
+    assert tr_redlined == ["GP1-03", "GP1-12", "GP1-19", "SP3-04", "SP5-03"]
+    tr_blob = json.dumps([d.model_dump() for d in parsed_tr])
+    assert "TRA-500" in tr_blob
+    assert "FCC-900" not in tr_blob
+
+    # Deal 3 (LG7740) has 4 redlined clauses (GP1-12, GP1-19, SP3-04, SP5-03)
+    lg_redlined = [d.clause_id for d in parsed_lg if d.has_redline]
+    assert lg_redlined == ["GP1-12", "GP1-19", "SP3-04", "SP5-03"]
+    lg_blob = json.dumps([d.model_dump() for d in parsed_lg])
+    assert "TLG-800" in lg_blob
+    assert "FCC-900" not in lg_blob
+
+
 def test_parse_boeing_baseline_docx_all_untouched() -> None:
     """Verify parse_redlined_docx on Boeing_GP1_Standard.docx produces 12 untouched clauses."""
     parsed = parse_redlined_docx(BASELINE_DOCX)
@@ -306,12 +360,18 @@ def test_compute_untracked_diff_html() -> None:
     assert '<span class="diff-add">' in html
 
 
-def test_generate_counter_proposal_docx_track_changes_and_comments(tmp_path: Path) -> None:
+def test_generate_counter_proposal_docx_surgical_diffs_sanitization_and_ooxml_validation(
+    tmp_path: Path,
+) -> None:
     """
-    Verify generate_counter_proposal_docx produces a complete 12-clause .docx with:
-    - Executive Summary metadata table
-    - Real <w:del> and <w:ins w:author='Cymbal CLM Counter-Proposal'> XML nodes on redlined clauses
-    - word/comments.xml linked via <w:commentRangeStart>/<w:commentRangeEnd>/<w:commentReference>
+    Verify generate_counter_proposal_docx:
+    - Passes .agents/skills/docx/scripts/validate.py with zero errors
+    - Produces word-level surgical <w:del>/<w:ins> alongside regular <w:r> runs
+    - Attributes all <w:del>, <w:ins>, and <w:comment> elements to 'Cymbal Aerospace Legal & Procurement'
+    - Includes <w:rPr><w:rStyle w:val="CommentReference"/></w:rPr> inside <w:r> wrapping <w:commentReference>
+    - Strips emojis (✅, ⚠️, ⏳) from Heading 2 text
+    - Contains zero internal SME names, precedent percentages, walk-away floors, internal URLs,
+      or CONFLICT-/LOCKOUT- strings in word/comments.xml (and <75 words per comment)
     """
     extracted = parse_redlined_docx(VENDOR_REDLINED_DOCX)
     state = _build_sample_workbench_state(extracted)
@@ -321,38 +381,91 @@ def test_generate_counter_proposal_docx_track_changes_and_comments(tmp_path: Pat
     assert res_path == out_docx
     assert out_docx.exists()
 
+    # 1. Validate via .agents/skills/docx/scripts/validate.py
+    docx_validator = _load_skill_script(".agents/skills/docx/scripts/validate.py")
+    validation_errors = docx_validator.validate(out_docx)
+    assert validation_errors == [], f"DOCX validation failed: {validation_errors}"
+
     with zipfile.ZipFile(out_docx, "r") as zf:
         assert "word/document.xml" in zf.namelist()
         assert "word/comments.xml" in zf.namelist()
         doc_xml = etree.fromstring(zf.read("word/document.xml"))
         comments_xml = etree.fromstring(zf.read("word/comments.xml"))
 
-    # Verify executive summary table in document.xml
+    # 2. Verify executive summary table in document.xml & emoji-free Heading 2s
     all_text = "".join(t.text or "" for t in doc_xml.findall(f".//{{{W_NS}}}t"))
     assert "BA-2026-AV-8921" in all_text
     assert "Apex AeroSystems" in all_text
     assert "$45,000,000.00" in all_text
     assert "READY_FOR_DISPATCH" in all_text
+    for emoji_ch in ("✅", "⚠️", "⏳"):
+        assert emoji_ch not in all_text
 
-    # Verify <w:ins> and <w:del> nodes exist for the 4 redlined clauses authored by Cymbal CLM Counter-Proposal
+    # 3. Verify surgical word-level <w:ins> and <w:del> alongside regular <w:r> runs
     ins_nodes = doc_xml.findall(f".//{{{W_NS}}}ins")
     del_nodes = doc_xml.findall(f".//{{{W_NS}}}del")
-    assert len(ins_nodes) == 4
-    assert len(del_nodes) == 4
-    for ins_el in ins_nodes:
-        assert ins_el.get(f"{{{W_NS}}}author") == "Cymbal CLM Counter-Proposal"
+    assert len(ins_nodes) >= 4
+    assert len(del_nodes) >= 4
+    for node in ins_nodes + del_nodes:
+        assert node.get(f"{{{W_NS}}}author") == COUNTER_PROPOSAL_AUTHOR
 
-    # Verify comments.xml contains all 4 SME rationales
+    # Every redlined paragraph with <w:del>/<w:ins> also preserves unchanged words in standard <w:r> runs
+    redlined_paragraphs = [
+        p for p in doc_xml.findall(f".//{{{W_NS}}}p") if p.findall(f"./{{{W_NS}}}ins")
+    ]
+    assert len(redlined_paragraphs) == 4
+    for p_el in redlined_paragraphs:
+        direct_r_texts = [
+            "".join(t.text or "" for t in r.findall(f"./{{{W_NS}}}t"))
+            for r in p_el.findall(f"./{{{W_NS}}}r")
+        ]
+        assert any(txt.strip() for txt in direct_r_texts), "Expected unchanged <w:r> tokens alongside surgical <w:del>/<w:ins>"
+
+    # 4. Verify <w:rPr><w:rStyle w:val="CommentReference"/></w:rPr> inside every <w:commentReference> parent <w:r>
+    cref_nodes = doc_xml.findall(f".//{{{W_NS}}}commentReference")
+    assert len(cref_nodes) == 4
+    for cref in cref_nodes:
+        r_parent = cref.getparent()
+        assert r_parent is not None and r_parent.tag == f"{{{W_NS}}}r"
+        r_style = r_parent.find(f"./{{{W_NS}}}rPr/{{{W_NS}}}rStyle")
+        assert r_style is not None
+        assert r_style.get(f"{{{W_NS}}}val") == "CommentReference"
+
+    # 5. Verify comments.xml sanitization & <75 words constraint
     comment_els = comments_xml.findall(f".//{{{W_NS}}}comment")
     assert len(comment_els) == 4
+    for c_el in comment_els:
+        assert c_el.get(f"{{{W_NS}}}author") == COUNTER_PROPOSAL_AUTHOR
+        c_text = "".join(t.text or "" for t in c_el.findall(f".//{{{W_NS}}}t"))
+        assert len(c_text.split()) < 75, f"Comment exceeds 75 words: {c_text}"
+
     comments_text = " ".join(
         "".join(t.text or "" for t in c_el.findall(f".//{{{W_NS}}}t"))
         for c_el in comment_els
     )
-    assert "Applied 80% Tier-1 Avionics precedent" in comments_text
-    assert "FAA 14 CFR Part 21 Lockout" in comments_text
+    assert "2x PO $90M cap on general damages" in comments_text
+    assert "FAA 14 CFR Part 21" in comments_text
 
-    # Round-trip parse with parse_redlined_docx
+    for forbidden_name in (
+        "Pradeep Gupta",
+        "Megan Bowen",
+        "Alex Wilber",
+        "Miriam Graham",
+        "Diego Siciliani",
+    ):
+        assert forbidden_name not in comments_text
+        assert forbidden_name not in all_text
+
+    assert not re.search(
+        r"\b\d+(?:\.\d+)?%\s*(?:precedent|held firm|compromise|tier-1|deals)\b",
+        comments_text,
+        flags=re.IGNORECASE,
+    )
+    assert not re.search(r"\(\d+\s*(?:of|/)\s*\d+\s*deals?\)", comments_text, flags=re.IGNORECASE)
+    for forbidden_token in ("CONFLICT-", "LOCKOUT-", "walk-away", "floor", "boeing_clm", "sharepoint.com", "127.0.0.1"):
+        assert forbidden_token not in comments_text.lower() if forbidden_token in ("walk-away", "floor") else forbidden_token not in comments_text
+
+    # 6. Round-trip parse with parse_redlined_docx
     reparsed = parse_redlined_docx(out_docx)
     assert len(reparsed) == 12
     reparsed_redlined = [d for d in reparsed if d.has_redline]
@@ -361,16 +474,21 @@ def test_generate_counter_proposal_docx_track_changes_and_comments(tmp_path: Pat
     assert "two hundred percent (200%)" in gp19.vendor_redline_text
     assert "one hundred percent (100%)" in gp19.boeing_baseline_text
     assert len(gp19.vendor_comments) == 1
-    assert "Applied 80% Tier-1 Avionics precedent" in gp19.vendor_comments[0]
+    assert COUNTER_PROPOSAL_AUTHOR in gp19.vendor_comments[0]
 
 
-def test_generate_deviation_matrix_xlsx_four_worksheets(tmp_path: Path) -> None:
+def test_generate_deviation_matrix_xlsx_formulas_tabular_review_and_validation(
+    tmp_path: Path,
+) -> None:
     """
-    Verify generate_deviation_matrix_xlsx builds a styled 4-worksheet workbook:
-    1. Executive Summary
-    2. Clause Sign-Off Matrix
-    3. BigQuery Precedents
-    4. Immutable Audit Trail
+    Verify generate_deviation_matrix_xlsx:
+    - Builds 5 worksheets including 5_Portfolio_Tabular_Review
+    - Emits real Excel formulas (=COUNTA, =COUNTIF, =COUNTIFS, =SUM, =IF) on 1_Executive_Summary,
+      4_BigQuery_Precedent_Benchmarks, and 5_Portfolio_Tabular_Review
+    - Applies institutional number formats ($#,##0, 0.0%, 0.0"x") and banker font colors
+      (0000FF blue inputs, 000000 black same-sheet formulas, 008000 green cross-sheet links)
+    - Passes .agents/skills/xlsx/scripts/recalc_pure_python.py, .agents/skills/xlsx/scripts/scan_errors.py,
+      and .agents/skills/xlsx/scripts/validate.py
     """
     extracted = parse_redlined_docx(VENDOR_REDLINED_DOCX)
     state = _build_sample_workbench_state(extracted)
@@ -380,51 +498,91 @@ def test_generate_deviation_matrix_xlsx_four_worksheets(tmp_path: Path) -> None:
     assert res_path == out_xlsx
     assert out_xlsx.exists()
 
-    wb = load_workbook(str(out_xlsx))
+    wb = load_workbook(str(out_xlsx), data_only=False)
     assert wb.sheetnames == [
-        "Executive Summary",
-        "Clause Sign-Off Matrix",
-        "BigQuery Precedents",
-        "Immutable Audit Trail",
+        "1_Executive_Summary",
+        "2_Clause_Deviation_Matrix",
+        "3_Cross_Clause_Conflict_Log",
+        "4_BigQuery_Precedent_Benchmarks",
+        "5_Portfolio_Tabular_Review",
     ]
 
-    # Sheet 1: Executive Summary
-    ws_exec = wb["Executive Summary"]
-    exec_values = [
-        str(cell)
-        for row in ws_exec.iter_rows(values_only=True)
-        for cell in row
-        if cell is not None
-    ]
-    joined_exec = " | ".join(exec_values)
-    assert "BA-2026-AV-8921" in joined_exec
-    assert "Apex AeroSystems" in joined_exec
-    assert "https://36zrbd.sharepoint.com/sites/CymbalAerospace" in joined_exec
-    assert "CONFLICT-SP3-04-GP1-03" in joined_exec
-
-    # Sheet 2: Clause Sign-Off Matrix (1 header row + 12 clause rows = 13 rows)
-    ws_matrix = wb["Clause Sign-Off Matrix"]
-    assert ws_matrix.max_row == 13
-    clause_ids_in_sheet = [
-        ws_matrix.cell(row=r, column=1).value for r in range(2, 14)
-    ]
-    assert clause_ids_in_sheet == [c.clause_id for c in state.clauses]
-
-    # Sheet 3: BigQuery Precedents
-    ws_prec = wb["BigQuery Precedents"]
-    assert ws_prec.max_row >= 5  # 1 header + at least 4 redlined clause precedent rows
-    prec_values = " | ".join(
-        str(cell)
-        for row in ws_prec.iter_rows(values_only=True)
-        for cell in row
-        if cell is not None
+    # 1. Verify Sheet 1: 1_Executive_Summary formulas & banker styling
+    ws_exec = wb["1_Executive_Summary"]
+    exec_formulas = {
+        ws_exec.cell(row=r, column=1).value: ws_exec.cell(row=r, column=2).value
+        for r in range(3, ws_exec.max_row + 1)
+    }
+    assert exec_formulas["Total Clauses Parsed"] == "=COUNTA('2_Clause_Deviation_Matrix'!A2:A13)"
+    assert exec_formulas["Untouched Clauses Count"] == '=COUNTIF(\'2_Clause_Deviation_Matrix\'!F2:F13,"NO")'
+    assert exec_formulas["Redlined Clauses Count"] == '=COUNTIF(\'2_Clause_Deviation_Matrix\'!F2:F13,"YES")'
+    assert (
+        exec_formulas["Approved Redlined Clauses Count"]
+        == '=COUNTIFS(\'2_Clause_Deviation_Matrix\'!F2:F13,"YES",\'2_Clause_Deviation_Matrix\'!G2:G13,"APPROVED")'
     )
-    assert "EXC-2025-787-019" in prec_values
-    assert "Honeywell Aerospace" in prec_values
-    assert "80%" in prec_values
+    assert exec_formulas["Active Cross-Clause Conflicts"] == "=COUNTA('3_Cross_Clause_Conflict_Log'!A2:A20)"
 
-    # Sheet 4: Immutable Audit Trail
-    ws_audit = wb["Immutable Audit Trail"]
-    assert ws_audit.max_row == 1 + len(state.recent_events)
-    assert ws_audit.cell(row=2, column=1).value == "EVT-2026-001"
-    assert ws_audit.cell(row=3, column=1).value == "EVT-2026-002"
+    # Verify banker colors and number formats on 1_Executive_Summary
+    assert ws_exec["B8"].value == 45_000_000.0
+    assert ws_exec["B8"].number_format == "$#,##0"
+    assert ws_exec["B8"].font.color.rgb.endswith("0000FF")
+    assert ws_exec["B9"].number_format == '0.0"x"'
+    assert ws_exec["B10"].value == "=B8*B9"
+    assert ws_exec["B10"].font.color.rgb.endswith("000000")
+    assert ws_exec["B15"].font.color.rgb.endswith("008000")
+
+    # 2. Verify Sheet 2: 2_Clause_Deviation_Matrix
+    ws_matrix = wb["2_Clause_Deviation_Matrix"]
+    assert ws_matrix.max_row == 13
+    assert [ws_matrix.cell(row=r, column=1).value for r in range(2, 14)] == [c.clause_id for c in state.clauses]
+
+    # 3. Verify Sheet 3: 3_Cross_Clause_Conflict_Log
+    ws_conflict = wb["3_Cross_Clause_Conflict_Log"]
+    assert ws_conflict["A2"].value == "CONFLICT-SP3-04-GP1-03"
+
+    # 4. Verify Sheet 4: 4_BigQuery_Precedent_Benchmarks has Total Matched Precedents (=SUM(E2:G2)) & 0.0%
+    ws_prec = wb["4_BigQuery_Precedent_Benchmarks"]
+    assert ws_prec["H1"].value == "Total Matched Precedents"
+    assert ws_prec["H2"].value == "=SUM(E2:G2)"
+    assert ws_prec["H2"].font.color.rgb.endswith("000000")
+    assert ws_prec["I2"].value == "=IF(H2>0,E2/H2,0)"
+    assert ws_prec["I2"].number_format == "0.0%"
+
+    # 5. Verify Sheet 5: 5_Portfolio_Tabular_Review
+    ws_tab = wb["5_Portfolio_Tabular_Review"]
+    deal_ids = [ws_tab.cell(row=r, column=1).value for r in range(2, 5)]
+    assert deal_ids == ["BA-2026-AV-8921", "BA-2026-TR-5510", "BA-2026-LG-7740"]
+    assert ws_tab["D5"].value == "=SUM(D2:D4)"
+    assert str(ws_tab["E5"].value).startswith("=COUNTIF(")
+    assert str(ws_tab["J5"].value).startswith("=COUNTIF(")
+
+    # 6. Run recalc_pure_python.py, scan_errors.py, and validate.py
+    recalc_mod = _load_skill_script(".agents/skills/xlsx/scripts/recalc_pure_python.py")
+    scan_mod = _load_skill_script(".agents/skills/xlsx/scripts/scan_errors.py")
+    validate_mod = _load_skill_script(".agents/skills/xlsx/scripts/validate.py")
+
+    recalced_xlsx = tmp_path / "Deviation_Matrix_Recalced.xlsx"
+    recalc_mod.recalc(out_xlsx, recalced_xlsx)
+    assert recalced_xlsx.exists()
+
+    hits_orig = scan_mod.scan(out_xlsx)
+    hits_recalced = scan_mod.scan(recalced_xlsx)
+    status = "clean" if (len(hits_orig) == 0 and len(hits_recalced) == 0) else "errors"
+    assert status == "clean", f"Excel formula errors detected: {hits_orig} / {hits_recalced}"
+
+    assert validate_mod.validate(out_xlsx) == []
+    assert validate_mod.validate(recalced_xlsx) == []
+
+    # Verify recalculated values materialized accurately
+    wb_recalc = load_workbook(str(recalced_xlsx), data_only=True)
+    ws_exec_eval = wb_recalc["1_Executive_Summary"]
+    eval_map = {
+        ws_exec_eval.cell(row=r, column=1).value: ws_exec_eval.cell(row=r, column=2).value
+        for r in range(3, ws_exec_eval.max_row + 1)
+    }
+    assert eval_map["Total Clauses Parsed"] == 12
+    assert eval_map["Untouched Clauses Count"] == 8
+    assert eval_map["Redlined Clauses Count"] == 4
+    assert eval_map["Approved Redlined Clauses Count"] == 4
+    assert eval_map["Active Cross-Clause Conflicts"] == 1
+    assert wb_recalc["5_Portfolio_Tabular_Review"]["D5"].value == 135_000_000.0

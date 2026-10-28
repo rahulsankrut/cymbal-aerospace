@@ -88,7 +88,8 @@ Using the live JSON output from the scripts:
 1. Report `status`, `approved_redlined_clauses_count`, and `pending_redlined_clauses_count`.
 2. Present a summary table of the redlined clauses showing each clause's final status, selected option, reviewer name (`w:author`), and counter-language.
 3. Provide clickable Markdown links to:
-   - `[cymbal_clm_redline_workbench.html](cymbal_clm_redline_workbench.html)` (to open the Reviewer UI in Canvas)
-   - `[BA-2026-AV-8921_Working_Review.docx](BA-2026-AV-8921_Working_Review.docx)`
-   - `[BA-2026-AV-8921_Cymbal_Counter_Proposal.docx](BA-2026-AV-8921_Cymbal_Counter_Proposal.docx)`
-   - `[BA-2026-AV-8921_SharePoint_Deviation_Matrix.xlsx](BA-2026-AV-8921_SharePoint_Deviation_Matrix.xlsx)`
+   - `[Cymbal CLM Workbench](sidecar://cymbal-aerospace-clm/cymbal-clm-workbench/)` and `[Cymbal Tax & Tariff Review](sidecar://cymbal-aerospace-clm/cymbal-clm-workbench/tax-workbench)` (Antigravity Sidecar pills)
+   - `[cymbal_clm_redline_workbench.html](cymbal_clm_redline_workbench.html)` (to open the Reviewer UI in Spark Canvas)
+   - `[<deal_id>_Working_Review.docx](<deal_id>_Working_Review.docx)`
+   - `[<deal_id>_Cymbal_Counter_Proposal.docx](<deal_id>_Cymbal_Counter_Proposal.docx)`
+   - `[<deal_id>_SharePoint_Deviation_Matrix.xlsx](<deal_id>_SharePoint_Deviation_Matrix.xlsx)`

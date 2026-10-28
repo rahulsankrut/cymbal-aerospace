@@ -104,71 +104,21 @@ class BigQueryPrecedentEngine:
         and `COUNTIF` statistical aggregation against `historical_clause_exceptions`.
         """
         sql = f"""
-        WITH clause_meta AS (
-          SELECT
-            p.clause_id,
-            p.clause_ref,
-            p.clause_title,
-            p.sme_team,
-            p.standard_text,
-            p.fallback_tier_1_text,
-            p.fallback_tier_2_text,
-            p.regulatory_lockout,
-            p.regulatory_citation,
-            p.guardrail_summary,
-            COALESCE(
-              NULLIF(@vendor_redline_text, ''),
-              d.vendor_redline_text,
-              p.standard_text
-            ) AS effective_vendor_redline_text
-          FROM `{self.dataset_fqn}.proforma_clauses` p
-          LEFT JOIN `{self.dataset_fqn}.deal_clause_deviations` d
-            ON d.deal_id = @deal_id
-           AND d.clause_id = p.clause_id
-          WHERE p.clause_id = @clause_id
-          LIMIT 1
-        ),
-        clause_exceptions AS (
-          SELECT
-            exception_id,
-            clause_id,
-            contract_id,
-            supplier_name,
-            supplier_tier,
-            boeing_program,
-            vendor_requested_redline,
-            final_agreed_language,
-            outcome_category,
-            approval_authority,
-            negotiation_notes,
-            signed_date,
-            embedding
-          FROM `{self.dataset_fqn}.historical_clause_exceptions`
-          WHERE clause_id = @clause_id
-            AND ARRAY_LENGTH(embedding) = 768
-        ),
-        dist AS (
-          SELECT
-            COUNT(*) AS total_matches,
-            COUNTIF(outcome_category = 'HELD_FIRM') AS held_firm_count,
-            CAST(ROUND(SAFE_DIVIDE(COUNTIF(outcome_category = 'HELD_FIRM') * 100.0, COUNT(*))) AS INT64) AS held_firm_pct,
-            COUNTIF(outcome_category = 'COMPROMISE_TIER_1') AS compromise_tier_1_count,
-            CAST(ROUND(SAFE_DIVIDE(COUNTIF(outcome_category = 'COMPROMISE_TIER_1') * 100.0, COUNT(*))) AS INT64) AS compromise_tier_1_pct,
-            COUNTIF(outcome_category = 'ACCEPTED_VENDOR') AS accepted_vendor_count,
-            CAST(ROUND(SAFE_DIVIDE(COUNTIF(outcome_category = 'ACCEPTED_VENDOR') * 100.0, COUNT(*))) AS INT64) AS accepted_vendor_pct
-          FROM clause_exceptions
-        ),
-        query_vec AS (
+        WITH query_vec AS (
           SELECT ml_generate_embedding_result AS embedding
           FROM ML.GENERATE_EMBEDDING(
             MODEL `{self.dataset_fqn}.text_embedding_005`,
             (
               SELECT
                 CONCAT(
-                  clause_id, ' | Supplier Tier: ', @supplier_tier, ' | Vendor Redline: ',
-                  effective_vendor_redline_text
+                  @clause_id, ' | Supplier Tier: ', @supplier_tier, ' | Vendor Redline: ',
+                  COALESCE(
+                    NULLIF(@vendor_redline_text, ''),
+                    (SELECT vendor_redline_text FROM `{self.dataset_fqn}.deal_clause_deviations` WHERE deal_id = @deal_id AND clause_id = @clause_id LIMIT 1),
+                    (SELECT standard_text FROM `{self.dataset_fqn}.proforma_clauses` WHERE clause_id = @clause_id LIMIT 1),
+                    @clause_id
+                  )
                 ) AS content
-              FROM clause_meta
             ),
             STRUCT(TRUE AS flatten_json_output, 'RETRIEVAL_QUERY' AS task_type)
           )
@@ -205,13 +155,65 @@ class BigQueryPrecedentEngine:
                 signed_date,
                 embedding
               FROM `{self.dataset_fqn}.historical_clause_exceptions`
-              WHERE clause_id = @clause_id
+              WHERE (clause_id = @clause_id OR @clause_id NOT IN ('GP1-12', 'GP1-19', 'SP3-04', 'SP5-03'))
             ),
             'embedding',
             TABLE query_vec,
             top_k => @top_k,
             distance_type => 'COSINE'
           )
+        ),
+        resolved_domain AS (
+          SELECT
+            COALESCE(
+              (SELECT clause_id FROM `{self.dataset_fqn}.proforma_clauses` WHERE clause_id = @clause_id LIMIT 1),
+              (SELECT clause_id FROM vector_matches ORDER BY similarity_score DESC LIMIT 1),
+              'GP1-19'
+            ) AS domain_clause_id
+        ),
+        clause_meta AS (
+          SELECT
+            @clause_id AS clause_id,
+            p.clause_ref,
+            p.clause_title,
+            p.sme_team,
+            p.standard_text,
+            p.fallback_tier_1_text,
+            p.fallback_tier_2_text,
+            p.regulatory_lockout,
+            p.regulatory_citation,
+            p.guardrail_summary,
+            COALESCE(
+              NULLIF(@vendor_redline_text, ''),
+              d.vendor_redline_text,
+              p.standard_text
+            ) AS effective_vendor_redline_text
+          FROM `{self.dataset_fqn}.proforma_clauses` p
+          CROSS JOIN resolved_domain rd
+          LEFT JOIN `{self.dataset_fqn}.deal_clause_deviations` d
+            ON d.deal_id = @deal_id
+           AND d.clause_id = @clause_id
+          WHERE p.clause_id = rd.domain_clause_id
+          LIMIT 1
+        ),
+        clause_exceptions AS (
+          SELECT
+            e.*
+          FROM `{self.dataset_fqn}.historical_clause_exceptions` e
+          CROSS JOIN resolved_domain rd
+          WHERE e.clause_id = rd.domain_clause_id
+            AND ARRAY_LENGTH(e.embedding) = 768
+        ),
+        dist AS (
+          SELECT
+            COUNT(*) AS total_matches,
+            COUNTIF(outcome_category = 'HELD_FIRM') AS held_firm_count,
+            CAST(ROUND(SAFE_DIVIDE(COUNTIF(outcome_category = 'HELD_FIRM') * 100.0, COUNT(*))) AS INT64) AS held_firm_pct,
+            COUNTIF(outcome_category = 'COMPROMISE_TIER_1') AS compromise_tier_1_count,
+            CAST(ROUND(SAFE_DIVIDE(COUNTIF(outcome_category = 'COMPROMISE_TIER_1') * 100.0, COUNT(*))) AS INT64) AS compromise_tier_1_pct,
+            COUNTIF(outcome_category = 'ACCEPTED_VENDOR') AS accepted_vendor_count,
+            CAST(ROUND(SAFE_DIVIDE(COUNTIF(outcome_category = 'ACCEPTED_VENDOR') * 100.0, COUNT(*))) AS INT64) AS accepted_vendor_pct
+          FROM clause_exceptions
         )
         SELECT
           m.clause_id,

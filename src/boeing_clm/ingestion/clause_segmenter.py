@@ -177,7 +177,61 @@ _STRUCTURED_HEADER_RE = re.compile(
     r"(?:\s*\|\s*(?P<kv_tail>.+))?$"
 )
 
-_LEADING_SECTION_RE = re.compile(r"^\s*(?:(?:GP1|SP3|SP5)\s*§?\s*)?(?P<sec>\d+(?:\.\d+)?)\b")
+_LEADING_SECTION_RE = re.compile(
+    r"^\s*(?:(?:Article|Section|Clause|GP1|SP3|SP5)\s*§?\s*)?(?P<sec>\d+(?:\.\d+)?)\s*(?:[—\-:\.]\s*(?P<title>[^.\n]{3,90}))?",
+    re.IGNORECASE,
+)
+
+
+def infer_clause_metadata_from_content(
+    clause_id: str,
+    clause_ref: str,
+    clause_title: str,
+    body_text: str = "",
+) -> ClauseHeaderMetadata:
+    """
+    Dynamically infer SME team, owner, risk level, and regulatory flag from clause title and body text
+    for arbitrary new .docx contracts whose clauses are not in CANONICAL_CLAUSE_REGISTRY.
+    """
+    combined = f"{clause_ref} {clause_title} {body_text}".lower()
+    proforma_doc = _infer_proforma_doc(clause_id, clause_ref)
+
+    if any(k in combined for k in ("cyber", "dfars", "252.204-7012", "nist", "800-171", "cui", "incident", "forensic", "breach", "infosec")):
+        sme_team: SmeTeam = "CYBER"
+        sme_owner_label = "Alex Wilber (CISO Lead, Supplier Cyber Defense)"
+        risk_level: RiskLevel = "HIGH"
+        regulatory_flag = "DFARS 252.204-7012 / NIST SP 800-171"
+    elif any(k in combined for k in ("tariff", "customs", "duty", "duties", "232", "301", "import", "export", "itar", "ear", "tax", "ddp", "incoterms")):
+        sme_team = "TAX"
+        sme_owner_label = "Pradeep Gupta (Director, Global Tax & Trade)"
+        risk_level = "MOD"
+        regulatory_flag = "Cross-Clause SOW Pricing / Trade Compliance"
+    elif any(k in combined for k in ("warranty", "inspection", "faa", "14 cfr", "airworthiness", "as9100", "quality", "conformity", "der", "source inspection", "packing", "preservation")):
+        sme_team = "ENGINEERING"
+        sme_owner_label = "Megan Bowen (Lead Airworthiness & QA DER)"
+        risk_level = "HIGH" if any(w in combined for w in ("warranty", "faa", "14 cfr", "unannounced", "airworthiness")) else "MOD"
+        regulatory_flag = "FAA 14 CFR Part 21 / AS9100 Rev D"
+    elif any(k in combined for k in ("liability", "indemn", "intellectual property", "patent", "copyright", "ip ", "consequential", "governing law", "dispute", "termination", "arbitration", "liquidated")):
+        sme_team = "LEGAL"
+        sme_owner_label = "Miriam Graham (VP Corporate Legal & IP)"
+        risk_level = "CRITICAL" if any(w in combined for w in ("liability", "indemn", "cap", "uncapped")) else "MOD"
+        regulatory_flag = "Corporate Legal Playbook Guardrail"
+    else:
+        sme_team = "PROCUREMENT"
+        sme_owner_label = "Diego Siciliani (VP Procurement Finance)"
+        risk_level = "MOD" if any(w in combined for w in ("price", "pricing", "discount", "payment", "surcharge", "ceiling")) else "NONE"
+        regulatory_flag = "Cymbal Corporate GP1 Standard"
+
+    return ClauseHeaderMetadata(
+        clause_id=clause_id,
+        proforma_doc=proforma_doc,
+        clause_ref=clause_ref,
+        clause_title=clause_title or f"Section {clause_ref}",
+        sme_team=sme_team,
+        sme_owner_label=sme_owner_label,
+        risk_level=risk_level,
+        regulatory_flag=regulatory_flag,
+    )
 
 
 def is_heading_2_paragraph(p_el: etree._Element, w_ns: str = W_NS) -> bool:
@@ -247,20 +301,45 @@ def parse_heading_metadata(heading_text: str) -> Optional[ClauseHeaderMetadata]:
         if cid in cleaned or meta.clause_ref in cleaned:
             return meta
 
-    sec_m = _LEADING_SECTION_RE.match(cleaned)
+    # Strip any trailing status tags like '[✓ ACCEPTED BY ...]' or '[CYMBAL COUNTER-PROPOSAL]'
+    cleaned_no_status = re.sub(r"\s*\[(?:✓|PENDING|CYMBAL|ACCEPTED)[^\]]*\]\s*$", "", cleaned).strip()
+
+    sec_m = _LEADING_SECTION_RE.match(cleaned_no_status)
     if sec_m:
         sec_num = sec_m.group("sec")
         mapped_id = SECTION_NUMBER_TO_CLAUSE_ID.get(sec_num)
         if mapped_id and mapped_id in CANONICAL_CLAUSE_REGISTRY:
-            return CANONICAL_CLAUSE_REGISTRY[mapped_id]
+            cand_meta = CANONICAL_CLAUSE_REGISTRY[mapped_id]
+            title_words = [w.lower() for w in re.findall(r"[A-Za-z]{4,}", cand_meta.clause_title)]
+            cleaned_lower = cleaned_no_status.lower()
+            # Only map to canonical GP1/SP3/SP5 clause if heading has no custom title or shares at least one keyword/proforma prefix
+            has_custom_title = bool(sec_m.group("title")) or ("—" in cleaned_no_status) or ("-" in cleaned_no_status)
+            if not has_custom_title or cand_meta.proforma_doc.lower() in cleaned_lower or any(tw in cleaned_lower for tw in title_words):
+                return cand_meta
+        # Dynamic Heading 2 with an arbitrary section number (e.g. 'GP1 §6.1 — Delivery Schedule' or 'Section 2.1 — Packing')
+        parts = re.split(r"\s*[—\-:]\s*", cleaned_no_status, maxsplit=1)
+        clause_ref = parts[0].strip() if len(parts) > 1 else f"GP1 §{sec_num}"
+        clause_title = parts[1].strip() if len(parts) > 1 else (sec_m.group("title") or cleaned_no_status).strip()
+        prefix = "SP3" if "SP3" in clause_ref.upper() else ("SP5" if "SP5" in clause_ref.upper() else "GP1")
+        sec_San = sec_num.split(".")[0].zfill(2)
+        dyn_id = f"{prefix}-{sec_San}"
+        if dyn_id in CANONICAL_CLAUSE_REGISTRY:
+            dyn_id = f"DOC-{sec_num.replace('.', '_')}"
+        return infer_clause_metadata_from_content(dyn_id, clause_ref, clause_title, cleaned_no_status)
 
-    return None
+    # Generic Heading 2 without a leading section number (e.g. 'Force Majeure & Excusable Delay')
+    slug = re.sub(r"[^A-Z0-9]+", "-", cleaned_no_status.upper()).strip("-")[:12] or "CUSTOM"
+    dyn_id = f"GP1-{slug}"
+    parts = re.split(r"\s*[—\-:]\s*", cleaned_no_status, maxsplit=1)
+    clause_ref = parts[0].strip() if len(parts) > 1 and len(parts[0]) <= 18 else f"GP1 §{slug[:6]}"
+    clause_title = parts[1].strip() if len(parts) > 1 and len(parts[0]) <= 18 else cleaned_no_status[:80]
+    return infer_clause_metadata_from_content(dyn_id, clause_ref, clause_title, cleaned_no_status)
 
 
 def resolve_clause_metadata(heading_text: Optional[str], body_text: str) -> Optional[ClauseHeaderMetadata]:
     """
     Resolve ClauseHeaderMetadata from either an explicit Heading 2 string or, if absent,
-    by aligning the body paragraph's leading section number (e.g. '12.2', '19.1', '4.1', '3.2').
+    by aligning the body paragraph's leading section number (e.g. '12.2', '19.1', '4.1', '3.2', or any 'X.Y').
     """
     if heading_text:
         parsed = parse_heading_metadata(heading_text)
@@ -277,6 +356,16 @@ def resolve_clause_metadata(heading_text: Optional[str], body_text: str) -> Opti
         mapped_id = SECTION_NUMBER_TO_CLAUSE_ID.get(sec_num)
         if mapped_id and mapped_id in CANONICAL_CLAUSE_REGISTRY:
             return CANONICAL_CLAUSE_REGISTRY[mapped_id]
+        raw_title = (sec_m.group("title") or "").strip()
+        if not raw_title:
+            first_sent = body_clean[sec_m.end():].strip().split(".")[0][:65].strip()
+            raw_title = first_sent or f"Section {sec_num}"
+        prefix = "SP3" if "SP3" in body_clean[:12].upper() else ("SP5" if "SP5" in body_clean[:12].upper() else "GP1")
+        sec_major = sec_num.split(".")[0].zfill(2)
+        dyn_id = f"{prefix}-{sec_major}"
+        if dyn_id in CANONICAL_CLAUSE_REGISTRY:
+            dyn_id = f"{prefix}-{sec_num.replace('.', '_')}"
+        return infer_clause_metadata_from_content(dyn_id, f"{prefix} §{sec_num}", raw_title, body_clean)
 
     for cid, meta in CANONICAL_CLAUSE_REGISTRY.items():
         if body_clean.startswith(cid) or body_clean.startswith(meta.clause_ref):

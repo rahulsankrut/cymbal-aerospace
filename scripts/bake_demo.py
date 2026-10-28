@@ -67,6 +67,7 @@ CLM_SKILLS = [
 ]
 
 REDUNDANT_SKILLS_TO_REMOVE = [
+    "chief-of-staff",
     "clm-eng-faa-review",
     "clm-legal-ip-review",
     "cymbal-capital-allocation",
@@ -82,9 +83,12 @@ REDUNDANT_SKILLS_TO_REMOVE = [
 def ensure_host_loopback_bridge() -> None:
     """
     Ensures the lightweight CLM Host Loopback Bridge is listening on http://127.0.0.1:58921
-    running the latest `clm_cli.py` (which serves `/run` and `/api/review`).
+    running the latest `clm_cli.py` (which serves `/run` and `/api/review`), and restarts
+    any running Antigravity Sidecar process (`clm_cli.py serve-bridge`) so it picks up
+    the newly synced plugin code immediately.
     """
     subprocess.run(["pkill", "-f", "clm_cli.py --serve-bridge"], check=False)
+    subprocess.run(["pkill", "-f", "clm_cli.py serve-bridge"], check=False)
     time.sleep(0.3)
 
     health_url = "http://127.0.0.1:58921/health"
@@ -254,19 +258,47 @@ def stage_1_reset_deal_and_sync_skills() -> None:
         text=True,
         check=False,
     )
+    # Ensure zero pre-created .html files remain on disk in ROOT or SPARK_WORKSPACE after reset
+    for clean_dir in (ROOT, SPARK_WORKSPACE):
+        if clean_dir.exists():
+            for html_f in clean_dir.glob("*.html"):
+                try:
+                    html_f.unlink()
+                except Exception:
+                    pass
+    # Stage all 3 redlined .docx copies + baseline .docx directly in ROOT and SPARK_WORKSPACE for immediate testing
+    golden_dir = ROOT / "specs" / "04_golden_fixtures"
+    direct_test_docx_files = [
+        golden_dir / "Cymbal_GP1_Standard.docx",
+        golden_dir / "Cymbal_SOW_Schedule_A_Pricing.docx",
+        golden_dir / "Vendor_Redlined_GP1.docx",
+        golden_dir / "Apex_AeroSystems_Redline_Transmittal_Memo.docx",
+        golden_dir / "Vanguard_Working_Review_TR5510.docx",
+        golden_dir / "Meridian_Working_Review_LG7740.docx",
+        ROOT / "BA-2026-TR-5510_Working_Review.docx",
+        ROOT / "BA-2026-LG-7740_Working_Review.docx",
+    ]
+    for stage_dir in (ROOT, SPARK_WORKSPACE):
+        if stage_dir.exists():
+            for src_docx in direct_test_docx_files:
+                if src_docx.exists():
+                    dst_docx = stage_dir / src_docx.name
+                    if dst_docx.resolve() != src_docx.resolve():
+                        shutil.copy2(src_docx, dst_docx)
+
     if res.returncode == 0:
         print(
             "  ✓ Reset all 3 portfolio deals (`BA-2026-AV-8921` Stage 1 Intake, "
             "`BA-2026-TR-5510` Stage 2 Finance vs. Legal Conflict, "
-            "`BA-2026-LG-7740` Stage 3 Final Consolidation) in Cloud Run / BigQuery and local Spark state"
+            "`BA-2026-LG-7740` Stage 3 Final Consolidation) and staged all redlined .docx copies for direct testing"
         )
     else:
         print(f"  ! Deal reset warning: {res.stderr or res.stdout}")
 
 
 def stage_2_purge_outlook_mail_and_calendar(token: str) -> None:
-    _banner(2, "Clean Up ONLY Microsoft Outlook Mail (Inbox & Drafts) and Calendar Events")
-    print("  • Note: Leaving SharePoint (`CymbalAerospace` & `CybmalFinance`), OneDrive, Jira, and Confluence untouched.")
+    _banner(2, "Clean Up Microsoft Outlook Mail (Inbox & Drafts), Calendar Events & Stale SharePoint Deal Artifacts")
+    print("  • Note: Leaving CymbalFinance, OneDrive, Jira, and Confluence untouched; resetting CymbalAerospace deal folders.")
 
     for folder in ("Inbox", "Drafts"):
         try:
@@ -301,6 +333,48 @@ def stage_2_purge_outlook_mail_and_calendar(token: str) -> None:
             pass
     print(f"  ✓ Purged {total_events_deleted} calendar events across {len(ROSTER_UPNS)} tenant mailboxes")
 
+    # Clean up stale SharePoint deal artifacts in /sites/CymbalAerospace/Shared Documents/
+    try:
+        site = _graph_req(token, "GET", "/sites/36zrbd.sharepoint.com:/sites/CymbalAerospace")
+        drive = _graph_req(token, "GET", f"/sites/{site['id']}/drive")
+        drive_id = drive["id"]
+        allowed_by_folder = {
+            "BA-2026-AV-8921": {
+                "Cymbal_GP1_Standard.docx",
+                "Cymbal_SOW_Schedule_A_Pricing.docx",
+                "Vendor_Redlined_GP1.docx",
+                "Apex_AeroSystems_Redline_Transmittal_Memo.docx",
+            },
+            "BA-2026-TR-5510": {
+                "Cymbal_GP1_Standard.docx",
+                "BA-2026-TR-5510_Working_Review.docx",
+                "Vanguard_Working_Review_TR5510.docx",
+            },
+            "BA-2026-LG-7740": {
+                "Cymbal_GP1_Standard.docx",
+                "BA-2026-LG-7740_Working_Review.docx",
+                "Meridian_Working_Review_LG7740.docx",
+            },
+        }
+        purged_sp_files = 0
+        for deal_folder, allowed_names in allowed_by_folder.items():
+            try:
+                children = _graph_req(
+                    token,
+                    "GET",
+                    f"/drives/{drive_id}/root:/{deal_folder}:/children?$select=id,name",
+                ).get("value", [])
+                for item in children:
+                    if item["name"] not in allowed_names:
+                        _graph_req(token, "DELETE", f"/drives/{drive_id}/items/{item['id']}")
+                        purged_sp_files += 1
+                        print(f"  ✓ [SHAREPOINT CLEANUP] Deleted stale `{deal_folder}/{item['name']}`")
+            except Exception:
+                pass
+        print(f"  ✓ Cleaned SharePoint `CymbalAerospace` deal folders ({purged_sp_files} stale demo files removed)")
+    except Exception as exc:
+        print(f"  ! SharePoint cleanup warning: {exc}")
+
 
 def stage_3_seed_clm_outlook_inbox(token: str) -> None:
     _banner(3, "Seed Fresh Cymbal Aerospace CLM Emails (3 Portfolio Deals at Stages 1, 2 & 3) into Outlook Inbox")
@@ -328,14 +402,27 @@ def stage_3_seed_clm_outlook_inbox(token: str) -> None:
     doc2_attachments = _att(doc2_working_docx)
     doc3_attachments = _att(doc3_working_docx)
 
-    # Also ensure SharePoint folders for Deal 2 (BA-2026-TR-5510) and Deal 3 (BA-2026-LG-7740) hold their mid/final Working Review .docx
+    # Also ensure SharePoint folders for all 3 deals hold their baseline Cymbal_GP1_Standard.docx + all Redlined / Working Review .docx copies for direct testing
     try:
         site = _graph_req(token, "GET", "/sites/36zrbd.sharepoint.com:/sites/CymbalAerospace")
         drive = _graph_req(token, "GET", f"/sites/{site['id']}/drive")
-        for deal_folder, w_path in (
+        baseline_docx = ROOT / "specs" / "04_golden_fixtures" / "Cymbal_GP1_Standard.docx"
+        sow_docx = ROOT / "specs" / "04_golden_fixtures" / "Cymbal_SOW_Schedule_A_Pricing.docx"
+        vanguard_golden = ROOT / "specs" / "04_golden_fixtures" / "Vanguard_Working_Review_TR5510.docx"
+        meridian_golden = ROOT / "specs" / "04_golden_fixtures" / "Meridian_Working_Review_LG7740.docx"
+        sp_seed_files = [
+            ("BA-2026-AV-8921", baseline_docx),
+            ("BA-2026-AV-8921", sow_docx),
+            ("BA-2026-AV-8921", vendor_docx),
+            ("BA-2026-AV-8921", memo_docx),
+            ("BA-2026-TR-5510", baseline_docx),
             ("BA-2026-TR-5510", doc2_working_docx),
+            ("BA-2026-TR-5510", vanguard_golden),
+            ("BA-2026-LG-7740", baseline_docx),
             ("BA-2026-LG-7740", doc3_working_docx),
-        ):
+            ("BA-2026-LG-7740", meridian_golden),
+        ]
+        for deal_folder, w_path in sp_seed_files:
             if w_path.exists():
                 upload_url = f"https://graph.microsoft.com/v1.0/drives/{drive['id']}/root:/{deal_folder}/{w_path.name}:/content"
                 req = urllib.request.Request(
@@ -348,7 +435,7 @@ def stage_3_seed_clm_outlook_inbox(token: str) -> None:
                     method="PUT",
                 )
                 with urllib.request.urlopen(req, timeout=30) as _:
-                    print(f"  ✓ [SHAREPOINT] Uploaded `{w_path.name}` to `/sites/CymbalAerospace/Shared Documents/{deal_folder}/`")
+                    print(f"  ✓ [SHAREPOINT] Seeded `{w_path.name}` in `/sites/CymbalAerospace/Shared Documents/{deal_folder}/`")
     except Exception as exc:
         print(f"  ! Note uploading pre-baked Working Review .docx to SharePoint: {exc}")
 
@@ -723,22 +810,24 @@ def stage_5_verify_environment(token: str) -> None:
     try:
         site = _graph_req(token, "GET", "/sites/36zrbd.sharepoint.com:/sites/CymbalAerospace")
         drive = _graph_req(token, "GET", f"/sites/{site['id']}/drive")
-        children = _graph_req(
-            token,
-            "GET",
-            f"/drives/{drive['id']}/root:/BA-2026-AV-8921:/children?$select=name,size,lastModifiedDateTime",
-        ).get("value", [])
-        print(f"\n  📁 SharePoint (`sites/CymbalAerospace/Shared Documents/BA-2026-AV-8921`) — {len(children)} files ready:")
-        for c in children:
-            print(f"    • {c['name']} ({c['size']} bytes, modified={c['lastModifiedDateTime']})")
+        for deal_folder in ("BA-2026-AV-8921", "BA-2026-TR-5510", "BA-2026-LG-7740"):
+            children = _graph_req(
+                token,
+                "GET",
+                f"/drives/{drive['id']}/root:/{deal_folder}:/children?$select=name,size,lastModifiedDateTime",
+            ).get("value", [])
+            print(f"\n  📁 SharePoint (`sites/CymbalAerospace/Shared Documents/{deal_folder}`) — {len(children)} files ready:")
+            for c in children:
+                print(f"    • {c['name']} ({c['size']} bytes, modified={c['lastModifiedDateTime']})")
     except Exception as exc:
         print(f"\n  ! SharePoint check note: {exc}")
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Bake the Cymbal Aerospace CLM Demo environment (Outlook Mail & Calendar + Deal Reset).")
+    parser = argparse.ArgumentParser(description="Bake the Cymbal Aerospace CLM Demo environment (Outlook Mail & Calendar + Deal Reset + Direct Test Mode Redline Uploads).")
     parser.add_argument("--quick", action="store_true", help="Fast bake (same as full: cleans & seeds Outlook Mail/Calendar + resets CLM deal)")
     parser.add_argument("--full", action="store_true", help="Full bake (default)")
+    parser.add_argument("--test-mode", "--testing", action="store_true", help="Testing mode: uploads all redlined .docx copies directly to SharePoint & local workspaces")
     parser.parse_args()
 
     t0 = time.time()

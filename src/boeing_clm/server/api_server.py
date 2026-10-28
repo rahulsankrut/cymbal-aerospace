@@ -23,6 +23,7 @@ from boeing_clm.config import (
     BQ_DATASET,
     EXPORTS_DIR,
     GCP_PROJECT_ID,
+    GOLDEN_FIXTURES_DIR,
     GOLDEN_VENDOR_REDLINE_DOCX,
 )
 from boeing_clm.export.docx_generator import generate_counter_proposal_docx
@@ -42,6 +43,7 @@ from boeing_clm.server.mcp_server import (
     register_sse_subscriber,
     unregister_sse_subscriber,
 )
+from boeing_clm.storage.repository import CANONICAL_DEAL_PROFILES
 
 UI_HTML_PATH = Path(__file__).resolve().parents[1] / "ui" / "index.html"
 
@@ -90,6 +92,14 @@ async def health_check() -> dict[str, str]:
     }
 
 
+@app.get("/api/deals")
+def list_active_deals() -> dict[str, Any]:
+    """List all active portfolio deals from BigQuery active_deals."""
+    repo = get_repository()
+    deals = repo.list_active_deals()
+    return {"deals": deals, "count": len(deals)}
+
+
 @app.get("/api/deals/{deal_id}", response_model=DealWorkbenchState)
 def get_deal_state(
     deal_id: str,
@@ -107,7 +117,7 @@ async def ingest_deal_docx(
     file: Optional[UploadFile] = File(default=None),
 ) -> DealWorkbenchState:
     """
-    Parse an uploaded vendor-redlined .docx (or default to specs/04_golden_fixtures/Vendor_Redlined_GP1.docx),
+    Parse an uploaded vendor-redlined .docx (or default to the deal's golden fixture .docx),
     persist all 12 clauses to BigQuery, broadcast SSE event, and return DealWorkbenchState.
     """
     tmp_path: Optional[Path] = None
@@ -119,7 +129,11 @@ async def ingest_deal_docx(
                 tmp_path = Path(tmp.name)
             target_docx = tmp_path
         else:
-            target_docx = GOLDEN_VENDOR_REDLINE_DOCX
+            profile = CANONICAL_DEAL_PROFILES.get(deal_id)
+            if profile and (GOLDEN_FIXTURES_DIR / profile["fixture_docx"]).exists():
+                target_docx = GOLDEN_FIXTURES_DIR / profile["fixture_docx"]
+            else:
+                target_docx = GOLDEN_VENDOR_REDLINE_DOCX
 
         extracted = await asyncio.to_thread(parse_redlined_docx, target_docx)
         validated_diffs = [ExtractedClauseDiff.model_validate(d) for d in extracted]

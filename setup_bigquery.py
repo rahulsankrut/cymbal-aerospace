@@ -4,8 +4,9 @@ setup_bigquery.py — Seeds and verifies the live BigQuery dataset `vertex-ai-de
 Executes:
 1. `specs/01_bq_schema.sql` (schema, remote embedding model `text_embedding_005`, and 6 tables)
 2. `sql/02_seed_data.sql` (12 proforma clauses, 64 historical precedents, live 768-dim embeddings,
-   3 conflict/lockout rules, active deal `BA-2026-AV-8921`, 12 deal clause deviations, 5 audit events)
-3. Post-seed verification checks against live BigQuery.
+   4 conflict/lockout rules, 3 active portfolio deals: `BA-2026-AV-8921`, `BA-2026-TR-5510`, `BA-2026-LG-7740`)
+3. Deterministic deal workbench initialization across all 3 portfolio deals (36 deal clause deviations)
+4. Post-seed verification checks against live BigQuery.
 """
 from __future__ import annotations
 
@@ -20,6 +21,7 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from boeing_clm.config import BQ_DATASET, BQ_LOCATION, GCP_PROJECT_ID, SPECS_DIR
+from boeing_clm.storage.repository import CANONICAL_DEAL_PROFILES, BigQueryCLMRepository
 
 
 JOB_LABELS = {"datacloud": "antigravity"}
@@ -61,10 +63,10 @@ def verify_seed(client: bigquery.Client, project_id: str = GCP_PROJECT_ID, datas
     assert summary["precedent_embedded_count"] == 64, (
         f"Expected 64 embedded historical precedents (768-dim), got {summary['precedent_embedded_count']}"
     )
-    assert summary["conflict_rules_count"] == 3, f"Expected 3 conflict rules, got {summary['conflict_rules_count']}"
-    assert summary["active_deals_count"] == 1, f"Expected 1 active deal, got {summary['active_deals_count']}"
-    assert summary["deviations_count"] == 12, f"Expected 12 deal clause deviations, got {summary['deviations_count']}"
-    assert summary["audit_events_count"] >= 5, f"Expected >=5 audit events, got {summary['audit_events_count']}"
+    assert summary["conflict_rules_count"] == 4, f"Expected 4 conflict rules, got {summary['conflict_rules_count']}"
+    assert summary["active_deals_count"] == 3, f"Expected 3 active deals, got {summary['active_deals_count']}"
+    assert summary["deviations_count"] == 36, f"Expected 36 deal clause deviations, got {summary['deviations_count']}"
+    assert summary["audit_events_count"] >= 13, f"Expected >=13 audit events, got {summary['audit_events_count']}"
     return summary
 
 
@@ -75,6 +77,12 @@ def main() -> None:
 
     run_sql_script(client, schema_sql)
     run_sql_script(client, seed_sql)
+
+    repo = BigQueryCLMRepository(project_id=GCP_PROJECT_ID, dataset=BQ_DATASET)
+    for deal_id in CANONICAL_DEAL_PROFILES:
+        print(f"[setup_bigquery] Seeding canonical workbench state for {deal_id} ...")
+        repo.reset_deal_workbench(deal_id=deal_id, source_surface="EXPERIENCE_LAYER_UI", include_precedents=False)
+
     verify_seed(client, GCP_PROJECT_ID, BQ_DATASET)
     print(f"[setup_bigquery] SUCCESS: `{GCP_PROJECT_ID}.{BQ_DATASET}` is live and verified.")
 

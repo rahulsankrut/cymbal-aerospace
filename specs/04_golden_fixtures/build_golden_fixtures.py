@@ -468,6 +468,8 @@ def build_golden_fixtures(target_dir: Path | None = None) -> List[ExtractedClaus
         if c["vendor_comments"]:
             etree.SubElement(p_el, f"{{{W_NS}}}commentRangeEnd", {f"{{{W_NS}}}id": str(comment_id)})
             r_ref = etree.SubElement(p_el, f"{{{W_NS}}}r")
+            rpr_ref = etree.SubElement(r_ref, f"{{{W_NS}}}rPr")
+            etree.SubElement(rpr_ref, f"{{{W_NS}}}rStyle", {f"{{{W_NS}}}val": "CommentReference"})
             etree.SubElement(r_ref, f"{{{W_NS}}}commentReference", {f"{{{W_NS}}}id": str(comment_id)})
             comments_to_inject.append(
                 {
@@ -506,7 +508,616 @@ def build_golden_fixtures(target_dir: Path | None = None) -> List[ExtractedClaus
         json.dumps([d.model_dump() for d in expected_diffs], indent=2),
         encoding="utf-8",
     )
+    build_portfolio_deal_fixtures(out_dir)
     return expected_diffs
+
+
+def _build_custom_deal_docx(
+    out_path: Path,
+    title_heading: str,
+    subtitle_line: str,
+    clauses_spec: List[Dict[str, Any]],
+) -> None:
+    doc = Document()
+    doc.add_heading(title_heading, level=1)
+    doc.add_paragraph(subtitle_line)
+
+    rev_id = 200
+    comment_id = 1
+    comments_to_inject: List[Dict[str, Any]] = []
+
+    for c in clauses_spec:
+        meta_header = (
+            f"[{c['clause_id']}] {c['clause_ref']} — {c['clause_title']} "
+            f"| SME_TEAM={c['sme_team']} | OWNER={c['sme_owner_label']} "
+            f"| RISK={c['risk_level']} | REG={c['regulatory_flag']}"
+        )
+        doc.add_heading(meta_header, level=2)
+        p = doc.add_paragraph()
+        p_el = p._p
+
+        comment_items = c.get("comments", [])
+        if comment_items:
+            etree.SubElement(p_el, f"{{{W_NS}}}commentRangeStart", {f"{{{W_NS}}}id": str(comment_id)})
+
+        for seg in c["segments"]:
+            author = seg.get("author", c.get("default_author", "Vendor Legal"))
+            if seg["type"] == "same":
+                _append_run(p_el, seg["text"])
+            elif seg["type"] == "del":
+                rev_id += 1
+                _append_del(p_el, rev_id, seg["text"], author=author)
+            elif seg["type"] == "ins":
+                rev_id += 1
+                _append_ins(p_el, rev_id, seg["text"], author=author)
+
+        if comment_items:
+            etree.SubElement(p_el, f"{{{W_NS}}}commentRangeEnd", {f"{{{W_NS}}}id": str(comment_id)})
+            r_ref = etree.SubElement(p_el, f"{{{W_NS}}}r")
+            rpr_ref = etree.SubElement(r_ref, f"{{{W_NS}}}rPr")
+            etree.SubElement(rpr_ref, f"{{{W_NS}}}rStyle", {f"{{{W_NS}}}val": "CommentReference"})
+            etree.SubElement(r_ref, f"{{{W_NS}}}commentReference", {f"{{{W_NS}}}id": str(comment_id)})
+            first_c = comment_items[0]
+            comments_to_inject.append(
+                {
+                    "id": comment_id,
+                    "author": first_c.get("author", "SME Reviewer"),
+                    "text": first_c.get("text", ""),
+                }
+            )
+            comment_id += 1
+
+    buf = BytesIO()
+    doc.save(buf)
+    final_bytes = _inject_comments_part(buf.getvalue(), comments_to_inject)
+    out_path.write_bytes(final_bytes)
+
+
+def build_portfolio_deal_fixtures(out_dir: Path) -> None:
+    """
+    Build real golden OOXML .docx fixtures for Deal 2 (BA-2026-TR-5510 — Vanguard Thrust Systems TRA-500)
+    and Deal 3 (BA-2026-LG-7740 — Meridian Landing Gear TLG-800) with subsystem-specific text across all 12 clauses.
+    """
+    tr5510_clauses: List[Dict[str, Any]] = [
+        {
+            "clause_id": "GP1-01",
+            "proforma_doc": "GP1",
+            "clause_ref": "GP1 §1.1",
+            "clause_title": "Definitions & Order of Precedence",
+            "sme_team": "PROCUREMENT",
+            "sme_owner_label": "Procurement & Subcontracts",
+            "risk_level": "NONE",
+            "regulatory_flag": "Cymbal Corporate GP1 Standard",
+            "segments": [
+                {
+                    "type": "same",
+                    "text": "1.1 Buyer means Cymbal Aerospace Corporation. Seller means Vanguard Thrust Systems Corp. supplying 777X/787 Thrust Reverser Actuators (TRA-500). In the event of any inconsistency among Contract documents, Special Provisions (SP) shall take precedence over General Provisions (GP1), excluding Firm-Fixed-Price caps set forth in GP1 §3.1.",
+                }
+            ],
+            "comments": [],
+        },
+        {
+            "clause_id": "GP1-03",
+            "proforma_doc": "GP1",
+            "clause_ref": "GP1 §3.1",
+            "clause_title": "Firm-Fixed-Price SOW Cap & Pricing Integrity",
+            "sme_team": "PROCUREMENT",
+            "sme_owner_label": "Procurement Finance (Diego Siciliani)",
+            "risk_level": "HIGH",
+            "regulatory_flag": "Cross-Department Conflict vs. GP1 §19 Legal Liability Floor",
+            "default_author": "Diego Siciliani",
+            "segments": [
+                {
+                    "type": "same",
+                    "text": "3.1 All TRA-500 Thrust Reverser Actuator unit prices in Statement of Work (SOW) Schedule A are Firm-Fixed-Price (FFP) totaling $38,000,000, ",
+                },
+                {
+                    "type": "del",
+                    "text": "and shall not be subject to uncapped surcharges, tariff pass-throughs, or raw material indexing.",
+                },
+                {
+                    "type": "ins",
+                    "text": "less a 3.5% ($1,330,000) commercial volume discount bringing net FFP ceiling to $36,670,000, expressly conditioned upon Buyer accepting Seller's 1.0x ($38,000,000) General Liability Cap in GP1 §19.",
+                },
+            ],
+            "comments": [
+                {
+                    "author": "Diego Siciliani",
+                    "text": "Diego Siciliani (Director, Procurement Finance): Approved 3.5% ($1.33M) commercial unit-price discount on TRA-500 actuators in GP1 §3.1 in exchange for granting Vanguard a 1.0x ($38M) Liability Cap in GP1 §19.",
+                }
+            ],
+        },
+        {
+            "clause_id": "GP1-05",
+            "proforma_doc": "GP1",
+            "clause_ref": "GP1 §5.2",
+            "clause_title": "Packing, Marking & Aerospace Preservation",
+            "sme_team": "ENGINEERING",
+            "sme_owner_label": "Supplier Logistics & Packaging",
+            "risk_level": "NONE",
+            "regulatory_flag": "ATA Spec 300 / D6-81628",
+            "segments": [
+                {
+                    "type": "same",
+                    "text": "5.2 Seller shall pack, mark, and ship all TRA-500 hydraulic and electromechanical thrust reverser actuator assemblies in accordance with Cymbal Document D6-81628 and ATA Spec 300 corrosion-inhibited hermetically sealed containers.",
+                }
+            ],
+            "comments": [],
+        },
+        {
+            "clause_id": "GP1-07",
+            "proforma_doc": "GP1",
+            "clause_ref": "GP1 §7.1",
+            "clause_title": "Quality Management System (AS9100 Rev D)",
+            "sme_team": "ENGINEERING",
+            "sme_owner_label": "Supplier Quality Assurance",
+            "risk_level": "NONE",
+            "regulatory_flag": "AS9100 Rev D / D6-82479",
+            "segments": [
+                {
+                    "type": "same",
+                    "text": "7.1 Seller shall maintain an accredited AS9100 Rev D and Nadcap Fluid Distribution Quality Management System for all TRA-500 thrust reverser actuators and comply with D6-82479 throughout Contract performance.",
+                }
+            ],
+            "comments": [],
+        },
+        {
+            "clause_id": "GP1-09",
+            "proforma_doc": "GP1",
+            "clause_ref": "GP1 §9.1",
+            "clause_title": "Changes & Equitable Adjustment",
+            "sme_team": "PROCUREMENT",
+            "sme_owner_label": "Procurement & Subcontracts",
+            "risk_level": "NONE",
+            "regulatory_flag": "Cymbal Corporate GP1 Standard",
+            "segments": [
+                {
+                    "type": "same",
+                    "text": "9.1 Buyer's Authorized Procurement Representative may at any time, by written order, direct changes within the general scope of this Contract in TRA-500 nacelle interfaces, drawings, or delivery schedules.",
+                }
+            ],
+            "comments": [],
+        },
+        {
+            "clause_id": "GP1-12",
+            "proforma_doc": "GP1",
+            "clause_ref": "GP1 §12.2",
+            "clause_title": "Warranty & FAA Source Inspection",
+            "sme_team": "ENGINEERING",
+            "sme_owner_label": "Engineering & QA (FAA DER)",
+            "risk_level": "HIGH",
+            "regulatory_flag": "FAA 14 CFR Part 21 Lockout",
+            "default_author": "Vanguard Thrust Legal",
+            "segments": [
+                {
+                    "type": "same",
+                    "text": "12.2 Seller warrants all TRA-500 Thrust Reverser Actuator assemblies against defects in hydraulic seals, ballscrews, and workmanship for ",
+                },
+                {"type": "del", "text": "thirty-six (36) months from initial aircraft delivery to Buyer's airline customer"},
+                {"type": "ins", "text": "twelve (12) months from ex-works factory shipment"},
+                {
+                    "type": "same",
+                    "text": ". Buyer and FAA representatives may conduct ",
+                },
+                {"type": "del", "text": "unannounced source inspections at Seller's facility at any time"},
+                {"type": "ins", "text": "scheduled inspections upon thirty (30) days prior written notice"},
+                {
+                    "type": "same",
+                    "text": " to verify AS9100 Rev D and FAA 14 CFR Part 21.140 production airworthiness compliance.",
+                },
+            ],
+            "comments": [
+                {
+                    "author": "Megan Bowen",
+                    "text": "Megan Bowen (Lead Airworthiness & QA DER): Approved Hold Firm — 36-month warranty from aircraft delivery and unannounced FAA 14 CFR Part 21.140 source inspection are non-waivable for TRA-500 thrust reverser hardware.",
+                }
+            ],
+        },
+        {
+            "clause_id": "GP1-15",
+            "proforma_doc": "GP1",
+            "clause_ref": "GP1 §15.1",
+            "clause_title": "Termination for Convenience",
+            "sme_team": "LEGAL",
+            "sme_owner_label": "Corporate Legal & Commercial",
+            "risk_level": "NONE",
+            "regulatory_flag": "FAR 52.249-2 Aligned",
+            "segments": [
+                {
+                    "type": "same",
+                    "text": "15.1 Buyer may terminate all or any part of this TRA-500 Contract for convenience by written notice to Seller. Seller shall immediately stop all terminated work and mitigate termination settlement costs.",
+                }
+            ],
+            "comments": [],
+        },
+        {
+            "clause_id": "GP1-19",
+            "proforma_doc": "GP1",
+            "clause_ref": "GP1 §19 & §24",
+            "clause_title": "Limitation of Liability & IP Indemnity",
+            "sme_team": "LEGAL",
+            "sme_owner_label": "Corporate Legal & IP (Miriam Graham)",
+            "risk_level": "CRITICAL",
+            "regulatory_flag": "Corporate Legal Playbook Minimum 1.5x Liability Cap Guardrail",
+            "default_author": "Miriam Graham",
+            "segments": [
+                {
+                    "type": "same",
+                    "text": "19.1 Seller's aggregate liability for direct damages, nacelle line-stoppage, and thrust reverser airworthiness recall costs shall ",
+                },
+                {"type": "del", "text": "not exceed one hundred percent (100% / 1.0x) of the total Purchase Order value ($38,000,000) per GP1 §3.1 commercial discount"},
+                {
+                    "type": "ins",
+                    "text": "not exceed one hundred fifty percent (150% / 1.5x) of total Purchase Order value ($57,000,000), with a 2.5x ($95,000,000) Super-Cap and uncapped carveouts for IP indemnification (§24), flight-safety Airworthiness Directives, and DFARS cybersecurity obligations",
+                },
+                {"type": "same", "text": "."},
+            ],
+            "comments": [
+                {
+                    "author": "Miriam Graham",
+                    "text": "Miriam Graham (VP Legal & IP): CONFLICT WITH FINANCE — Legal Playbook strictly requires minimum 1.5x ($57M) Liability Cap on TRA-500 thrust reverser actuators and prohibits commercial cap-for-discount trade-offs in GP1 §3.1. Legal takes precedence.",
+                }
+            ],
+        },
+        {
+            "clause_id": "GP1-28",
+            "proforma_doc": "GP1",
+            "clause_ref": "GP1 §28.1",
+            "clause_title": "Governing Law & Dispute Resolution",
+            "sme_team": "LEGAL",
+            "sme_owner_label": "Corporate Legal",
+            "risk_level": "NONE",
+            "regulatory_flag": "Delaware / Washington Law Standard",
+            "segments": [
+                {
+                    "type": "same",
+                    "text": "28.1 This TRA-500 Subcontract and all disputes arising hereunder shall be governed by and construed in accordance with the laws of the State of Delaware, excluding its conflict of laws rules.",
+                }
+            ],
+            "comments": [],
+        },
+        {
+            "clause_id": "SP3-02",
+            "proforma_doc": "SP3",
+            "clause_ref": "SP3 §2.1",
+            "clause_title": "Export Compliance (ITAR & EAR)",
+            "sme_team": "TAX",
+            "sme_owner_label": "Global Trade Controls",
+            "risk_level": "NONE",
+            "regulatory_flag": "22 CFR 120-130 (ITAR) / 15 CFR 730-774 (EAR)",
+            "segments": [
+                {
+                    "type": "same",
+                    "text": "2.1 Seller shall comply with all applicable U.S. export control laws and regulations (ITAR and EAR Part 774 ECCN 9A991) for all TRA-500 thrust reverser actuation technical data.",
+                }
+            ],
+            "comments": [],
+        },
+        {
+            "clause_id": "SP3-04",
+            "proforma_doc": "SP3",
+            "clause_ref": "SP3 §4.1",
+            "clause_title": "Customs, Duties & International Tariffs",
+            "sme_team": "TAX",
+            "sme_owner_label": "Global Tax & Trade",
+            "risk_level": "MOD",
+            "regulatory_flag": "Cross-Clause SOW §3.1 Dependency",
+            "default_author": "Vanguard Thrust Tax",
+            "segments": [
+                {"type": "same", "text": "4.1 All TRA-500 unit prices are "},
+                {
+                    "type": "del",
+                    "text": "DDP (Incoterms 2020) Cymbal Everett/Renton facility and inclusive of all import duties, customs fees, and tariffs",
+                },
+                {
+                    "type": "ins",
+                    "text": "exclusive of any new Section 232/301 tariffs on specialty Inconel/maraging steel actuator forgings exceeding five percent (5%), which shall be shared 50/50 capped at 2.0% ($760,000) of PO value",
+                },
+                {"type": "same", "text": "."},
+            ],
+            "comments": [
+                {
+                    "author": "Pradeep Gupta",
+                    "text": "Pradeep Gupta (Director, Global Tax & Trade): Approved Tier-1 50/50 tariff-sharing band above 5.0% threshold on TRA-500 forgings, strictly capped at +2.0% ($760,000) of the $38M FFP ceiling.",
+                }
+            ],
+        },
+        {
+            "clause_id": "SP5-03",
+            "proforma_doc": "SP5",
+            "clause_ref": "SP5 §3.2",
+            "clause_title": "Cybersecurity Incident Reporting (DFARS)",
+            "sme_team": "CYBER",
+            "sme_owner_label": "Supplier Cyber Defense",
+            "risk_level": "HIGH",
+            "regulatory_flag": "DFARS 252.204-7012 Lockout",
+            "default_author": "Vanguard Thrust CISO",
+            "segments": [
+                {
+                    "type": "same",
+                    "text": "3.2 Seller shall maintain NIST SP 800-171 controls for all TRA-500 digital test benches and report any cybersecurity incident affecting Covered Defense Information within ",
+                },
+                {"type": "del", "text": "seventy-two (72) hours of discovery"},
+                {"type": "ins", "text": "ten (10) business days following confirmation of a material breach"},
+                {"type": "same", "text": ", and provide forensic log images upon request."},
+            ],
+            "comments": [
+                {
+                    "author": "Alex Wilber",
+                    "text": "Alex Wilber (CISO Lead, Supplier Cyber Defense): Approved Hold Firm on mandatory 72-hour DFARS 252.204-7012 cyber incident reporting and 90-day forensic log preservation.",
+                }
+            ],
+        },
+    ]
+
+    _build_custom_deal_docx(
+        out_path=out_dir / "Vanguard_Working_Review_TR5510.docx",
+        title_heading="CYMBAL AEROSPACE — WORKING REVIEW CONTRACT (DEAL BA-2026-TR-5510)",
+        subtitle_line="Deal ID: BA-2026-TR-5510 | Supplier: Vanguard Thrust Systems Corp. (Tier-1 Propulsion & Actuation) | Program: 777X / 787 Thrust Reverser Actuators (TRA-500) | Value: $38,000,000.00",
+        clauses_spec=tr5510_clauses,
+    )
+
+    lg7740_clauses: List[Dict[str, Any]] = [
+        {
+            "clause_id": "GP1-01",
+            "proforma_doc": "GP1",
+            "clause_ref": "GP1 §1.1",
+            "clause_title": "Definitions & Order of Precedence",
+            "sme_team": "PROCUREMENT",
+            "sme_owner_label": "Procurement & Subcontracts",
+            "risk_level": "NONE",
+            "regulatory_flag": "Cymbal Corporate GP1 Standard",
+            "segments": [
+                {
+                    "type": "same",
+                    "text": "1.1 Buyer means Cymbal Aerospace Corporation. Seller means Meridian Landing Gear Corp. supplying 787-10 Titanium Main Landing Gear Assemblies (TLG-800). In the event of any inconsistency among Contract documents, Special Provisions (SP) shall take precedence over General Provisions (GP1), excluding Firm-Fixed-Price caps set forth in GP1 §3.1.",
+                }
+            ],
+            "comments": [],
+        },
+        {
+            "clause_id": "GP1-03",
+            "proforma_doc": "GP1",
+            "clause_ref": "GP1 §3.1",
+            "clause_title": "Firm-Fixed-Price SOW Cap & Pricing Integrity",
+            "sme_team": "PROCUREMENT",
+            "sme_owner_label": "Procurement & Cost Management",
+            "risk_level": "NONE",
+            "regulatory_flag": "Firm-Fixed-Price SOW Lock",
+            "segments": [
+                {
+                    "type": "same",
+                    "text": "3.1 Unless expressly modified by a bilateral Change Order signed by Buyer's Authorized Procurement Representative referencing this GP1 §3.1, all TLG-800 Titanium Main Landing Gear unit prices in Statement of Work (SOW) Schedule A are Firm-Fixed-Price ($52,000,000 ceiling) and shall not be subject to uncapped surcharges, tariff pass-throughs, or raw material indexing.",
+                }
+            ],
+            "comments": [],
+        },
+        {
+            "clause_id": "GP1-05",
+            "proforma_doc": "GP1",
+            "clause_ref": "GP1 §5.2",
+            "clause_title": "Packing, Marking & Aerospace Preservation",
+            "sme_team": "ENGINEERING",
+            "sme_owner_label": "Supplier Logistics & Packaging",
+            "risk_level": "NONE",
+            "regulatory_flag": "ATA Spec 300 / D6-81628",
+            "segments": [
+                {
+                    "type": "same",
+                    "text": "5.2 Seller shall pack, mark, and ship all TLG-800 Ti-10V-2Fe-3Al main landing gear shock struts and truck beams in accordance with Cymbal Document D6-81628 and ATA Spec 300 heavy structural cradle preservation standards.",
+                }
+            ],
+            "comments": [],
+        },
+        {
+            "clause_id": "GP1-07",
+            "proforma_doc": "GP1",
+            "clause_ref": "GP1 §7.1",
+            "clause_title": "Quality Management System (AS9100 Rev D)",
+            "sme_team": "ENGINEERING",
+            "sme_owner_label": "Supplier Quality Assurance",
+            "risk_level": "NONE",
+            "regulatory_flag": "AS9100 Rev D / D6-82479",
+            "segments": [
+                {
+                    "type": "same",
+                    "text": "7.1 Seller shall maintain an accredited AS9100 Rev D and Nadcap Non-Destructive Testing (Ultrasonic & Eddy Current) Quality Management System for all TLG-800 titanium forgings and comply with D6-82479 throughout Contract performance.",
+                }
+            ],
+            "comments": [],
+        },
+        {
+            "clause_id": "GP1-09",
+            "proforma_doc": "GP1",
+            "clause_ref": "GP1 §9.1",
+            "clause_title": "Changes & Equitable Adjustment",
+            "sme_team": "PROCUREMENT",
+            "sme_owner_label": "Procurement & Subcontracts",
+            "risk_level": "NONE",
+            "regulatory_flag": "Cymbal Corporate GP1 Standard",
+            "segments": [
+                {
+                    "type": "same",
+                    "text": "9.1 Buyer's Authorized Procurement Representative may at any time, by written order, direct changes within the general scope of this Contract in TLG-800 landing gear trunnion drawings, forging specifications, or delivery schedules.",
+                }
+            ],
+            "comments": [],
+        },
+        {
+            "clause_id": "GP1-12",
+            "proforma_doc": "GP1",
+            "clause_ref": "GP1 §12.2",
+            "clause_title": "Warranty & FAA Source Inspection",
+            "sme_team": "ENGINEERING",
+            "sme_owner_label": "Engineering & QA (FAA DER)",
+            "risk_level": "HIGH",
+            "regulatory_flag": "FAA 14 CFR Part 21 Lockout",
+            "default_author": "Meridian Landing Gear Legal",
+            "segments": [
+                {
+                    "type": "same",
+                    "text": "12.2 Seller warrants all TLG-800 Titanium Main Landing Gear Assemblies against structural fatigue, forging inclusions, and defects in workmanship for ",
+                },
+                {"type": "del", "text": "thirty-six (36) months from initial aircraft delivery to Buyer's airline customer"},
+                {"type": "ins", "text": "eighteen (18) months from ex-works factory shipment"},
+                {"type": "same", "text": ". Buyer and FAA representatives may conduct "},
+                {"type": "del", "text": "unannounced source inspections at Seller's forge and machining facilities at any time"},
+                {"type": "ins", "text": "scheduled inspections upon fifteen (15) business days prior written notice"},
+                {"type": "same", "text": " to verify AS9100 Rev D and FAA 14 CFR Part 21.140 primary structural airworthiness compliance."},
+            ],
+            "comments": [
+                {
+                    "author": "Megan Bowen",
+                    "text": "Megan Bowen (Lead Airworthiness & QA DER): Approved Hold Firm — 36-month warranty from aircraft delivery and unannounced FAA 14 CFR Part 21.140 source inspection are non-waivable for primary TLG-800 titanium landing gear forgings.",
+                }
+            ],
+        },
+        {
+            "clause_id": "GP1-15",
+            "proforma_doc": "GP1",
+            "clause_ref": "GP1 §15.1",
+            "clause_title": "Termination for Convenience",
+            "sme_team": "LEGAL",
+            "sme_owner_label": "Corporate Legal & Commercial",
+            "risk_level": "NONE",
+            "regulatory_flag": "FAR 52.249-2 Aligned",
+            "segments": [
+                {
+                    "type": "same",
+                    "text": "15.1 Buyer may terminate all or any part of this TLG-800 Contract for convenience by written notice to Seller. Seller shall immediately stop all terminated work and mitigate termination settlement costs.",
+                }
+            ],
+            "comments": [],
+        },
+        {
+            "clause_id": "GP1-19",
+            "proforma_doc": "GP1",
+            "clause_ref": "GP1 §19 & §24",
+            "clause_title": "Limitation of Liability & IP Indemnity",
+            "sme_team": "LEGAL",
+            "sme_owner_label": "Corporate Legal & IP",
+            "risk_level": "CRITICAL",
+            "regulatory_flag": "Corporate Legal Playbook Tier-1",
+            "default_author": "Meridian Landing Gear Legal",
+            "segments": [
+                {
+                    "type": "same",
+                    "text": "19.1 Seller's liability for direct damages, final assembly line-stoppage, and TLG-800 landing gear Airworthiness Directive recall costs shall ",
+                },
+                {"type": "del", "text": "be uncapped"},
+                {"type": "ins", "text": "not exceed one hundred percent (100%) of the total Purchase Order value ($52,000,000)"},
+                {
+                    "type": "same",
+                    "text": ". 24.1 Seller shall indemnify Buyer against all third-party intellectual property infringement claims",
+                },
+                {"type": "del", "text": " including wheel-well kinematic retraction integration"},
+                {"type": "ins", "text": " except where such claim arises from combination of TLG-800 assemblies with Buyer airframe hydraulic systems"},
+                {"type": "same", "text": "."},
+            ],
+            "comments": [
+                {
+                    "author": "Miriam Graham",
+                    "text": "Miriam Graham (VP Legal & IP): Recommended Tier-1 Super-Cap (2.0x / $104,000,000 General Cap with 2.5x / $130,000,000 Super-Cap) with mandatory uncapped carveouts for IP indemnity and flight-safety AD recalls — ready for Contract Owner final sign-off.",
+                }
+            ],
+        },
+        {
+            "clause_id": "GP1-28",
+            "proforma_doc": "GP1",
+            "clause_ref": "GP1 §28.1",
+            "clause_title": "Governing Law & Dispute Resolution",
+            "sme_team": "LEGAL",
+            "sme_owner_label": "Corporate Legal",
+            "risk_level": "NONE",
+            "regulatory_flag": "Delaware / Washington Law Standard",
+            "segments": [
+                {
+                    "type": "same",
+                    "text": "28.1 This TLG-800 Subcontract and all disputes arising hereunder shall be governed by and construed in accordance with the laws of the State of Delaware, excluding its conflict of laws rules.",
+                }
+            ],
+            "comments": [],
+        },
+        {
+            "clause_id": "SP3-02",
+            "proforma_doc": "SP3",
+            "clause_ref": "SP3 §2.1",
+            "clause_title": "Export Compliance (ITAR & EAR)",
+            "sme_team": "TAX",
+            "sme_owner_label": "Global Trade Controls",
+            "risk_level": "NONE",
+            "regulatory_flag": "22 CFR 120-130 (ITAR) / 15 CFR 730-774 (EAR)",
+            "segments": [
+                {
+                    "type": "same",
+                    "text": "2.1 Seller shall comply with all applicable U.S. export control laws and regulations (ITAR and EAR) for all TLG-800 landing gear metallurgy and machining technical data.",
+                }
+            ],
+            "comments": [],
+        },
+        {
+            "clause_id": "SP3-04",
+            "proforma_doc": "SP3",
+            "clause_ref": "SP3 §4.1",
+            "clause_title": "Customs, Duties & International Tariffs",
+            "sme_team": "TAX",
+            "sme_owner_label": "Global Tax & Trade",
+            "risk_level": "MOD",
+            "regulatory_flag": "Cross-Clause SOW §3.1 Dependency",
+            "default_author": "Meridian Landing Gear Tax",
+            "segments": [
+                {"type": "same", "text": "4.1 All TLG-800 unit prices are "},
+                {
+                    "type": "del",
+                    "text": "DDP (Incoterms 2020) Cymbal Everett/Charleston facility and inclusive of all import duties, customs fees, and tariffs",
+                },
+                {
+                    "type": "ins",
+                    "text": "exclusive of any new or increased Section 232/301 tariffs on VSMPO/European titanium billet forgings exceeding five percent (5%), which shall be passed through 100% to Buyer",
+                },
+                {"type": "same", "text": "."},
+            ],
+            "comments": [
+                {
+                    "author": "Pradeep Gupta",
+                    "text": "Pradeep Gupta (Director, Global Tax & Trade): Approved Tier-1 50/50 tariff-sharing band above 5.0% threshold on TLG-800 titanium forgings, strictly capped at +2.0% ($1,040,000) of the $52M Firm-Fixed-Price SOW.",
+                }
+            ],
+        },
+        {
+            "clause_id": "SP5-03",
+            "proforma_doc": "SP5",
+            "clause_ref": "SP5 §3.2",
+            "clause_title": "Cybersecurity Incident Reporting (DFARS)",
+            "sme_team": "CYBER",
+            "sme_owner_label": "Supplier Cyber Defense",
+            "risk_level": "HIGH",
+            "regulatory_flag": "DFARS 252.204-7012 Lockout",
+            "default_author": "Meridian Landing Gear CISO",
+            "segments": [
+                {
+                    "type": "same",
+                    "text": "3.2 Seller shall maintain NIST SP 800-171 controls for all CNC 5-axis machining cells and report any cybersecurity incident affecting Covered Defense Information or TLG-800 technical data within ",
+                },
+                {"type": "del", "text": "seventy-two (72) hours of discovery"},
+                {"type": "ins", "text": "seven (7) business days following confirmation of a material breach"},
+                {"type": "same", "text": ", and provide forensic log images upon request."},
+            ],
+            "comments": [
+                {
+                    "author": "Alex Wilber",
+                    "text": "Alex Wilber (CISO Lead, Supplier Cyber Defense): Approved Hold Firm on mandatory 72-hour DFARS 252.204-7012 cyber incident reporting and 90-day raw forensic image preservation.",
+                }
+            ],
+        },
+    ]
+
+    _build_custom_deal_docx(
+        out_path=out_dir / "Meridian_Working_Review_LG7740.docx",
+        title_heading="CYMBAL AEROSPACE — WORKING REVIEW CONTRACT (DEAL BA-2026-LG-7740)",
+        subtitle_line="Deal ID: BA-2026-LG-7740 | Supplier: Meridian Landing Gear Corp. (Tier-1 Structural & Landing Gear) | Program: 787-10 Titanium Main Landing Gear Assemblies (TLG-800) | Value: $52,000,000.00",
+        clauses_spec=lg7740_clauses,
+    )
 
 
 if __name__ == "__main__":

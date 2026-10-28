@@ -40,5 +40,5 @@ Using the JSON output returned by `scripts/tax_review.py`:
    - Report the live distribution from `bigquery_tax_precedents.distribution` (`total_matches`, `compromise_tier_1_pct`, `held_firm_pct`, `accepted_vendor_pct`) and summarize the top historical supplier matches from `bigquery_tax_precedents.precedents`.
 3. **Harmonized Counter-Language & Working `.docx` Attribution**:
    - Quote `cross_clause_conflict_resolved.harmonized_counter_language` verbatim and confirm that the comment was recorded in `working_review_docx` under `w:author` = `comment_author_user`.
-4. **Open the Tax SME Reviewer UI in Spark Canvas**:
-   - Output a clickable Markdown file link to `[cymbal_clm_tax_reviewer_workbench.html](cymbal_clm_tax_reviewer_workbench.html)` so the reviewer can inspect `SP3 §4.1` in Tunneled Focus or expand the full 12-clause contract for context.
+4. **Open the Tax SME Reviewer UI (Antigravity Sidecar + Spark Canvas)**:
+   - Output the clickable Antigravity Sidecar pills `[Cymbal Tax & Tariff Review](sidecar://cymbal-aerospace-clm/cymbal-clm-workbench/tax-workbench)` and `[Cymbal CLM Workbench](sidecar://cymbal-aerospace-clm/cymbal-clm-workbench/)` alongside the Spark Canvas file link `[cymbal_clm_tax_reviewer_workbench.html](cymbal_clm_tax_reviewer_workbench.html)` so the reviewer can inspect `SP3 §4.1` in Tunneled Focus or expand Playbook guidance, BigQuery precedents, and the full 12-clause contract on demand.
